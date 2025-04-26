@@ -124,7 +124,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
     // Fetch main product
     const { data: productDataArray, error: productError } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+          id,
+          name,
+          slug,
+          sku,
+          description,
+          price,
+          sale_price,
+          images,
+          sizes,
+          in_stock,
+          collection_id,
+          estimated_restock_date,
+          collections ( name, slug )
+      `)
       .eq('slug', slug)
       .limit(1);
 

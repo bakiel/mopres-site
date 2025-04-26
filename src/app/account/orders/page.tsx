@@ -1,163 +1,128 @@
-'use client'; // Needs client-side checks for auth and data fetching
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { createSupabaseServerClient } from '@/lib/supabaseClient';
 import SectionTitle from '@/components/SectionTitle';
-import Button from '@/components/Button'; // Import Button component
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
-import type { User } from '@supabase/supabase-js';
+import Button from '@/components/Button';
+import { redirect } from 'next/navigation';
 
-// Define a type for the order data (adjust based on actual schema)
-// TODO: Refine this type, potentially fetch order items as well
-type Order = {
+// Define type for Order Summary
+interface OrderSummary {
   id: string;
-  created_at: string; // Assuming timestamp string
-  status: string;
+  created_at: string;
+  order_ref: string;
   total_amount: number;
-  invoice_number?: string; // Optional invoice number
-  // Add other fields as needed, e.g., order_items array if fetched together
+  status: string;
+}
+
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-ZA', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
 };
 
-export default function OrderHistoryPage() {
-  // Create the client instance inside the component
-  const supabase = createSupabaseBrowserClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+// Helper function to format currency
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
+};
 
-  useEffect(() => {
-    const fetchUserAndOrders = async () => {
-      setLoading(true);
-      setError(null);
+// Helper function to get status badge color
+const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+        case 'pending_payment': return 'bg-yellow-100 text-yellow-800';
+        case 'processing': return 'bg-blue-100 text-blue-800';
+        case 'shipped': return 'bg-green-100 text-green-800';
+        case 'delivered': return 'bg-green-200 text-green-900';
+        case 'cancelled': return 'bg-red-100 text-red-800';
+        case 'refunded': return 'bg-gray-100 text-gray-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
 
-      // 1. Check user session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (sessionError || !session?.user) {
-        console.error("Error getting session or no user:", sessionError);
-        router.push('/account/login'); // Redirect if not logged in
-        return;
-      }
-      setUser(session.user);
+export default async function OrdersPage() {
+  const cookieStore = cookies();
+  const supabase = createSupabaseServerClient(cookieStore);
 
-      // 2. Fetch orders for the logged-in user
-      try {
-        const { data: ordersData, error: ordersError } = await supabase
-          .from('orders')
-          .select('id, created_at, status, total_amount, invoice_number') // Select desired fields
-          .eq('user_id', session.user.id) // Filter by user ID
-          .order('created_at', { ascending: false }); // Show most recent first
-
-        if (ordersError) {
-          console.error("Error fetching orders:", ordersError);
-          throw new Error("Could not load your order history.");
-        }
-        setOrders(ordersData || []);
-      } catch (fetchError: any) {
-        setError(fetchError.message || "An error occurred while fetching orders.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserAndOrders();
-
-     // Listen for auth changes (e.g., logout)
-     const { data: authListener } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (event === 'SIGNED_OUT') {
-            setUser(null);
-            setOrders([]); // Clear orders on logout
-            router.push('/account/login');
-          } else {
-             // Update user state if session changes while on page (less likely here)
-             setUser(session?.user ?? null);
-          }
-        }
-      );
-
-      // Cleanup listener
-      return () => {
-        authListener?.subscription.unsubscribe();
-      };
-
-  }, [router]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    });
-  };
-
-  const formatCurrency = (amount: number) => {
-     return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
+  // Check user session
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    // Redirect to login if not authenticated
+    redirect('/account/login?redirect=/account/orders');
   }
 
-  if (loading) {
+  // Fetch user's orders
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('id, created_at, order_ref, total_amount, status')
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false }); // Show newest first
+
+  if (error) {
+    console.error("Error fetching orders:", JSON.stringify(error, null, 2));
+    // Handle error display appropriately
     return (
-      <div className="bg-background-body py-12 lg:py-20">
-        <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
-          <p className="text-text-light">Loading your order history...</p>
+        <div className="bg-background-body py-12 lg:py-20">
+            <div className="w-full max-w-screen-lg mx-auto px-4">
+                <SectionTitle centered>My Orders</SectionTitle>
+                <p className="text-center text-red-600 mt-6">Could not load your order history. Please try again later.</p>
+            </div>
         </div>
-      </div>
     );
   }
 
   return (
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-screen-lg mx-auto px-4">
-        <SectionTitle centered>Order History</SectionTitle>
+        <SectionTitle centered>My Orders</SectionTitle>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 font-poppins" role="alert"> {/* Added font-poppins */}
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
-
-        {orders.length > 0 ? (
-          <div className="overflow-x-auto bg-white p-6 border border-border-light rounded shadow-sm mt-8 font-poppins"> {/* Added font-poppins */}
-            <table className="min-w-full divide-y divide-border-light">
-              <thead className="bg-background-light">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Order Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Order #</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Total</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-text-light uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-border-light">
-                {orders.map((order) => (
-                  <tr key={order.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark">{formatDate(order.created_at)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark font-mono">{order.invoice_number || order.id.substring(0, 8)}</td> {/* Show invoice # or partial ID */}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark">{formatCurrency(order.total_amount)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark capitalize">{order.status}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <Link href={`/account/orders/${order.id}`} className="text-brand-gold hover:underline">
-                        View Details
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {orders && orders.length > 0 ? (
+          <div className="mt-8 space-y-6 font-poppins">
+            {orders.map((order: OrderSummary) => (
+              <div key={order.id} className="bg-white p-4 md:p-6 border border-border-light rounded shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                {/* Order Info */}
+                <div className="flex-grow grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                   <div>
+                        <span className="block text-xs text-text-light mb-1">Order #</span>
+                        <span className="font-medium text-text-dark">{order.order_ref}</span>
+                   </div>
+                    <div>
+                        <span className="block text-xs text-text-light mb-1">Date Placed</span>
+                        <span className="font-medium text-text-dark">{formatDate(order.created_at)}</span>
+                    </div>
+                     <div>
+                        <span className="block text-xs text-text-light mb-1">Total</span>
+                        <span className="font-medium text-text-dark">{formatCurrency(order.total_amount)}</span>
+                    </div>
+                     <div>
+                        <span className="block text-xs text-text-light mb-1">Status</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                            {order.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} {/* Format status */}
+                        </span>
+                    </div>
+                </div>
+                  {/* Action Button */}
+                  <div className="flex-shrink-0 mt-4 md:mt-0">
+                     <Link href={`/account/orders/${order.id}`}>
+                         <Button variant="outline-light">View Details</Button> {/* Removed size="sm" */}
+                     </Link>
+                  </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="text-center mt-8 bg-white p-8 border border-border-light rounded shadow-sm font-poppins"> {/* Added font-poppins */}
-            <p className="text-text-light">You haven't placed any orders yet.</p>
-            <Link href="/shop" className="mt-4 inline-block">
+          <div className="text-center mt-8 bg-white p-12 border border-border-light rounded shadow-sm font-poppins">
+            <h2 className="text-xl font-semibold mb-4">No Orders Found</h2>
+            <p className="text-text-light mb-6">You haven't placed any orders yet.</p>
+            <Link href="/shop">
                 <Button variant="primary">Start Shopping</Button>
             </Link>
           </div>
         )}
-
          <div className="mt-8 text-center">
-            <Link href="/account" className="text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
-                &larr; Back to My Account
+            <Link href="/account" className="text-brand-gold hover:underline font-poppins text-sm">
+                &larr; Back to Account
             </Link>
         </div>
       </div>

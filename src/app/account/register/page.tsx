@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
@@ -16,7 +15,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const router = useRouter();
+  // Removed unused router: const router = useRouter();
 
   const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -81,11 +80,12 @@ export default function RegisterPage() {
       // Optionally clear form fields on success
       // setEmail('');
       // setPassword('');
-      // setConfirmPassword('');
+       // setConfirmPassword('');
 
-    } catch (catchError: any) {
-      console.error("Unexpected error during registration:", catchError);
-      setError("An unexpected error occurred during registration. Please try again.");
+    } catch (catchError) { // Explicitly type error later if needed, or use unknown
+       const errorMessage = catchError instanceof Error ? catchError.message : 'An unknown error occurred';
+       console.error("Unexpected error during registration:", catchError);
+       setError(`An unexpected error occurred: ${errorMessage}`);
     } finally {
         setLoading(false); // Ensure loading is set to false in all cases
     }

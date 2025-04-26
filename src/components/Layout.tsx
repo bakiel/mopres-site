@@ -1,6 +1,8 @@
-import React, { FC, ReactNode } from 'react'; // Import FC and ReactNode
-import Header from './Header'; // Remove .tsx extension
-import Footer from './Footer'; // Remove .tsx extension
+import React, { FC, ReactNode } from 'react';
+import Header from './Header';
+import Footer from './Footer';
+import { Toaster } from 'react-hot-toast'; // Import Toaster
+import CartSidebar from './CartSidebar'; // Import CartSidebar
 
 // No longer need CSS variables defined here
 
@@ -20,6 +22,8 @@ const Layout: FC<LayoutProps> = ({ children }) => { // Type Layout as FC with La
         {children}
       </main>
       <Footer />
+      <Toaster position="bottom-right" /> {/* Add Toaster */}
+      <CartSidebar /> {/* Render CartSidebar */}
     </div>
   );
 };

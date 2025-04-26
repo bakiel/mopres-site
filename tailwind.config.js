@@ -9,8 +9,9 @@ module.exports = {
     extend: {
       colors: {
         'brand-gold': '#AF8F53',
-        'brand-black': '#000000', // Original CSS used pure black
+        'brand-black': '#000000',
         'brand-white': '#FFFFFF',
+        'brand-ivory': '#F5F5F3', // Added Ivory Mist
         'background-body': '#FFFFFF',
         'background-light': '#f9f9f9',
         'text-dark': '#222222',

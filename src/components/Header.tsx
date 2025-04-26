@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, FC } from 'react'; // Import FC
-import Link from 'next/link'; // Use Next.js Link for navigation
+import React, { useState, useEffect, FC } from 'react';
+import Link from 'next/link';
+import PredictiveSearch from './PredictiveSearch';
+import { useCartStore } from '@/store/cartStore'; // Import the cart store hook
 
-// SVG Icons (can be moved to separate files later if needed)
+// SVG Icons
 const SearchIcon: FC = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
     <circle cx="11" cy="11" r="8"></circle>
@@ -35,7 +37,11 @@ const MenuIcon: FC = () => (
 );
 
 
-const Header: FC = () => { // Type Header as FC
+const Header: FC = () => {
+  // Cart store state and actions
+  const { toggleSidebar, getTotalItems } = useCartStore();
+  const totalCartItems = getTotalItems(); // Get total items for badge
+
   // State for mobile menu toggle
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   // State for mobile dropdowns
@@ -131,17 +137,28 @@ const Header: FC = () => { // Type Header as FC
               </li>
             </ul>
 
-            {/* Navigation Icons */}
+            {/* Navigation Icons & Search */}
             <div className="hidden lg:flex gap-7 items-center flex-shrink-0">
-              <Link href="#search" aria-label="Search" className="text-white/85 hover:text-white">
-                <SearchIcon />
-              </Link>
+              {/* Predictive Search Component */}
+              <PredictiveSearch />
+              {/* Account Icon */}
               <Link href="/account" aria-label="My Account" className="text-white/85 hover:text-white">
                 <AccountIcon />
               </Link>
-              <Link href="/checkout/cart" aria-label="Shopping Cart" className="text-white/85 hover:text-white">
+              {/* Cart Icon Button */}
+              <button
+                onClick={toggleSidebar}
+                aria-label={`Shopping Cart (${totalCartItems} items)`}
+                className="text-white/85 hover:text-white relative"
+              >
                 <CartIcon />
-              </Link>
+                {/* Cart Badge */}
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-gold text-xs font-bold text-black">
+                    {totalCartItems}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Mobile Menu Toggle Button */}
@@ -219,8 +236,25 @@ const Header: FC = () => { // Type Header as FC
             <li><Link href="/account/wishlist" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>Wishlist</Link></li>
             <li><Link href="/admin" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>Admin Panel</Link></li>
           </div>
-          {/* Mobile Nav Item - Cart */}
-          <div className="w-full text-center py-3 px-4"><Link href="/checkout/cart" className="text-white/90 text-base uppercase tracking-[1.5px] block hover:text-brand-gold" onClick={closeMobileMenu}>Cart</Link></div> {/* Close menu on link click */}
+          {/* Mobile Nav Item - Cart (Now opens sidebar) */}
+          <div className="w-full text-center py-3 px-4">
+            <button
+              onClick={() => {
+                toggleSidebar();
+                closeMobileMenu(); // Close mobile menu when opening cart
+              }}
+              className="text-white/90 text-base uppercase tracking-[1.5px] block hover:text-brand-gold w-full relative"
+              aria-label={`Shopping Cart (${totalCartItems} items)`}
+            >
+              Cart
+              {/* Cart Badge for Mobile */}
+              {totalCartItems > 0 && (
+                  <span className="absolute top-1/2 right-4 transform -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-gold text-xs font-bold text-black">
+                    {totalCartItems}
+                  </span>
+                )}
+            </button>
+          </div>
         </div>
       </header>
     </>

@@ -4,10 +4,11 @@ import Image from 'next/image'; // Import next/image
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { cookies } from 'next/headers'; // Import cookies
-// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
-import { Suspense } from 'react'; // Import Suspense
-import ShopSortDropdown from '@/components/ShopSortDropdown'; // Import the new client component
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { Suspense } from 'react';
+// Remove ShopSortDropdown, import the other components
+import CollectionFilters from '@/components/CollectionFilters';
+import CollectionProductList from '@/components/CollectionProductList';
 
 // Define a type for the product data (consistent with homepage)
 type Product = {
@@ -23,7 +24,11 @@ type Product = {
 interface ShopPageProps {
   searchParams: {
     page?: string;
-    sort?: string; // Add sort parameter
+    sort?: string; // Keep sort parameter, handled by CollectionFilters now
+    inStock?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    heelHeight?: string;
   };
 }
 
@@ -36,8 +41,14 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
 
   const currentPage = parseInt(searchParams.page || '1', 10);
-  const sortBy = searchParams.sort || 'newest'; // Default sort to newest
+  const sortBy = searchParams.sort || 'created_at-desc'; // Match default in CollectionFilters
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  // Get filter values
+  const inStockOnly = searchParams?.inStock === 'true';
+  const minPrice = searchParams?.minPrice ? parseFloat(searchParams.minPrice) : undefined;
+  const maxPrice = searchParams?.maxPrice ? parseFloat(searchParams.maxPrice) : undefined;
+  const heelHeightRange = searchParams?.heelHeight?.split('-').map(Number);
 
   let products: Product[] = [];
   let totalProducts = 0;
@@ -61,14 +72,34 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     ascending = true;
   }
 
-
   try {
-    // Fetch products with pagination and sorting
-    const { data, error, count } = await supabase
+    // Build the product query for ALL products
+    let productQuery = supabase
       .from('products')
-      .select('id, name, slug, price, images, created_at', { count: 'exact' }) // Select necessary fields and count
-      .order(orderColumn, { ascending: ascending }) // Apply sorting
-      .range(offset, offset + ITEMS_PER_PAGE - 1); // Apply range for pagination
+      .select('id, name, slug, price, images, created_at, heel_height, description', { count: 'exact' }); // Select necessary fields
+
+    // Apply filters
+    if (inStockOnly) {
+      productQuery = productQuery.eq('in_stock', true);
+    }
+    if (minPrice !== undefined && !isNaN(minPrice)) {
+      productQuery = productQuery.gte('price', minPrice);
+    }
+    if (maxPrice !== undefined && !isNaN(maxPrice)) {
+      productQuery = productQuery.lte('price', maxPrice);
+    }
+    if (heelHeightRange && heelHeightRange.length === 2 && !isNaN(heelHeightRange[0]) && !isNaN(heelHeightRange[1])) {
+      productQuery = productQuery.gte('heel_height', heelHeightRange[0]);
+      productQuery = productQuery.lte('heel_height', heelHeightRange[1]);
+    }
+
+    // Apply sorting
+    const [sortField, sortDirection] = sortBy.split('-');
+    const ascending = sortDirection === 'asc';
+    productQuery = productQuery.order(sortField, { ascending });
+
+    // Apply pagination
+    const { data, error, count } = await productQuery.range(offset, offset + ITEMS_PER_PAGE - 1);
 
     if (error) {
       console.error("Supabase fetch error (Shop Page):", error);
@@ -83,77 +114,42 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
 
+  // Construct search params string from derived variables to avoid direct access warnings
+  const currentParams = new URLSearchParams();
+  if (searchParams.page) currentParams.set('page', searchParams.page); // Keep original page param if present
+  if (searchParams.sort) currentParams.set('sort', searchParams.sort);
+  if (searchParams.inStock) currentParams.set('inStock', searchParams.inStock);
+  if (searchParams.minPrice) currentParams.set('minPrice', searchParams.minPrice);
+  if (searchParams.maxPrice) currentParams.set('maxPrice', searchParams.maxPrice);
+  if (searchParams.heelHeight) currentParams.set('heelHeight', searchParams.heelHeight);
+  const currentSearchParamsString = currentParams.toString();
+
+
   return (
     <div className="bg-background-body py-12 lg:py-20"> {/* Added padding */}
       <div className="w-full max-w-screen-xl mx-auto px-4">
         <SectionTitle centered>Shop All Products</SectionTitle>
 
-        {/* Render the client component for sorting */}
-        <ShopSortDropdown currentSort={sortBy} />
-
-
-        {fetchError ? (
-          <p className="text-center text-red-600">{fetchError}</p>
-        ) : products.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {/* Map over fetched products */}
-              {products.map((product) => (
-                <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col">
-                  <Link href={`/shop/products/${product.slug}`} className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added group for hover effect, added relative */}
-                    <Image
-                      src={getProductImageUrl(product.images?.[0])} // Use shared function
-                      alt={product.name}
-                      fill // Use fill layout
-                      style={{ objectFit: 'cover' }} // Ensure image covers the area
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw" // Provide sizes hint
-                      className="transition-transform duration-std ease-in-out group-hover:scale-105"
-                    />
-                  </Link>
-                  <div className="flex-grow flex flex-col">
-                    <h3 className="font-montserrat text-base font-medium mb-3 truncate flex-grow">{product.name}</h3>
-                    <p className="price text-base text-brand-gold mb-5 font-poppins"> {/* Added text-brand-gold and font-poppins */}
-                      {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
-                    </p>
-                    <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button> {/* Added font-poppins */}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center space-x-4 mt-12">
-                {/* Previous Button */}
-                <Link
-                  href={`/shop?page=${currentPage - 1}&sort=${sortBy}`} // Include sort in pagination links
-                  className={`px-4 py-2 border rounded ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white'}`}
-                  aria-disabled={currentPage === 1}
-                  tabIndex={currentPage === 1 ? -1 : undefined}
-                >
-                  Previous
-                </Link>
-
-                {/* Page Numbers (Simplified for now) */}
-                <span className="text-text-dark font-poppins">
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                {/* Next Button */}
-                <Link
-                  href={`/shop?page=${currentPage + 1}&sort=${sortBy}`} // Include sort in pagination links
-                  className={`px-4 py-2 border rounded ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white'}`}
-                  aria-disabled={currentPage === totalPages}
-                  tabIndex={currentPage === totalPages ? -1 : undefined}
-                >
-                  Next
-                </Link>
-              </div>
+        {/* Filters and Product List Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8"> {/* Added mt-8 */}
+          <div className="lg:col-span-1">
+             {/* Use CollectionFilters, it handles sorting now too */}
+            <CollectionFilters />
+          </div>
+          <div className="lg:col-span-3">
+            {fetchError ? (
+              <p className="text-center text-red-600">{fetchError}</p>
+            ) : (
+              <CollectionProductList
+                products={products}
+                basePath="/shop" // Base path for main shop
+                currentPage={currentPage}
+                totalPages={totalPages}
+                currentSearchParams={currentSearchParamsString} // Pass the safely constructed string
+              />
             )}
-          </>
-        ) : (
-          <p className="text-center text-text-light">No products found.</p>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );

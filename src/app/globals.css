@@ -10,8 +10,7 @@
     --header-height: 75px;
     --top-banner-height: 35px;
 
-    /* Other variables can be defined here if needed,
-       but prefer using Tailwind theme for colors, fonts etc. */
+    /* Other variables can be defined here if needed */
     /*
     --brand-gold: #AF8F53;
     --brand-black: #000000;
@@ -54,3 +53,32 @@ body {
 .animate-fade-in-out {
   animation: fade-in-out 20s infinite ease-in-out; /* Adjust duration as needed */
 }
+
+/* --- Custom Swiper Styles --- */
+
+/* Pagination Bullets */
+.swiper-pagination-bullet {
+  background-color: #BFBFBF; /* Platinum Grey */
+  opacity: 0.6;
+}
+
+.swiper-pagination-bullet-active {
+  background-color: #AF8F53 !important; /* Brand Gold - Force override */
+  opacity: 1;
+}
+
+/* Navigation Arrows */
+.swiper-button-prev,
+.swiper-button-next {
+  color: #AF8F53 !important; /* Brand Gold - Force override */
+}
+.swiper-button-prev:hover,
+.swiper-button-next:hover {
+  opacity: 0.8;
+}
+.swiper-button-prev::after,
+.swiper-button-next::after {
+ font-size: 1.5rem !important; /* Adjust size */
+}
+
+/* Removed duplicated arrow size style block */

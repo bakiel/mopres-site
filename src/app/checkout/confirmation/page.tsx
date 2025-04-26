@@ -1,405 +1,183 @@
-'use client'; // Needs client-side access for PDF generation and routing
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation'; // Import useParams
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Correct import for jspdf-autotable
+import { useSearchParams } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { CartItem } from '@/lib/cartUtils'; // Only need CartItem type
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
-import Image from 'next/image'; // Import Image for logo in PDF
+import InvoiceTemplate from '@/components/InvoiceTemplate'; // Import the template
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-// Re-use ShippingAddress type
-type ShippingAddress = {
-  fullName: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  country: string;
-  phone: string;
-};
-
-// Type for the fetched order details (matching Supabase structure)
-type FetchedOrder = {
+// Define Order type matching InvoiceTemplate and mock data
+interface Order {
     id: string;
+    created_at: string;
+    order_ref: string;
     total_amount: number;
-    shipping_fee: number;
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    shipping_address: ShippingAddress; // Assuming this is stored as JSONB
+    shipping_cost: number;
+    status: string;
+    user_email: string;
+    shipping_address: {
+        firstName: string;
+        lastName: string;
+        addressLine1: string;
+        city: string;
+        province: string;
+        postalCode: string;
+        country: string;
+    };
     order_items: {
         id: string;
-        product_id: string;
         quantity: number;
-        size?: string;
         price: number;
-        sku?: string;
-        products: { // Joined product data
+        products: {
             name: string;
-            slug: string;
-            images: string[];
-        }[] | null; // Updated to expect an array or null
+            sku?: string;
+        } | null; // Allow product to be null if relation fails
+        size?: string | undefined; // Align with InvoiceTemplate: remove | null
     }[];
-};
+}
 
+// Define a loading component for Suspense
+const ConfirmationLoading = () => (
+    <div className="bg-background-body py-12 lg:py-20">
+        <div className="w-full max-w-screen-md mx-auto px-4 text-center">
+            <p className="text-text-light">Loading confirmation...</p>
+        </div>
+    </div>
+);
 
-export default function ConfirmationPage() {
-  // Create the client instance inside the component
-  const supabase = createSupabaseBrowserClient();
-  const { orderId } = useParams<{ orderId: string }>(); // Get orderId from URL params
-  const [order, setOrder] = useState<FetchedOrder | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+// Main component content
+const ConfirmationContent = () => {
+    const searchParams = useSearchParams();
+    const orderRef = searchParams.get('orderRef');
+    const [orderDetails, setOrderDetails] = useState<Order | null>(null); // State for fetched order
+    const [isFetchingOrder, setIsFetchingOrder] = useState(false);
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const invoiceRef = useRef<HTMLDivElement>(null); // Ref for the template component
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      if (!orderId) {
-        setError("Order ID is missing.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('orders')
-          .select(`
-            id,
-            total_amount,
-            shipping_fee,
-            customer_name,
-            customer_email,
-            customer_phone,
-            shipping_address,
-            order_items (
-              id,
-              product_id,
-              quantity,
-              size,
-              price,
-              sku,
-              products (
-                name,
-                slug,
-                images
-              )
-            )
-          `)
-          .eq('id', orderId)
-          .single();
-
-        if (fetchError || !data) {
-          console.error("Error fetching order details:", fetchError);
-          setError("Could not load order details.");
-        } else {
-          setOrder(data as FetchedOrder); // Cast fetched data to FetchedOrder type
+    // TODO: Fetch actual order details using orderRef
+    useEffect(() => {
+        if (orderRef) {
+            setIsFetchingOrder(true);
+            // Simulate fetch
+            console.log(`Simulating fetch for orderRef: ${orderRef}`);
+            setTimeout(() => {
+                 // Replace with actual fetch logic from Supabase based on orderRef
+                const mockOrderData: Order = {
+                    id: 'mock-id-' + orderRef,
+                    created_at: new Date().toISOString(),
+                    order_ref: orderRef,
+                    total_amount: 2150.00, // Example data
+                    shipping_cost: 0, // Example data
+                    status: 'pending_payment',
+                    user_email: 'customer@example.com',
+                    shipping_address: {
+                        firstName: 'Test', lastName: 'User', addressLine1: '123 Mock St', city: 'Pretoria', province: 'Gauteng', postalCode: '0001', country: 'South Africa'
+                    },
+                    order_items: [
+                        { id: 'item1', quantity: 1, price: 2150.00, products: { name: 'Example Heel', sku: 'SKU123' }, size: '6' }
+                    ]
+                };
+                setOrderDetails(mockOrderData);
+                setIsFetchingOrder(false);
+            }, 1000);
         }
-      } catch (err: any) {
-        console.error("Unexpected error fetching order:", err);
-        setError("An unexpected error occurred.");
-      } finally {
-        setLoading(false);
-      }
+    }, [orderRef]);
+
+    const handleDownloadInvoice = async () => {
+        if (!invoiceRef.current || !orderDetails) {
+            console.error("Invoice template ref or order details not available.");
+            alert("Could not generate invoice at this time.");
+            return;
+        }
+        setPdfLoading(true);
+        try {
+            const canvas = await html2canvas(invoiceRef.current, {
+                scale: 2, // Increase scale for better resolution
+                useCORS: true, // If using external images
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+            });
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgX = (pdfWidth - imgWidth * ratio) / 2;
+            const imgY = 0; // Start image at the top
+
+            pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+            pdf.save(`MoPres_Invoice_${orderDetails.order_ref}.pdf`);
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            alert("Failed to generate PDF invoice.");
+        } finally {
+            setPdfLoading(false);
+        }
     };
 
-    fetchOrder();
-  }, [orderId]); // Re-run effect if orderId changes
+    return (
+        <div className="bg-background-body py-12 lg:py-20">
+            <div className="w-full max-w-screen-md mx-auto px-4 text-center">
+                <SectionTitle centered>Order Confirmed!</SectionTitle>
 
-  // --- PDF Generation Logic ---
+                <div className="mt-8 bg-white p-8 border border-green-200 rounded shadow-sm font-poppins">
+                    <div className="text-green-600 mb-4">
+                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h2 className="text-xl font-semibold mb-3 text-text-dark">Thank you for your order!</h2>
+                    {orderRef ? (
+                        <p className="text-text-light mb-2">
+                            Your order reference is: <strong className="text-brand-gold">{orderRef}</strong>
+                        </p>
+                    ) : (
+                         <p className="text-text-light mb-2">Loading order details...</p>
+                    )}
+                    <p className="text-sm text-text-light mb-6">
+                        You will receive an email confirmation shortly with your order details and EFT payment instructions. Please use the reference number above when making payment.
+                    </p>
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
-  }
+                    {/* TODO: Display Order Summary here by fetching order details */}
+                    {/* <div className="order-summary-placeholder my-6 border-t border-b py-4">
+                        <p className="text-text-light text-sm">[Order Summary Placeholder]</p>
+                    </div> */}
 
-  /**
-   * Adds banking details to the invoice PDF
-   * @param {jsPDF} doc - The jsPDF document instance
-   * @param {number} yPosition - The current Y position in the document
-   * @param {FetchedOrder} order - The order details
-   * @returns {number} - The new Y position after adding banking details
-   */
-  function addBankingDetails(doc: jsPDF, yPosition: number, order: FetchedOrder): number {
-    const startY = yPosition + 10; // Add a small gap
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PAYMENT DETAILS (EFT)', 15, startY);
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Please use the exact reference below when making your payment:', 15, startY + 7);
-
-    const bankData = [
-      ['Account Holder:', 'KEONKOSI ENGINEERS'], // Replace with actual if different
-      ['Bank:', 'First National Bank (FNB)'],
-      ['Account Type:', 'GOLD BUSINESS ACCOUNT'],
-      ['Account Number:', '62792142095'],
-      ['Branch Code:', '210648'],
-      // ['Branch Name:', 'JUBILEE MALL'], // Optional
-      // ['Swift Code:', 'FIRNZAJJ'], // Optional for international
-      ['Reference:', `Order #${order.id} ${order.customer_name.split(' ').pop()}`] // Use Order ID and Customer Last Name
-    ];
-
-    autoTable(doc, {
-      startY: startY + 12,
-      head: [],
-      body: bankData,
-      theme: 'plain',
-      styles: {
-        cellPadding: 1,
-        fontSize: 9,
-        lineWidth: 0,
-        halign: 'left'
-      },
-      columnStyles: {
-        0: { cellWidth: 40, fontStyle: 'bold' },
-        1: { cellWidth: 'auto' }
-      },
-      margin: { left: 15 }
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY + 5; // Get Y pos after table
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'italic');
-    doc.text('Important: Your order will be processed once payment reflects in our account.', 15, finalY + 5);
-
-    return finalY + 15; // Return the new Y position
-  }
-
-
-  const generateInvoice = async () => {
-    if (!order) {
-      alert("Order details not found.");
-      return;
-    }
-
-    const doc = new jsPDF();
-    let yPos = 15; // Initial Y position
-
-    // --- Header ---
-    // Add Logo (Requires handling image loading/embedding - simplified for now)
-    // Using a local image from the public directory
-    const logoImg = new (window as any).Image(); // Use window.Image to avoid Next.js Image component issues in jsPDF
-    logoImg.src = '/Mopres_Gold_luxury_lifestyle_logo.png'; // Path to the local logo in public
-
-    await new Promise((resolve, reject) => {
-        logoImg.onload = resolve;
-        logoImg.onerror = reject;
-    });
-
-    try {
-        doc.addImage(logoImg, 'PNG', 15, yPos, 40, 15); // Adjust coords/size as needed
-        yPos += 20; // Space after logo
-    } catch (e) {
-        console.error("Error adding logo to PDF:", e);
-        doc.setFontSize(10);
-        doc.text('MoPres Logo Placeholder', 15, yPos); // Fallback placeholder
-        yPos += 5;
-    }
-
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('TAX INVOICE', doc.internal.pageSize.getWidth() / 2, yPos, { align: 'center' });
-    yPos += 10;
-
-    // --- Company & Order Details ---
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const companyX = 15;
-    const orderX = doc.internal.pageSize.getWidth() - 15; // Right align
-
-    doc.text('MoPres Luxury', companyX, yPos);
-    doc.text(`Order #: ${order.id}`, orderX, yPos, { align: 'right' });
-    yPos += 5;
-    doc.text('6680 Witrigwend Street, Unit 378', companyX, yPos);
-    doc.text(`Date: ${new Date().toLocaleDateString('en-ZA')}`, orderX, yPos, { align: 'right' });
-    yPos += 5;
-    doc.text('Herendaig Estate, Centurion 0157', companyX, yPos);
-    yPos += 5;
-    doc.text('info@mopres.co.za | +27 83 500 5311', companyX, yPos);
-    yPos += 10;
-
-    // --- Billing/Shipping Address ---
-    doc.setFont('helvetica', 'bold');
-    doc.text('Ship To:', companyX, yPos);
-    yPos += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.text(order.shipping_address.fullName, companyX, yPos);
-    yPos += 5;
-    doc.text(order.shipping_address.addressLine1, companyX, yPos);
-    yPos += 5;
-    if (order.shipping_address.addressLine2) {
-        doc.text(order.shipping_address.addressLine2, companyX, yPos);
-        yPos += 5;
-    }
-    doc.text(`${order.shipping_address.city}, ${order.shipping_address.province}, ${order.shipping_address.postalCode}`, companyX, yPos);
-    yPos += 5;
-    doc.text(order.shipping_address.country || 'South Africa', companyX, yPos);
-    yPos += 5;
-    doc.text(`Phone: ${order.shipping_address.phone}`, companyX, yPos);
-    yPos += 15; // Space before table
-
-    // --- Order Items Table ---
-    const tableColumn = ["Item", "SKU", "Size", "Qty", "Unit Price", "Total"];
-    const tableRows = order.order_items.map(item => [
-      item.products?.[0]?.name || 'Unknown Product', // Access name from the first element of the products array
-      item.sku || 'N/A',
-      item.size || 'N/A',
-      item.quantity,
-      formatCurrency(item.price),
-      formatCurrency(item.price * item.quantity)
-    ]);
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [tableColumn],
-      body: tableRows,
-      theme: 'striped',
-      headStyles: { fillColor: [26, 26, 26] }, // Dark header
-      margin: { left: 15, right: 15 }
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 10; // Get Y pos after table
-
-    // --- Totals ---
-    const totalsX = doc.internal.pageSize.getWidth() - 65; // Position for totals labels
-    const valuesX = doc.internal.pageSize.getWidth() - 15; // Position for totals values
-    const subtotal = order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = order.shipping_fee; // Use fetched shipping fee
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', totalsX, yPos);
-    doc.text(formatCurrency(subtotal), valuesX, yPos, { align: 'right' });
-    yPos += 7;
-    doc.text('Shipping:', totalsX, yPos);
-    doc.text(shipping > 0 ? formatCurrency(shipping) : 'Free', valuesX, yPos, { align: 'right' });
-    yPos += 7;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total Due (EFT):', totalsX, yPos);
-    doc.text(formatCurrency(order.total_amount), valuesX, yPos, { align: 'right' });
-    yPos += 10;
-
-    // --- Banking Details ---
-    yPos = addBankingDetails(doc, yPos, order);
-
-    // --- Footer ---
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.text('Thank you for your business!', doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-
-    // --- Save PDF ---
-    doc.save(`MoPres_Invoice_${order.id}.pdf`);
-  };
-
-
-  const handleDownloadInvoice = () => {
-    generateInvoice().catch(error => {
-        console.error("Failed to generate invoice:", error);
-        alert("Sorry, there was an error generating the invoice PDF.");
-    });
-  };
-
-
-  if (loading) {
-      return (
-          <div className="bg-background-body py-12 lg:py-20">
-              <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
-                  <p className="text-text-light">Loading confirmation...</p>
-              </div>
-          </div>
-      );
-  }
-
-  if (error || !order) {
-       return (
-          <div className="bg-background-body py-12 lg:py-20">
-              <div className="w-full max-w-screen-md mx-auto px-4 text-center">
-                 <SectionTitle centered>Order Not Found</SectionTitle>
-                 <p className="text-text-light mt-4 mb-6">{error || "We couldn't find details for your order."}</p>
-                 <Link href="/shop">
-                    <Button variant="primary">Continue Shopping</Button>
-                 </Link>
-              </div>
-          </div>
-      );
-  }
-
-  // Use fetched order data for display
-  const displaySubtotal = order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const displayShipping = order.shipping_fee;
-
-
-  return (
-    <div className="bg-background-body py-12 lg:py-20">
-      <div className="w-full max-w-screen-md mx-auto px-4"> {/* Centered, narrower container */}
-        <SectionTitle centered>Thank You For Your Order!</SectionTitle>
-
-        <div className="bg-white p-6 md:p-8 border border-border-light rounded shadow-sm mt-8 text-center font-poppins"> {/* Added font-poppins */}
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 className="text-xl font-semibold mb-2">Your Order is Confirmed</h2>
-            <p className="text-text-light mb-4">
-                Your Order Number is: <strong className="text-text-dark font-mono">{order.id}</strong>
-            </p>
-            <p className="text-text-light mb-6">
-                Please use this number as the reference when making your EFT payment. You will receive an email confirmation shortly (if applicable).
-            </p>
-
-            {/* Order Details Summary */}
-            <div className="text-left border-t border-b border-border-light py-6 my-6 space-y-3 text-sm">
-                 <h4 className="font-semibold text-base mb-3">Order Summary:</h4>
-                 {order.order_items.map(item => (
-                     <div key={item.id} className="flex justify-between items-center"> {/* Use item.id for key */}
-                         <span>{item.products?.[0]?.name || 'Unknown Product'} {item.size ? `(${item.size})` : ''} x {item.quantity}</span> {/* Access name from the first element */}
-                         <span>{formatCurrency(item.price * item.quantity)}</span>
-                     </div>
-                 ))}
-                 <div className="flex justify-between pt-2 border-t">
-                     <span>Subtotal</span>
-                     <span>{formatCurrency(displaySubtotal)}</span>
-                 </div>
-                  <div className="flex justify-between">
-                     <span>Shipping</span>
-                     <span>{displayShipping === 0 ? 'Free' : formatCurrency(displayShipping)}</span>
-                 </div>
-                 <div className="flex justify-between font-bold text-base pt-2 border-t">
-                     <span>Total Due (via EFT)</span>
-                     <span>{formatCurrency(order.total_amount)}</span>
-                 </div>
+                    <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                         <Button
+                            variant="primary"
+                            onClick={handleDownloadInvoice}
+                            disabled={pdfLoading || !orderDetails || isFetchingOrder}
+                         >
+                            {pdfLoading ? 'Generating...' : 'Download Invoice (PDF)'}
+                         </Button>
+                        <Link href="/shop">
+                            <Button variant="secondary">Continue Shopping</Button>
+                        </Link>
+                         {/* TODO: Link to account orders page if user is logged in */}
+                        <Link href="/account/orders">
+                            <Button variant="outline-light">View My Orders</Button>
+                        </Link>
+                    </div>
+                </div>
             </div>
-
-             {/* Shipping Address Summary */}
-             <div className="text-left text-sm mb-6">
-                 <h4 className="font-semibold text-base mb-2">Shipping To:</h4>
-                 <p>{order.shipping_address.fullName}</p>
-                 <p>{order.shipping_address.addressLine1}</p>
-                 {order.shipping_address.addressLine2 && <p>{order.shipping_address.addressLine2}</p>}
-                 <p>{order.shipping_address.city}, {order.shipping_address.province}, {order.shipping_address.postalCode}</p>
-                 <p>{order.shipping_address.country}</p>
-                 <p>Phone: {order.shipping_address.phone}</p>
-             </div>
-
-            <Button
-                onClick={handleDownloadInvoice}
-                variant="secondary"
-                className="mr-4"
-            >
-                Download Invoice (PDF)
-            </Button>
-            <Link href="/shop">
-                <Button variant="primary">Continue Shopping</Button>
-            </Link>
+             {/* Render InvoiceTemplate off-screen for capturing */}
+             <InvoiceTemplate order={orderDetails} invoiceRef={invoiceRef} />
         </div>
-      </div>
-    </div>
-  );
+    );
+}
+
+// Export component wrapped in Suspense
+export default function ConfirmationPage() {
+    return (
+        <Suspense fallback={<ConfirmationLoading />}>
+            <ConfirmationContent />
+        </Suspense>
+    );
 }

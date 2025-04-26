@@ -1,63 +1,46 @@
-'use client'; // This page needs client-side access to localStorage
+ 'use client'; // This page needs client-side access to localStorage
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Button from '@/components/Button';
-import SectionTitle from '@/components/SectionTitle';
-import { getCart, removeFromCart, updateCartItemQuantity, getCartTotal, CartItem } from '@/lib/cartUtils'; // Import cart utilities
-import { getProductImageUrl } from '@/lib/supabaseClient'; // Import shared function (supabase client not needed here)
+ import React from 'react'; // Removed useState, useEffect
+ import Link from 'next/link';
+ import Button from '@/components/Button';
+ import SectionTitle from '@/components/SectionTitle';
+ import { useCartStore } from '@/store/cartStore'; // Removed CartItem import
+ import { getProductImageUrl } from '@/lib/supabaseClient';
+ import Image from 'next/image'; // Import next/image
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Load cart items from localStorage on component mount
-  useEffect(() => {
-    setCartItems(getCart());
-    setLoading(false);
-
-    // Optional: Listen for cart updates triggered by cartUtils
-    const handleCartUpdate = () => {
-        setCartItems(getCart());
-    };
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    return () => {
-        window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
+  // Get state and actions from Zustand store
+  const {
+    items: cartItems, // Rename items to cartItems for consistency
+    removeItem,
+    updateQuantity,
+    getTotalPrice,
+  } = useCartStore();
+  // Removed useState and useEffect for cartItems and loading
 
   const handleRemove = (productId: string, size: string | null) => {
-    removeFromCart(productId, size);
-    // State will update via the 'cartUpdated' event listener or manually:
-    // setCartItems(getCart());
+    removeItem(productId, size); // Use store action
   };
 
   const handleQuantityChange = (productId: string, size: string | null, newQuantity: number) => {
     if (newQuantity >= 1) {
-      updateCartItemQuantity(productId, size, newQuantity);
-      // setCartItems(getCart());
+      updateQuantity(productId, size, newQuantity); // Use store action
     } else {
       // Optionally remove if quantity becomes 0 or less
       handleRemove(productId, size);
     }
   };
 
-  const cartTotal = getCartTotal();
+  const cartTotal = getTotalPrice(); // Use store selector
 
   const formatCurrency = (amount: number) => {
      return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
   }
 
-  if (loading) {
-      return (
-          <div className="bg-background-body py-12 lg:py-20">
-              <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
-                  <p className="text-text-light">Loading cart...</p>
-              </div>
-          </div>
-      );
-  }
+  // Removed loading state check
+  // if (loading) { ... }
 
+  // The main return statement for the component
   return (
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-screen-lg mx-auto px-4"> {/* Slightly wider container */}
@@ -68,13 +51,16 @@ export default function CartPage() {
             {/* Cart Items Table/List */}
             <div className="space-y-6">
               {cartItems.map((item) => (
-                <div key={`${item.productId}-${item.size || 'no-size'}`} className="flex flex-col md:flex-row items-center gap-4 md:gap-6 bg-white p-4 border border-border-light rounded shadow-sm">
-                  {/* Image */}
-                  <Link href={`/shop/products/${item.slug}`} className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 block overflow-hidden rounded border border-border-light">
-                    <img
+                 <div key={`${item.productId}-${item.size || 'no-size'}`} className="flex flex-col md:flex-row items-center gap-4 md:gap-6 bg-white p-4 border border-border-light rounded shadow-sm">
+                   {/* Image */}
+                   <Link href={`/shop/products/${item.slug}`} className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 block relative overflow-hidden rounded border border-border-light"> {/* Added relative */}
+                    <Image // Use next/image
                       src={getProductImageUrl(item.image)} // Use function to get Supabase URL or fallback
                       alt={item.name}
-                      className="w-full h-full object-cover"
+                      fill // Use fill layout
+                      style={{ objectFit: 'cover' }} // Ensure image covers the area
+                      sizes="(max-width: 768px) 80px, 96px" // Provide size hint
+                      className="rounded"
                     />
                   </Link>
                   {/* Details */}

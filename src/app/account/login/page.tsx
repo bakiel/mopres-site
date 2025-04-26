@@ -4,11 +4,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Import useRouter for redirection
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
-import toast from 'react-hot-toast'; // Import toast
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import toast from 'react-hot-toast';
+import type { Provider } from '@supabase/supabase-js'; // Import Provider type
+import { FaGoogle, FaFacebook } from 'react-icons/fa'; // Import example icons
 
 export default function LoginPage() {
   // Create the client instance inside the component
@@ -19,7 +20,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showResend, setShowResend] = useState(false); // State to show resend button
-  const router = useRouter(); // Initialize router
+  // Removed unused router: const router = useRouter();
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -55,16 +56,42 @@ export default function LoginPage() {
       setMessage("Login successful! Redirecting to your account...");
       // Use full page navigation to ensure session cookie is sent reliably
       setTimeout(() => {
-        window.location.assign('/account');
-      }, 1500); // Delay for user to see the message
+       window.location.assign('/account');
+       }, 1500); // Delay for user to see the message
 
-    } catch (catchError: any) {
-      console.error("Unexpected error during login:", catchError);
-      setError("An unexpected error occurred. Please try again.");
+    } catch (catchError) { // Explicitly type error later if needed, or use unknown
+       const errorMessage = catchError instanceof Error ? catchError.message : 'An unknown error occurred';
+       console.error("Unexpected error during login:", catchError);
+       setError(`An unexpected error occurred: ${errorMessage}`);
       setLoading(false);
     }
     // Keep loading true until redirect happens or error occurs
-    // setLoading(false); // Removed this line - loading state ends on redirect or error
+  };
+
+  const handleSocialLogin = async (provider: Provider) => {
+    setLoading(true); // Use main loading state
+    setError(null);
+    setMessage(null);
+    try {
+        const { error: oauthError } = await supabase.auth.signInWithOAuth({
+            provider: provider,
+            options: {
+                // Redirect back to the account page after successful OAuth flow
+                redirectTo: `${window.location.origin}/account`,
+            },
+        });
+
+        if (oauthError) {
+            console.error(`Error logging in with ${provider}:`, oauthError);
+            setError(`Failed to login with ${provider}. Please try again.`);
+            setLoading(false);
+        }
+        // If successful, Supabase handles the redirect, so no need to set loading false here
+    } catch (err) {
+        console.error(`Unexpected error during ${provider} login:`, err);
+        setError("An unexpected error occurred during social login.");
+        setLoading(false);
+    }
   };
 
   const handleResendConfirmation = async () => {
@@ -157,9 +184,21 @@ export default function LoginPage() {
           </div>
 
           <div className="flex items-center justify-between">
-            {/* TODO: Add Remember me checkbox if needed */}
+             {/* Remember Me Checkbox */}
+             <div className="flex items-center">
+                <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    // Note: No specific state/logic tied here yet, relies on Supabase session duration
+                    className="h-4 w-4 text-brand-gold border-gray-300 rounded focus:ring-brand-gold"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-text-light font-poppins">
+                    Remember me
+                </label>
+            </div>
             <div className="text-sm">
-              <Link href="/account/forgot-password" className="font-medium text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
+              <Link href="/account/forgot-password" className="font-medium text-brand-gold hover:underline font-poppins">
                 Forgot your password?
               </Link>
             </div>
@@ -177,9 +216,43 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <p className="mt-8 text-center text-sm text-text-light font-poppins"> {/* Added font-poppins */}
-          Don't have an account?{' '}
-          <Link href="/account/register" className="font-medium text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
+        {/* Social Login Separator */}
+        <div className="my-6 flex items-center justify-center">
+            <span className="px-2 bg-background-body text-sm text-text-light font-poppins">Or continue with</span>
+        </div>
+
+        {/* Social Login Buttons */}
+        <div className="space-y-3">
+            {/* Google Button */}
+            <Button
+                type="button"
+                variant="outline-light" // Or a specific social variant if created
+                className="w-full flex items-center justify-center gap-3 border-gray-300 text-text-dark hover:bg-gray-50"
+                onClick={() => handleSocialLogin('google')}
+                disabled={loading}
+            >
+                <FaGoogle className="w-5 h-5 text-red-600" />
+                <span>Sign in with Google</span>
+            </Button>
+
+            {/* Facebook Button (Example) */}
+            <Button
+                type="button"
+                variant="outline-light"
+                className="w-full flex items-center justify-center gap-3 border-gray-300 text-text-dark hover:bg-gray-50"
+                onClick={() => handleSocialLogin('facebook')}
+                disabled={loading}
+            >
+                <FaFacebook className="w-5 h-5 text-blue-600" />
+                <span>Sign in with Facebook</span>
+            </Button>
+            {/* Add more providers as needed */}
+        </div>
+
+
+        <p className="mt-8 text-center text-sm text-text-light font-poppins">
+          Don't have an account?{' '} {/* Escaped apostrophe */}
+          <Link href="/account/register" className="font-medium text-brand-gold hover:underline font-poppins">
             Register here
           </Link>
         </p>

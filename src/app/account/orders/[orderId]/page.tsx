@@ -1,265 +1,245 @@
-import React from 'react';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import SectionTitle from '@/components/SectionTitle';
-import Button from '@/components/Button';
-// Remove direct import of supabase from lib/supabaseClient
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
-import { cookies } from 'next/headers'; // Import cookies for server-side auth check
-// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+ import React from 'react';
+ import Link from 'next/link';
+ import Image from 'next/image'; // Import next/image
+ import { cookies } from 'next/headers';
+ import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+ import SectionTitle from '@/components/SectionTitle';
+ // Removed unused Button import
+ import { notFound, redirect } from 'next/navigation';
+ // Removed unused InvoiceTemplate import
 
-// Type for Shipping Address (assuming JSONB structure)
-type ShippingAddress = {
-  fullName: string;
-  addressLine1: string;
-  addressLine2?: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  country: string;
-  phone: string;
-};
-
-// Type for the fetched order details (matching Supabase structure)
-type FetchedOrder = {
+// Define types for Order and OrderItem (consider centralizing these)
+interface OrderItem {
+  id: string;
+  quantity: number;
+  price: number;
+  size?: string | null;
+  products: { // Joined product data
     id: string;
-    created_at: string;
-    total_amount: number;
-    shipping_fee: number;
-    status: string; // Assuming status is a string or enum text
-    payment_status: string;
-    payment_method: string;
-    customer_name: string;
-    customer_email: string;
-    customer_phone: string;
-    shipping_address: ShippingAddress;
-    order_items: {
-        id: string;
-        product_id: string;
-        quantity: number;
-        size?: string;
-        price: number;
-        sku?: string;
-        products: { // Joined product data
-            name: string;
-            slug: string;
-            images: string[];
-        }[] | null;
-    }[];
+    name: string;
+    slug: string;
+    images: string[];
+   } | null;
+ }
+
+ // Removed unused Order interface definition
+
+ // Helper function to format date
+ const formatDate = (dateString: string) => {
+   return new Date(dateString).toLocaleDateString('en-ZA', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
 };
 
-interface OrderDetailsPageProps {
-  params: {
-    orderId: string;
-  };
-}
-
+// Helper function to format currency
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
+};
+
+// Helper function to get status badge color (copied from orders list page)
+const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+        case 'pending_payment': return 'bg-yellow-100 text-yellow-800';
+        case 'processing': return 'bg-blue-100 text-blue-800';
+        case 'shipped': return 'bg-green-100 text-green-800';
+        case 'delivered': return 'bg-green-200 text-green-900';
+        case 'cancelled': return 'bg-red-100 text-red-800';
+        case 'refunded': return 'bg-gray-100 text-gray-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
+
+// Function to generate tracking URL (basic example, needs refinement per carrier)
+const getTrackingUrl = (carrier?: string | null, trackingNumber?: string | null): string | null => {
+    if (!carrier || !trackingNumber) return null;
+    const carrierLower = carrier.toLowerCase();
+    // Add more carriers as needed
+    if (carrierLower.includes('aramex')) {
+        return `https://www.aramex.com/track/results?track_id=${trackingNumber}`;
+    } else if (carrierLower.includes('dhl')) {
+         return `https://www.dhl.com/en/express/tracking.html?AWB=${trackingNumber}`;
+    } else if (carrierLower.includes('fastway')) {
+         return `https://www.fastway.co.za/our-services/track-your-parcel?l=${trackingNumber}`;
+    }
+     // Add more specific carrier links here...
+    // Fallback generic search (less ideal)
+    // return `https://www.google.com/search?q=${encodeURIComponent(carrier + ' tracking ' + trackingNumber)}`;
+    return null; // Return null if no specific link is known
 }
 
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+// Align with standard Next.js PageProps structure
+interface OrderDetailsPageProps {
+    params: { orderId: string }; // Keep specific param name
+    searchParams: { [key: string]: string | string[] | undefined }; // Include searchParams even if unused
 }
 
 export default async function OrderDetailsPage({ params }: OrderDetailsPageProps) {
-  const { orderId } = params;
-  // Initialize Supabase client INSIDE the component function scope using the ssr factory
   const cookieStore = cookies();
-  const supabaseServer = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+  const supabase = createSupabaseServerClient(cookieStore);
+  const orderId = params.orderId;
 
-  let order: FetchedOrder | null = null;
-  let fetchError: string | null = null;
-
-  // Check user authentication server-side
-  const { data: { user } } = await supabaseServer.auth.getUser();
-
-  if (!user) {
-    // Redirect or show message if user is not logged in
-    // For server components, redirecting is typically handled in middleware or by returning null/specific component
-    // For simplicity here, we'll show an error message, but a redirect is better UX.
-     return (
-        <div className="bg-background-body py-12 lg:py-20">
-            <div className="w-full max-w-screen-md mx-auto px-4 text-center">
-                <p className="text-red-600">Please log in to view your orders.</p>
-                <Link href="/account/login" className="mt-4 inline-block">
-                    <Button variant="primary">Login</Button>
-                </Link>
-            </div>
-        </div>
-     );
+  // Check user session
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    redirect(`/account/login?redirect=/account/orders/${orderId}`);
   }
 
-  try {
-    const { data, error: fetchErrorData } = await supabaseServer
-      .from('orders')
-      .select(`
-        id,
-        created_at,
-        total_amount,
-        shipping_fee,
-        status,
-        payment_status,
-        payment_method,
-        customer_name,
-        customer_email,
-        customer_phone,
-        shipping_address,
-        order_items (
-          id,
-          product_id,
-          quantity,
-          size,
-          price,
-          sku,
-          products (
-            name,
-            slug,
-            images
-          )
-        )
-      `)
-      .eq('id', orderId)
-      .eq('user_id', user.id) // Ensure the order belongs to the logged-in user
-      .single();
+  // Fetch the specific order with items and product details
+  const { data: order, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      order_items (
+        *,
+        products (id, name, slug, images)
+      )
+    `)
+    .eq('id', orderId)
+    .eq('user_id', session.user.id) // Ensure user owns the order
+    .single(); // Expect only one result
 
-    if (fetchErrorData || !data) {
-      console.error("Error fetching order details:", fetchErrorData);
-      if (fetchErrorData?.code === 'PGRST116') { // Not found or not authorized
-          notFound();
-      }
-      throw new Error("Could not load order details or order not found.");
-    }
-    order = data as FetchedOrder;
-
-  } catch (err: any) {
-    console.error("Error in OrderDetailsPage:", err);
-    fetchError = err.message || "An unexpected error occurred while loading the order.";
-    // If notFound was triggered, this might not be reached, but handle other errors
+  if (error || !order) {
+    console.error("Error fetching order details:", error);
+    notFound(); // Show 404 if order not found or doesn't belong to user
   }
 
-  if (fetchError) {
-    return (
-      <div className="bg-background-body py-12 lg:py-20">
-        <div className="w-full max-w-screen-md mx-auto px-4 text-center">
-          <p className="text-red-600">{fetchError}</p>
-          <Link href="/account/orders" className="mt-4 inline-block">
-            <Button variant="secondary">Back to Orders</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!order) {
-    // Should have been caught by notFound() or fetchError, but defensive check
-    notFound();
-  }
-
-  const displaySubtotal = order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = order.total_amount - order.shipping_cost;
+  const trackingUrl = getTrackingUrl(order.shipping_carrier, order.tracking_number);
 
   return (
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-screen-lg mx-auto px-4">
-        <SectionTitle centered>Order Details</SectionTitle>
-        <p className="text-center text-text-light mb-8 font-poppins">Order #{order.id}</p>
-
-        <div className="bg-white p-6 md:p-8 border border-border-light rounded shadow-sm font-poppins">
-          {/* Order Status & Date */}
-          <div className="flex flex-wrap justify-between items-center mb-6 pb-4 border-b border-border-light">
-            <div>
-              <p className="text-sm text-text-light">Order Placed:</p>
-              <p className="font-medium">{formatDate(order.created_at)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-text-light">Order Status:</p>
-              <p className="font-medium capitalize">{order.status?.replace('_', ' ') || 'N/A'}</p>
-            </div>
-             <div>
-              <p className="text-sm text-text-light">Payment Status:</p>
-              <p className="font-medium capitalize">{order.payment_status?.replace('_', ' ') || 'N/A'}</p>
-            </div>
-          </div>
-
-          {/* Items Ordered */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-4">Items Ordered</h3>
-            <div className="space-y-4">
-              {order.order_items.map(item => (
-                <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-border-light pb-4 last:border-b-0">
-                  <Link href={`/shop/products/${item.products?.[0]?.slug || '#'}`} className="flex-shrink-0 w-20 h-20 block overflow-hidden rounded border border-border-light relative">
-                     {/* Basic img tag for simplicity in server component, or use next/image if needed */}
-                     <img
-                        src={getProductImageUrl(item.products?.[0]?.images?.[0])} // Safely access nested properties
-                        alt={item.products?.[0]?.name || 'Product Image'}
-                        className="w-full h-full object-cover"
-                     />
-                  </Link>
-                  <div className="flex-grow">
-                    <Link href={`/shop/products/${item.products?.[0]?.slug || '#'}`}>
-                      <p className="font-medium hover:text-brand-gold">{item.products?.[0]?.name || 'Unknown Product'}</p>
-                    </Link>
-                    <p className="text-sm text-text-light">SKU: {item.sku || 'N/A'}</p>
-                    {item.size && <p className="text-sm text-text-light">Size: {item.size}</p>}
-                    <p className="text-sm text-text-light">Qty: {item.quantity}</p>
-                  </div>
-                  <div className="text-right sm:ml-auto flex-shrink-0">
-                    <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
-                    <p className="text-xs text-text-light">({formatCurrency(item.price)} each)</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Totals & Shipping */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-border-light">
-            {/* Shipping Address */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Shipping Address</h3>
-              <div className="text-sm text-text-dark space-y-1">
-                <p>{order.shipping_address.fullName}</p>
-                <p>{order.shipping_address.addressLine1}</p>
-                {order.shipping_address.addressLine2 && <p>{order.shipping_address.addressLine2}</p>}
-                <p>{order.shipping_address.city}, {order.shipping_address.province}, {order.shipping_address.postalCode}</p>
-                <p>{order.shipping_address.country}</p>
-                <p>Phone: {order.shipping_address.phone}</p>
-              </div>
-            </div>
-            {/* Order Totals */}
-            <div className="text-right">
-              <h3 className="text-lg font-semibold mb-3">Order Totals</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-text-light">Subtotal:</span>
-                  <span className="font-medium">{formatCurrency(displaySubtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-light">Shipping:</span>
-                  <span className="font-medium">{order.shipping_fee === 0 ? 'Free' : formatCurrency(order.shipping_fee)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
-                  <span>Total:</span>
-                  <span>{formatCurrency(order.total_amount)}</span>
-                </div>
-                 <div className="flex justify-between text-xs mt-1">
-                  <span className="text-text-light">Payment Method:</span>
-                  <span className="font-medium">{order.payment_method}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Back Button */}
-          <div className="text-center mt-10">
-            <Link href="/account/orders">
-              <Button variant="secondary">&larr; Back to My Orders</Button>
+        <div className="flex justify-between items-center mb-6">
+            <SectionTitle>Order Details</SectionTitle>
+             <Link href="/account/orders" className="text-brand-gold hover:underline font-poppins text-sm">
+                &larr; Back to Orders
             </Link>
-          </div>
         </div>
+
+
+        <div className="bg-white p-6 md:p-8 border border-border-light rounded shadow-sm mb-8">
+            {/* Corrected Grid Structure */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b border-border-light text-sm">
+                <div>
+                    <span className="block text-xs text-text-light mb-1">Order #</span>
+                    <span className="font-medium text-text-dark">{order.order_ref}</span>
+                </div>
+                 <div>
+                    <span className="block text-xs text-text-light mb-1">Date Placed</span>
+                    <span className="font-medium text-text-dark">{formatDate(order.created_at)}</span>
+                </div>
+                 <div>
+                    <span className="block text-xs text-text-light mb-1">Total Amount</span>
+                    <span className="font-medium text-text-dark">{formatCurrency(order.total_amount)}</span>
+                </div>
+                 <div>
+                    <span className="block text-xs text-text-light mb-1">Status</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                    </span>
+                </div>
+            </div> {/* Correctly closed grid div */}
+
+            {/* Tracking Information */}
+            {order.status === 'shipped' && (order.tracking_number || order.shipping_carrier) && (
+                 <div className="mb-6 pb-6 border-b border-border-light">
+                    <h3 className="text-base font-semibold font-montserrat mb-3">Tracking Information</h3>
+                    <p className="text-sm text-text-light">
+                        Carrier: <span className="text-text-dark font-medium">{order.shipping_carrier || 'N/A'}</span>
+                    </p>
+                     <p className="text-sm text-text-light">
+                        Tracking #: <span className="text-text-dark font-medium">{order.tracking_number || 'N/A'}</span>
+                        {trackingUrl && (
+                            <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-brand-gold hover:underline text-xs">(Track Package)</a>
+                        )}
+                    </p>
+                 </div>
+            )}
+
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Shipping Address */}
+                <div>
+                    <h3 className="text-base font-semibold font-montserrat mb-3">Shipping Address</h3>
+                    {order.shipping_address ? (
+                        <div className="text-sm text-text-light space-y-1 font-poppins">
+                            <p>{order.shipping_address.firstName} {order.shipping_address.lastName}</p>
+                            <p>{order.shipping_address.addressLine1}</p>
+                            {order.shipping_address.addressLine2 && <p>{order.shipping_address.addressLine2}</p>}
+                            <p>{order.shipping_address.city}, {order.shipping_address.province}, {order.shipping_address.postalCode}</p>
+                            <p>{order.shipping_address.country}</p>
+                            {order.shipping_address.phone && <p>Phone: {order.shipping_address.phone}</p>}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-text-light font-poppins">Address details not available.</p>
+                    )}
+                </div>
+                 {/* Payment Method */}
+                 <div>
+                    <h3 className="text-base font-semibold font-montserrat mb-3">Payment Method</h3>
+                     <p className="text-sm text-text-light font-poppins">
+                        {order.payment_method === 'eft' ? 'EFT / Bank Deposit' : order.payment_method || 'N/A'}
+                    </p>
+                    {/* Add more payment details if needed */}
+                 </div>
+            </div>
+        </div>
+
+        {/* Order Items */}
+        <h3 className="text-lg font-semibold font-montserrat mb-4">Items Ordered</h3>
+        <div className="space-y-4 font-poppins">
+            {order.order_items.map((item: OrderItem) => ( // Added type for item
+             item.products && ( // Check if product data exists
+                <div key={item.id} className="bg-white p-4 border border-border-light rounded shadow-sm flex items-center gap-4">
+                    <Link href={`/shop/products/${item.products.slug}`} className="flex-shrink-0 w-16 h-16 block relative overflow-hidden rounded"> {/* Added relative and overflow */}
+                        <Image
+                            src={getProductImageUrl(item.products.images?.[0])}
+                            alt={item.products.name}
+                            fill // Use fill layout
+                            style={{ objectFit: 'cover' }} // Ensure image covers the area
+                            sizes="64px" // Provide size hint
+                            className="rounded"
+                        />
+                    </Link>
+                    <div className="flex-grow text-sm">
+                        <Link href={`/shop/products/${item.products.slug}`} className="font-medium text-text-dark hover:text-brand-gold">{item.products.name}</Link>
+                        {item.size && <p className="text-xs text-text-light">Size: {item.size}</p>}
+                        <p className="text-xs text-text-light">Qty: {item.quantity}</p>
+                    </div>
+                    <div className="text-sm font-medium text-text-dark">
+                        {formatCurrency(item.price * item.quantity)}
+                         {item.quantity > 1 && <span className="block text-xs text-text-light text-right">({formatCurrency(item.price)} each)</span>}
+                    </div>
+                </div>
+             )
+           ))}
+        </div>
+
+         {/* Order Totals */}
+         <div className="mt-6 pt-6 border-t border-border-light flex justify-end">
+            <div className="w-full max-w-xs space-y-2 text-sm">
+                 <div className="flex justify-between">
+                    <span className="text-text-light">Subtotal:</span>
+                    <span className="font-medium">{formatCurrency(subtotal)}</span>
+                 </div>
+                 <div className="flex justify-between">
+                    <span className="text-text-light">Shipping:</span>
+                    <span className="font-medium">{order.shipping_cost === 0 ? 'FREE' : formatCurrency(order.shipping_cost)}</span>
+                 </div>
+                 <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
+                    <span>Total:</span>
+                    <span>{formatCurrency(order.total_amount)}</span>
+                 </div>
+            </div>
+         </div>
+
+         {/* TODO: Add button to download invoice using InvoiceTemplate and jsPDF/html2canvas */}
+         {/* <div className="mt-8 text-center">
+             <Button variant="secondary">Download Invoice (PDF)</Button>
+         </div> */}
+
       </div>
+       {/* Removed commented-out InvoiceTemplate block to fix syntax errors */}
     </div>
   );
 }

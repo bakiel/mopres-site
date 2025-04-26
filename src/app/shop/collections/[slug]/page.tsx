@@ -5,9 +5,12 @@ import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { cookies } from 'next/headers'; // Import cookies
 // Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
-import { notFound } from 'next/navigation'; // Import notFound for handling missing collections
-import { Suspense } from 'react'; // Import Suspense
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import CollectionProductList from '@/components/CollectionProductList';
+import CollectionFilters from '@/components/CollectionFilters';
+import Breadcrumbs from '@/components/Breadcrumbs'; // Import the Breadcrumbs component
 
 // Define types (can be moved to a types file later)
 type Collection = {
@@ -24,6 +27,7 @@ type Product = {
   slug: string;
   price: number;
   images: string[];
+  description?: string; // Ensure description is included if needed by list view
 };
 
 // Define props type for the page component, including searchParams
@@ -33,6 +37,11 @@ interface CollectionPageProps {
   };
   searchParams: {
     page?: string;
+    inStock?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    heelHeight?: string;
+    sortBy?: string; // Add sortBy to the interface
   };
 }
 
@@ -46,8 +55,15 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 
   // Destructure params and searchParams correctly
   const slug = params.slug;
-  const currentPage = parseInt(searchParams?.page || '1', 10); // Add optional chaining for safety
+  const currentPage = parseInt(searchParams?.page || '1', 10);
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  // Get filter values from searchParams
+  const inStockOnly = searchParams?.inStock === 'true';
+  const minPrice = searchParams?.minPrice ? parseFloat(searchParams.minPrice) : undefined;
+  const maxPrice = searchParams?.maxPrice ? parseFloat(searchParams.maxPrice) : undefined;
+  const heelHeightRange = searchParams?.heelHeight?.split('-').map(Number);
+  const sortBy = searchParams?.sortBy || 'created_at-desc'; // Default sort
 
   let collection: Collection | null = null;
   let products: Product[] = [];
@@ -71,13 +87,37 @@ export default async function CollectionPage({ params, searchParams }: Collectio
     }
     collection = collectionData;
 
-    // 2. Fetch products belonging to this collection with pagination
-    const { data: productsData, error: productsError, count } = await supabase
+    // 2. Build the product query with filters
+    let productQuery = supabase
       .from('products')
-      .select('id, name, slug, price, images', { count: 'exact' }) // Select necessary fields and count
-      .eq('collection_id', collection.id) // Filter by collection ID
-      .order('created_at', { ascending: false })
-      .range(offset, offset + ITEMS_PER_PAGE - 1); // Apply range for pagination
+      .select('id, name, slug, price, images, description, heel_height', { count: 'exact' }) // Added heel_height
+      .eq('collection_id', collection.id);
+
+    // Apply filters
+    if (inStockOnly) {
+      productQuery = productQuery.eq('in_stock', true);
+    }
+    if (minPrice !== undefined && !isNaN(minPrice)) {
+      productQuery = productQuery.gte('price', minPrice);
+    }
+    if (maxPrice !== undefined && !isNaN(maxPrice)) {
+      productQuery = productQuery.lte('price', maxPrice);
+    }
+    if (heelHeightRange && heelHeightRange.length === 2 && !isNaN(heelHeightRange[0]) && !isNaN(heelHeightRange[1])) {
+      productQuery = productQuery.gte('heel_height', heelHeightRange[0]);
+      productQuery = productQuery.lte('heel_height', heelHeightRange[1]);
+    }
+
+    // Add ordering based on sortBy parameter
+    const [sortField, sortDirection] = sortBy.split('-');
+    const ascending = sortDirection === 'asc';
+    productQuery = productQuery.order(sortField, { ascending });
+
+    // Add pagination
+    productQuery = productQuery.range(offset, offset + ITEMS_PER_PAGE - 1);
+
+    // Execute the query
+    const { data: productsData, error: productsError, count } = await productQuery;
 
     if (productsError) {
       console.error("Supabase fetch error (Collection Products):", productsError);
@@ -118,80 +158,68 @@ export default async function CollectionPage({ params, searchParams }: Collectio
 
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
 
+  // Construct search params string safely
+  const currentParams = new URLSearchParams();
+  if (searchParams.page) currentParams.set('page', searchParams.page);
+  if (searchParams.sortBy) currentParams.set('sortBy', searchParams.sortBy);
+  if (searchParams.inStock) currentParams.set('inStock', searchParams.inStock);
+  if (searchParams.minPrice) currentParams.set('minPrice', searchParams.minPrice);
+  if (searchParams.maxPrice) currentParams.set('maxPrice', searchParams.maxPrice);
+  if (searchParams.heelHeight) currentParams.set('heelHeight', searchParams.heelHeight);
+  const currentSearchParamsString = currentParams.toString();
+
   // Ensure the return statement has a single root element
+  // Prepare breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Shop', href: '/shop' },
+    { label: 'Collections', href: '/shop/collections' },
+    { label: collection.name }, // Current page, no href
+  ];
+
   return (
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-screen-xl mx-auto px-4">
+        {/* Breadcrumbs */}
+        <Breadcrumbs items={breadcrumbItems} />
+
         {/* Collection Header */}
         <div className="mb-12 text-center">
           <SectionTitle centered>{collection.name}</SectionTitle>
           {collection.description && (
             <p className="mt-4 text-lg text-text-light max-w-3xl mx-auto font-poppins">{collection.description}</p>
           )}
-          {/* Optional: Display collection image as a banner? */}
-          {/* <img src={getCollectionImageUrl(collection.image)} alt={`${collection.name} banner`} className="mt-6 w-full h-48 object-cover rounded"/> */}
+          {/* Display collection image as a banner */}
+          {collection.image && (
+            <div className="mt-8 relative w-full h-48 md:h-64 overflow-hidden rounded-md shadow-sm">
+              <Image
+                src={`/${collection.image}`} // Assuming image is in /public
+                alt={`${collection.name} collection banner`}
+                fill
+                style={{ objectFit: 'cover' }}
+                priority // Prioritize loading banner image
+                sizes="(max-width: 768px) 100vw, 100vw"
+              />
+               {/* Optional: Add a subtle overlay */}
+               <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+            </div>
+          )}
         </div>
 
-        {/* Product Grid */}
-        {products.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {products.map((product) => (
-                <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col">
-                  <Link href={`/shop/products/${product.slug}`} className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added relative for Image fill */}
-                    <Image
-                      src={getProductImageUrl(product.images?.[0])}
-                      alt={product.name}
-                      fill // Use fill layout
-                      style={{ objectFit: 'cover' }} // Ensure image covers the area
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw" // Provide sizes hint
-                      className="transition-transform duration-std ease-in-out group-hover:scale-105"
-                    />
-                  </Link>
-                  <div className="flex-grow flex flex-col">
-                    <h3 className="font-montserrat text-base font-medium mb-3 truncate flex-grow">{product.name}</h3>
-                    <p className="price text-base text-brand-gold mb-5 font-poppins">
-                      {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
-                    </p>
-                    <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center space-x-4 mt-12">
-                {/* Previous Button */}
-                <Link
-                  href={`/shop/collections/${slug}?page=${currentPage - 1}`}
-                  className={`px-4 py-2 border rounded ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white'}`}
-                  aria-disabled={currentPage === 1}
-                  tabIndex={currentPage === 1 ? -1 : undefined}
-                >
-                  Previous
-                </Link>
-
-                {/* Page Numbers (Simplified for now) */}
-                <span className="text-text-dark font-poppins">
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                {/* Next Button */}
-                <Link
-                  href={`/shop/collections/${slug}?page=${currentPage + 1}`}
-                  className={`px-4 py-2 border rounded ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white'}`}
-                  aria-disabled={currentPage === totalPages}
-                  tabIndex={currentPage === totalPages ? -1 : undefined}
-                >
-                  Next
-                </Link>
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="text-center text-text-light font-poppins">No products found in this collection.</p>
-        )}
+        {/* Filters and Product List */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-1">
+            <CollectionFilters />
+          </div>
+          <div className="lg:col-span-3">
+            <CollectionProductList
+              products={products}
+              basePath={`/shop/collections/${slug}`} // Use collection path
+              currentPage={currentPage}
+              totalPages={totalPages}
+              currentSearchParams={currentSearchParamsString} // Pass the safely constructed string
+            />
+          </div>
+        </div>
 
         {/* Back Link */}
         <div className="text-center mt-12">

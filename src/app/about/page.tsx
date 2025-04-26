@@ -5,9 +5,7 @@
 import React from 'react'; // Removed useEffect, useRef
 import Link from 'next/link';
 import Image from 'next/image';
-import type { Metadata } from 'next'; // Import Metadata type
 import Button from '@/components/Button'; // Import shared Button
-import SectionTitle from '@/components/SectionTitle'; // Import shared SectionTitle
 
 // --- About Page Content ---
 // Removed metadata export as it conflicts with "use client"

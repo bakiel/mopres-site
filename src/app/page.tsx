@@ -1,11 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // Use Next.js Image for optimization if needed
-import { cookies } from 'next/headers'; // Import cookies
-// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import Image from 'next/image';
+import { cookies } from 'next/headers';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+import HeroBanner from '@/components/HeroBanner';
+import TestimonialCarousel from '@/components/TestimonialCarousel'; // Import the TestimonialCarousel
 
 // Define a type for the product data (adjust based on actual schema)
 type Product = {
@@ -13,34 +14,48 @@ type Product = {
   name: string;
   slug: string;
   price: number;
-  images: string[]; // Assuming images is an array of filenames/paths
+  images: string[];
 };
 
-// Make the component async to fetch data
-export default async function Home() {
-  // Create a Supabase client for server components using the ssr factory
-  const cookieStore = cookies();
-  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+// Define the type for the featured product data needed by HeroBanner
+type FeaturedProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  images: string[];
+};
 
-  let featuredProducts: Product[] = [];
+// Define a type for Collection data
+type Collection = {
+  id: string;
+  name: string;
+  slug: string;
+  image: string | null; // Image might be nullable
+};
+
+export default async function Home() {
+  const cookieStore = cookies();
+  const supabase = createSupabaseServerClient(cookieStore);
+
+  let featuredProductsData: FeaturedProduct[] = []; // Rename to avoid conflict
   let fetchError: string | null = null;
 
   try {
-    // Fetch featured products using the server client
+    // Fetch featured products for the Hero Banner (only need id, name, slug, images)
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, slug, price, images') // Select necessary fields
-      .eq('featured', true) // Filter for featured products
-      .limit(4); // Limit to 4 products
+      .select('id, name, slug, images') // Select fields needed for HeroBanner
+      .eq('featured', true)
+      .limit(5); // Fetch up to 5 for the banner
 
     if (error) {
       console.error("Supabase fetch error:", error);
-      throw new Error(error.message); // Throw error to be caught below
+      throw new Error(error.message);
     }
-    featuredProducts = data || [];
+    featuredProductsData = data || [];
   } catch (error: any) {
-    console.error("Error fetching featured products:", error);
-    fetchError = "Could not fetch featured products at this time.";
+    console.error("Error fetching featured products for banner:", error);
+    fetchError = "Could not fetch hero banner products.";
     // In a real app, you might want to log this error to a monitoring service
   }
 
@@ -48,80 +63,83 @@ export default async function Home() {
   const fallbackImagePath = '/Mopres_Gold_luxury_lifestyle_logo.png';
 
 
+
+  // Fetch products for the "Featured Designs" section (needs price)
+  // Note: This is a separate fetch, could be combined if performance allows
+  let featuredDesigns: Product[] = [];
+  let featuredDesignsError: string | null = null;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, slug, price, images') // Select fields needed for cards
+      .eq('featured', true)
+      .limit(4); // Limit for the grid display
+
+    if (error) {
+      console.error("Supabase fetch error (featured designs):", error);
+      throw new Error(error.message);
+    }
+    featuredDesigns = data || [];
+  } catch (error: any) {
+    console.error("Error fetching featured designs:", error);
+    featuredDesignsError = "Could not fetch featured designs.";
+  }
+
+  // Fetch collections for the "Explore Collections" section
+  let collections: Collection[] = [];
+  let collectionsError: string | null = null;
+  try {
+    const { data, error } = await supabase
+      .from('collections')
+      .select('id, name, slug, image')
+      .limit(4); // Limit to 4 collections for the homepage display
+
+    if (error) {
+      console.error("Supabase fetch error (collections):", error);
+      throw new Error(error.message);
+    }
+    collections = data || [];
+  } catch (error: any) {
+    console.error("Error fetching collections:", error);
+    collectionsError = "Could not fetch collections.";
+  }
+
+  // Fetch New Arrivals
+  let newArrivals: Product[] = [];
+  let newArrivalsError: string | null = null;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, slug, price, images') // Select fields needed for cards
+      .order('created_at', { ascending: false }) // Order by creation date
+      .limit(4); // Limit to 4 new arrivals
+
+    if (error) {
+      console.error("Supabase fetch error (new arrivals):", error);
+      throw new Error(error.message);
+    }
+    newArrivals = data || [];
+  } catch (error: any) {
+    console.error("Error fetching new arrivals:", error);
+    newArrivalsError = "Could not fetch new arrivals.";
+  }
+
+
   return (
     <>
-      {/* --- Hero Section --- */}
-      {/* Note: Background image needs to be handled via CSS (globals.css or styled JSX) or Tailwind config */}
-      <section
-        className="hero min-h-[calc(95vh-var(--top-banner-height))] flex items-center text-center relative overflow-hidden" // Removed bg-cover, bg-center, style
-      >
-        {/* Animated Background Slideshow using next/image */}
-        <div className="absolute inset-0 z-[-1] overflow-hidden">
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/40 to-black/30 z-10"></div>
-
-          {/* Image 1 */}
-          <Image
-            src="/Woman_wearing_elegant_high_heels.jpg"
-            alt="Elegant high heels model"
-            fill // Use fill to cover the container
-            style={{ objectFit: 'cover' }} // Ensure image covers the area
-            className="animate-fade-in-out"
-            priority // Load the first image eagerly
-            quality={85}
-          />
-          {/* Image 2 */}
-          <Image
-            src="/Legs_crossed_wearing_heels.jpg"
-            alt="Legs crossed wearing heels"
-            fill
-            style={{ objectFit: 'cover' }}
-            className="animate-fade-in-out opacity-0"
-            quality={80}
-            loading="lazy" // Lazy load subsequent images
-            unoptimized // Consider if optimization is needed for background images
-          />
-          {/* Image 3 */}
-          <Image
-            src="/Person_in_stylish_gold_suit.jpg"
-            alt="Person in stylish gold suit"
-            fill
-            style={{ objectFit: 'cover' }}
-            className="animate-fade-in-out opacity-0"
-            quality={80}
-            loading="lazy"
-            unoptimized
-          />
-           {/* Image 4 */}
-          <Image
-            src="/Person_sitting_in_office_chair.jpg"
-            alt="Person sitting in office chair"
-            fill
-            style={{ objectFit: 'cover' }}
-            className="animate-fade-in-out opacity-0"
-            quality={80}
-            loading="lazy"
-            unoptimized
-          />
-        </div>
-        {/* Content Overlay */}
-        <div className="relative w-full max-w-screen-xl mx-auto px-4 z-20"> {/* Ensure content is above images and gradient */}
-          <h1 className="font-montserrat text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 lg:mb-8 text-shadow-sm">Contemporary Luxury Footwear</h1>
-          <p className="text-lg font-poppins font-light text-white/90 max-w-xl mx-auto mb-10">Experience timeless elegance and unparalleled craftsmanship with MoPres.</p> {/* Added font-poppins */}
-          <Button href="#collections" variant="primary">Shop Collections</Button>
-        </div>
-      </section>
+      {/* --- Hero Banner Section --- */}
+      <HeroBanner /> {/* Remove featuredProducts prop */}
 
       {/* --- Featured Products Section --- */}
-      <section id="featured" className="featured bg-background-light py-16 lg:py-24"> {/* Use background-light */}
+      <section id="featured" className="featured bg-background-light py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
           <SectionTitle centered>Featured Designs</SectionTitle>
-          {fetchError ? (
-            <p className="text-center text-red-600">{fetchError}</p>
-          ) : featuredProducts.length > 0 ? (
+          {featuredDesignsError ? (
+            <p className="text-center text-red-600">{featuredDesignsError}</p>
+          ) : featuredDesigns.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-              {/* Map over fetched products */}
-              {featuredProducts.map((product) => (
+              {/* Map over fetched featured design products */}
+              {featuredDesigns.map((product) => (
                 <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col group"> {/* Added group class */}
                     <Link href={`/shop/products/${product.slug}`} className="relative block mb-6 aspect-square overflow-hidden"> {/* Link wraps image, added relative */}
                       <Image
@@ -152,43 +170,79 @@ export default async function Home() {
       </section>
 
       {/* --- Collections Section --- */}
-      <section id="collections" className="collections bg-background-body py-16 lg:py-24"> {/* Use background-body */}
+      <section id="collections" className="collections bg-background-body py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
           <SectionTitle centered>Explore Collections</SectionTitle>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Collection Card 1 */}
-            <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="/Red-high-heeled_shoes.jpg" alt="Red Showstoppers Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
-              <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
-                <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Red Showstoppers</h3>
-                <Button href="/shop/collections/red-showstoppers" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
-              </div>
+          {collectionsError ? (
+             <p className="text-center text-red-600">{collectionsError}</p>
+          ) : collections.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Map over fetched collections */}
+              {collections.map((collection) => (
+                <div key={collection.id} className="collection-card relative border border-border-light overflow-hidden group aspect-[3/4]">
+                  {/* Remove outer Link, apply link to image */}
+                  <Link href={`/shop/collections/${collection.slug}`} className="block w-full h-full absolute inset-0 z-0">
+                    <Image
+                      src={collection.image ? `/${collection.image}` : '/placeholder.svg'}
+                      alt={collection.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="transition-transform duration-std ease-in-out group-hover:scale-105"
+                      unoptimized
+                    />
+                  </Link>
+                  {/* Overlay content - keep relative positioning */}
+                  <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-6 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20 z-10">
+                    {/* Title (not linked separately, relies on background link) */}
+                    <h3 className="font-montserrat text-xl lg:text-2xl text-white font-semibold mb-4 text-shadow-sm">{collection.name}</h3>
+                    {/* Button remains separate and clickable */}
+                    <Button href={`/shop/collections/${collection.slug}`} variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins text-sm px-5 py-2">Shop Now</Button>
+                  </div>
+                </div>
+              ))}
             </div>
-             {/* Collection Card 2 */}
-            <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="/Red-high-heel-with-bow.jpg" alt="Statement Bows Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
-              <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
-                <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Statement Bows</h3>
-                <Button href="/shop/collections/statement-bows" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
-              </div>
+          ) : (
+             <p className="text-center text-text-light">No collections found.</p>
+          )}
+        </div> {/* Close max-w-screen-xl */}
+      </section> {/* Close collections section */}
+
+      {/* --- New Arrivals Section --- */}
+      <section id="new-arrivals" className="new-arrivals bg-background-body py-16 lg:py-24">
+        <div className="w-full max-w-screen-xl mx-auto px-4">
+          <SectionTitle centered>New Arrivals</SectionTitle>
+          {newArrivalsError ? (
+            <p className="text-center text-red-600">{newArrivalsError}</p>
+          ) : newArrivals.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              {/* Map over fetched new arrival products */}
+              {newArrivals.map((product) => (
+                <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col group">
+                  <Link href={`/shop/products/${product.slug}`} className="relative block mb-6 aspect-square overflow-hidden">
+                    <Image
+                      src={getProductImageUrl(product.images?.[0])}
+                      alt={product.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="transition-transform duration-std ease-in-out group-hover:scale-105"
+                      unoptimized
+                    />
+                  </Link>
+                  <div className="flex-grow flex flex-col">
+                    <h3 className="font-montserrat text-base font-medium text-text-dark mb-3 truncate flex-grow">{product.name}</h3>
+                    <p className="price text-base text-brand-gold mb-5 font-poppins">
+                      {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
+                    </p>
+                    <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button>
+                  </div>
+                </div>
+              ))}
             </div>
-             {/* Collection Card 3 */}
-            <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="/Red-high-heel-with-rhinestones.jpg" alt="Crystal & Rhinestone Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
-              <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
-                <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Crystal Glam</h3>
-                <Button href="/shop/collections/crystal-rhinestone" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
-              </div>
-            </div>
-             {/* Collection Card 4 */}
-            <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="/High-heeled-patent-leather-shoes.jpg" alt="Classic Elegance Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
-              <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
-                <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Classic Elegance</h3>
-                <Button href="/shop/collections/black-essentials" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
-              </div>
-            </div>
-          </div>
+          ) : (
+            <p className="text-center text-text-light">No new arrivals found.</p>
+          )}
         </div>
       </section>
 
@@ -215,8 +269,11 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* --- Testimonial Section --- */}
+      <TestimonialCarousel />
+
       {/* --- Contact Section --- */}
-      <section id="contact" className="contact bg-background-light py-16 lg:py-24"> {/* Use background-light */}
+      <section id="contact" className="contact bg-background-light py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
           <SectionTitle centered>Get In Touch</SectionTitle>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">

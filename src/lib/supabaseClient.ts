@@ -33,21 +33,27 @@ export function createSupabaseServerClient(cookieStore: any): SupabaseClient { /
     supabaseAnonKey!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        // Make get async as required by Next.js App Router
+        get: async (name: string) => {
+          // Use await for async operation
+          const cookie = await cookieStore.get(name);
+          return cookie?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
+        // Keep set/remove async as they perform actions
+        set: async (name: string, value: string, options: CookieOptions) => {
           try {
-            cookieStore.set({ name, value, ...options });
+            // Use await for async operation
+            await cookieStore.set(name, value, options);
           } catch (error) {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
           }
         },
-        remove(name: string, options: CookieOptions) {
+        remove: async (name: string, options: CookieOptions) => {
           try {
-            cookieStore.set({ name, value: '', ...options });
+            // Use await for async operation
+            await cookieStore.set(name, '', options);
           } catch (error) {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing

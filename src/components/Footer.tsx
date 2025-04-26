@@ -1,7 +1,8 @@
 "use client";
-import React, { FC } from 'react'; // Import FC
+import React, { FC } from 'react';
 import Link from 'next/link';
-import Button from '../components/Button'; // Import the shared Button component
+import Button from './Button'; // Corrected path assuming Button is in the same dir or adjust as needed
+import NewsletterSignup from './NewsletterSignup'; // Import the new component
 
 
 const Footer: FC = () => { // Type Footer as FC
@@ -47,24 +48,10 @@ const Footer: FC = () => { // Type Footer as FC
           </div>
 
           {/* Footer Newsletter */}
-          <div className="footer-newsletter text-center sm:text-left">
-            <h4 className="text-white font-medium tracking-wide mb-6">Stay Connected</h4>
-            <p className="text-[#888] mb-4">Subscribe for exclusive updates, new collection previews, and special offers.</p>
-            {/* Updated form action for Formspree */}
-            <form className="newsletter-form flex flex-col sm:flex-row mt-4 max-w-xs mx-auto sm:mx-0" name="newsletter" method="POST" action="https://formspree.io/f/xdkgobaz">
-              {/* Optional: Add hidden field for source tracking */}
-              <input type="hidden" name="source" value="footer_signup" />
-              <input
-                type="email"
-                name="email"
-                placeholder="Your email address"
-                required
-                className="bg-[#333] border border-[#444] py-3 px-4 flex-grow min-w-0 rounded-sm sm:rounded-r-none text-white focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30 mb-2 sm:mb-0"
-              />
-              <Button type="submit" variant="secondary" className="flex-shrink-0 rounded-sm sm:rounded-l-none sm:-ml-px py-3 px-5">
-                Subscribe
-              </Button>
-            </form>
+          {/* Footer Newsletter - Replace static form with component */}
+          <div className="footer-newsletter text-center sm:text-left lg:col-span-1"> {/* Adjusted grid span if needed */}
+             {/* The NewsletterSignup component handles its own title and text */}
+             <NewsletterSignup />
           </div>
         </div>
 
