@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { supabase } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
 
 export default function RegisterPage() {
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -67,7 +69,7 @@ export default function RegisterPage() {
            setMessage("Confirmation email resent. Please check your inbox.");
       } else if (data.session === null && data.user) {
            // Standard success case where confirmation email is sent
-           setMessage("Registration successful! Please check your email to confirm your account.");
+           setMessage("Registration successful! Please check your email and click the confirmation link to activate your account.");
       } else {
            // Handle unexpected cases or if user is auto-confirmed (depends on Supabase settings)
            setMessage("Account created successfully.");

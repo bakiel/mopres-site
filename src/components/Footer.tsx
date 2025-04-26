@@ -17,7 +17,7 @@ const Footer: FC = () => { // Type Footer as FC
           <div className="footer-about text-center sm:text-left">
             <div className="footer-logo mb-5 inline-block sm:block">
               {/* Ensure the image path is correct or use an absolute URL */}
-              <img src="https://i.ibb.co/tpRBJb3r/Gold-letter-Mopres-logo-favicon.png" alt="MoPres Logo" className="h-[45px] mx-auto sm:mx-0" />
+              <img src="/Gold-letter-Mopres-logo-favicon.png" alt="MoPres Logo" className="h-[45px] mx-auto sm:mx-0" />
             </div>
             <p className="text-[#888] leading-relaxed">Contemporary Luxury Lifestyle Footwear. Crafted with passion in South Africa.</p>
           </div>

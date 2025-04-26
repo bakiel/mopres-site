@@ -1,9 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; // Use Next.js Image for optimization if needed
+import { cookies } from 'next/headers'; // Import cookies
+// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient'; // Import Supabase client and shared function
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
 
 // Define a type for the product data (adjust based on actual schema)
 type Product = {
@@ -16,11 +18,15 @@ type Product = {
 
 // Make the component async to fetch data
 export default async function Home() {
+  // Create a Supabase client for server components using the ssr factory
+  const cookieStore = cookies();
+  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+
   let featuredProducts: Product[] = [];
   let fetchError: string | null = null;
 
   try {
-    // Fetch featured products from Supabase
+    // Fetch featured products using the server client
     const { data, error } = await supabase
       .from('products')
       .select('id, name, slug, price, images') // Select necessary fields
@@ -152,7 +158,7 @@ export default async function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Collection Card 1 */}
             <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="https://i.ibb.co/rGfHJj0Q/Red-high-heeled_shoes.jpg" alt="Red Showstoppers Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
+              <img src="/Red-high-heeled_shoes.jpg" alt="Red Showstoppers Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
               <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
                 <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Red Showstoppers</h3>
                 <Button href="/shop/collections/red-showstoppers" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
@@ -160,7 +166,7 @@ export default async function Home() {
             </div>
              {/* Collection Card 2 */}
             <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="https://i.ibb.co/Jw6Ky241/Red-high-heel-with-bow.jpg" alt="Statement Bows Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
+              <img src="/Red-high-heel-with-bow.jpg" alt="Statement Bows Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
               <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
                 <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Statement Bows</h3>
                 <Button href="/shop/collections/statement-bows" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
@@ -168,7 +174,7 @@ export default async function Home() {
             </div>
              {/* Collection Card 3 */}
             <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="https://i.ibb.co/q3Wcphry/Red-high-heel-with-rhinestones.jpg" alt="Crystal & Rhinestone Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
+              <img src="/Red-high-heel-with-rhinestones.jpg" alt="Crystal & Rhinestone Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
               <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
                 <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Crystal Glam</h3>
                 <Button href="/shop/collections/crystal-rhinestone" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
@@ -176,7 +182,7 @@ export default async function Home() {
             </div>
              {/* Collection Card 4 */}
             <div className="collection-card relative border border-border-light overflow-hidden group">
-              <img src="https://i.ibb.co/SDWVPvFk/High-heeled-patent-leather-shoes.jpg" alt="Classic Elegance Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
+              <img src="/High-heeled-patent-leather-shoes.jpg" alt="Classic Elegance Collection" loading="lazy" className="w-full h-auto object-cover transition-transform duration-std ease-in-out group-hover:scale-105" />
               <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20">
                 <h3 className="font-montserrat text-2xl text-white font-semibold mb-6 text-shadow-sm">Classic Elegance</h3>
                 <Button href="/shop/collections/black-essentials" variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins">Shop Now</Button> {/* Specific collection link, font */}
@@ -192,7 +198,7 @@ export default async function Home() {
          {/* Faint texture overlay - handled with pseudo-element in CSS or inline style */}
          <div
             className="absolute inset-0 bg-cover bg-center opacity-[0.08] z-0"
-            style={{ backgroundImage: "url('https://i.ibb.co/6J7gsNws/Geometric-pattern-with-gold-lines-Dark-bg.jpg')" }}
+            style={{ backgroundImage: "url('/Geometric-pattern-with-gold-lines-Dark-bg.jpg')" }}
           ></div>
         <div className="relative w-full max-w-screen-xl mx-auto px-4 z-10">
           <SectionTitle>About MoPres</SectionTitle> {/* Ensure SectionTitle uses Montserrat */}
@@ -203,7 +209,7 @@ export default async function Home() {
               <Button href="/about" variant="secondary">Learn More</Button>
             </div>
             <div className="about-image text-center md:text-right">
-              <img src="https://i.ibb.co/99JhZpV1/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres Brand Logo" loading="lazy" className="inline-block rounded-sm filter brightness-110 max-w-xs md:max-w-sm" />
+              <img src="/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres Brand Logo" loading="lazy" className="inline-block rounded-sm filter brightness-110 max-w-xs md:max-w-sm" />
             </div>
           </div>
         </div>

@@ -1,8 +1,11 @@
 import React, { Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import Button from '@/components/Button'; // Keep Button import if used in Server Error or Related Products
 import SectionTitle from '@/components/SectionTitle';
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient';
+import { cookies } from 'next/headers'; // Import cookies
+// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
 import { notFound } from 'next/navigation';
 // Remove client-specific imports like addToCart, User type if not needed server-side
 // import { addToCart } from '@/lib/cartUtils';
@@ -108,6 +111,10 @@ const ProductLoadingSkeleton = () => (
 
 
 export default async function ProductPage({ params }: ProductPageProps) {
+  // Create Supabase client INSIDE the component function scope using the ssr factory
+  const cookieStore = cookies();
+  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+
   const slug = params.slug;
   let product: ProductDetail | null = null;
   let relatedProducts: RelatedProduct[] = [];
@@ -191,12 +198,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
               {relatedProducts.map((related) => (
                 <div key={related.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col">
-                  <Link href={`/shop/products/${related.slug}`} className="block mb-6 aspect-square overflow-hidden group">
-                    <img
+                  <Link href={`/shop/products/${related.slug}`} className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added relative for Image fill */}
+                    <Image
                       src={getProductImageUrl(related.images?.[0])}
                       alt={related.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-std ease-in-out group-hover:scale-105"
+                      fill // Use fill layout
+                      style={{ objectFit: 'cover' }} // Ensure image covers the area
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" // Provide sizes hint
+                      className="transition-transform duration-std ease-in-out group-hover:scale-105"
                     />
                   </Link>
                   <div className="flex-grow flex flex-col">

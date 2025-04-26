@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react'; // Import hooks needed for client component
 import Link from 'next/link';
-// Removed next/image import
+import Image from 'next/image'; // Import next/image
 import Button from '@/components/Button';
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import factory and helper
 import { addToCart } from '@/lib/cartUtils';
 import type { User } from '@supabase/supabase-js';
+import toast from 'react-hot-toast'; // Import toast
 
 // --- Types (Should match types in the parent Server Component) ---
 type ProductDetail = {
@@ -29,11 +30,12 @@ type ProductDetail = {
 // --- Component Definition ---
 // Accept the extended ProductDetail type with formatted prices
 export default function ProductDetailsClient({ initialProduct }: { initialProduct: ProductDetail }) {
-
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
   const [product, setProduct] = useState<ProductDetail>(initialProduct);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  // Removed currentImageIndex state
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0); // State for current image index
   const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
@@ -96,15 +98,16 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
       size: selectedSize,
       quantity: quantity,
       image: product.images?.[0],
-      slug: product.slug
+      slug: product.slug,
+      sku: product.sku, // Add SKU here
     };
     addToCart(itemToAdd);
-    alert(`${quantity} x ${product.name} ${selectedSize ? `(Size: ${selectedSize})` : ''} added to cart.`);
+    toast.success(`${quantity} x ${product.name} ${selectedSize ? `(Size: ${selectedSize})` : ''} added to cart.`);
   };
 
   const handleWishlistToggle = async () => {
     if (!user) {
-      alert("Please login to manage your wishlist.");
+      toast.error("Please login to manage your wishlist.");
       // Consider redirecting: import { useRouter } from 'next/navigation'; const router = useRouter(); router.push('/account/login');
       return;
     }
@@ -116,16 +119,16 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
         const { error } = await supabase.from('wishlist_items').delete().match({ user_id: user.id, product_id: product.id });
         if (error) throw error;
         setIsInWishlist(false);
-        alert(`${product.name} removed from wishlist.`);
+        toast.success(`${product.name} removed from wishlist.`);
       } else {
         const { error } = await supabase.from('wishlist_items').insert({ user_id: user.id, product_id: product.id });
         if (error) throw error;
         setIsInWishlist(true);
-        alert(`${product.name} added to wishlist.`);
+        toast.success(`${product.name} added to wishlist.`);
       }
     } catch (error: any) {
       console.error("Error updating wishlist:", error);
-      alert(`Failed to update wishlist: ${error.message}`);
+      toast.error(`Failed to update wishlist: ${error.message}`);
     } finally {
       setWishlistLoading(false);
     }
@@ -139,29 +142,46 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
       {/* Product Image Section */}
-      {/* Product Image Section */}
       <div className="product-images">
-        {/* Revert to standard img tag */}
-        {/* Simplify image rendering: Show only the first image */}
-        <div className="main-image mb-4 border border-border-light rounded overflow-hidden shadow-md aspect-square">
+        {/* Main Image */}
+        <div className="main-image mb-4 border border-border-light rounded overflow-hidden shadow-md aspect-square relative"> {/* Added relative */}
           {product.images && product.images.length > 0 ? (
-            <img
-              // Removed key related to currentImageIndex
-              src={getProductImageUrl(product.images[0])} // Directly use the first image
-              alt={`${product.name} - Image 1`} // Update alt text
-              className="w-full h-full object-cover"
-              width={500} // Add explicit width
-              height={500} // Add explicit height
+            <Image
+              src={getProductImageUrl(product.images[currentImageIndex])} // Use current image index
+              alt={`${product.name} - Image ${currentImageIndex + 1}`}
+              fill // Use fill layout
+              style={{ objectFit: 'cover' }} // Ensure image covers the area
+              sizes="(max-width: 768px) 100vw, 50vw" // Provide sizes hint
+              priority={currentImageIndex === 0} // Prioritize the first image
             />
           ) : (
             // Fallback for no image
-            // Fallback display
             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
               <span className="text-text-light">No Image Available</span>
             </div>
           )}
         </div>
-        {/* Removed thumbnail logic */}
+
+        {/* Thumbnails */}
+        {product.images && product.images.length > 1 && (
+          <div className="thumbnails grid grid-cols-4 sm:grid-cols-5 gap-2">
+            {product.images.map((image, index) => (
+              <div
+                key={index}
+                className={`aspect-square border rounded overflow-hidden cursor-pointer transition-opacity duration-200 ${index === currentImageIndex ? 'border-brand-gold opacity-100' : 'border-border-light opacity-70 hover:opacity-100'}`}
+                onClick={() => setCurrentImageIndex(index)}
+              >
+                <Image
+                  src={getProductImageUrl(image)}
+                  alt={`${product.name} - Thumbnail ${index + 1}`}
+                  width={100} // Explicit width for thumbnail
+                  height={100} // Explicit height for thumbnail
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Product Details Section */}
@@ -233,13 +253,14 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
         {!product.in_stock && (
           <div className="mt-3">
             <p className="text-sm text-red-600 mb-2 font-poppins">This item is currently out of stock.</p>
+            {/* Link to the preorder page instead of Formspree */}
             <Link
-              href={`https://formspree.io/f/xnndqwjp?product=${encodeURIComponent(product.name)}&sku=${encodeURIComponent(product.sku || 'N/A')}${selectedSize ? `&size=${encodeURIComponent(selectedSize)}` : ''}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/preorder" // Link to the preorder page
+              // Optionally pass product info as query params if needed by preorder page:
+              // href={`/preorder?product=${encodeURIComponent(product.name)}&sku=${encodeURIComponent(product.sku || 'N/A')}`}
             >
               <Button variant="secondary" className="w-full lg:w-auto">
-                Notify Me When Available
+                Preorder / Notify Me
               </Button>
             </Link>
           </div>

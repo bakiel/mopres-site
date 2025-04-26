@@ -1,8 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient'; // Import shared function
+import { cookies } from 'next/headers'; // Import cookies
+// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
 
 // Define a type for the collection data
 type Collection = {
@@ -15,6 +18,10 @@ type Collection = {
 
 // Make the component async to fetch data
 export default async function CollectionsListPage() {
+  // Create Supabase client INSIDE the component function scope using the ssr factory
+  const cookieStore = cookies();
+  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+
   let collections: Collection[] = [];
   let fetchError: string | null = null;
 
@@ -47,10 +54,12 @@ export default async function CollectionsListPage() {
             {/* Map over fetched collections */}
             {collections.map((collection) => (
               <div key={collection.id} className="collection-card relative border border-border-light overflow-hidden group">
-                <img
+                <Image
                   src={getProductImageUrl(collection.image)} // Use shared function
                   alt={collection.name}
-                  loading="lazy"
+                  fill // Use fill layout
+                  style={{ objectFit: 'cover' }} // Ensure image covers the area
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 33vw" // Provide sizes hint
                   className="w-full h-64 object-cover transition-transform duration-std ease-in-out group-hover:scale-105" // Fixed height for consistency
                 />
                 <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-8 transition-opacity duration-std ease-in-out opacity-100 group-hover:opacity-100"> {/* Keep overlay visible */}

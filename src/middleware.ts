@@ -54,6 +54,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Explicitly refresh session to ensure server client has latest state
+  await supabase.auth.refreshSession();
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -68,7 +71,9 @@ export async function middleware(request: NextRequest) {
        protectedRoutes.includes(pathname) ||
        (pathname.startsWith('/account') &&
         !pathname.startsWith('/account/login') &&
-        !pathname.startsWith('/account/register'));
+        !pathname.startsWith('/account/register') &&
+        !pathname.startsWith('/account/forgot-password') && // Exclude forgot password
+        !pathname.startsWith('/account/reset-password')); // Exclude reset password
 
 
   // If trying to access a protected route without a session, redirect to login
@@ -78,19 +83,19 @@ export async function middleware(request: NextRequest) {
     // Optional: Add a 'redirectedFrom' query param
     // redirectUrl.searchParams.set('redirectedFrom', pathname);
     console.log(`Redirecting unauthenticated user from ${pathname} to /account/login`);
-    return NextResponse.redirect(redirectUrl);
-  }
+     return NextResponse.redirect(redirectUrl);
+   }
 
-  // If user is logged in and tries to access login/register, redirect to account dashboard
-  if (session && (pathname === '/account/login' || pathname === '/account/register')) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = '/account';
-      console.log(`Redirecting authenticated user from ${pathname} to /account`);
-      return NextResponse.redirect(redirectUrl);
-  }
+   // If user is logged in and tries to access login/register, redirect to account dashboard
+   // Restore this block
+   if (session && (pathname === '/account/login' || pathname === '/account/register')) {
+       const redirectUrl = request.nextUrl.clone();
+       redirectUrl.pathname = '/account';
+       console.log(`Redirecting authenticated user from ${pathname} to /account`);
+       return NextResponse.redirect(redirectUrl);
+   }
 
-
-  // Refresh session if expired - handled by supabase client library with ssr package
+   // Refresh session if expired - handled by supabase client library with ssr package
 
   return response;
 }

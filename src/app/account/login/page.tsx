@@ -7,14 +7,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation'; // Import useRouter for redirection
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { supabase } from '@/lib/supabaseClient'; // Ensure supabase is imported
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
+import toast from 'react-hot-toast'; // Import toast
 
 export default function LoginPage() {
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false); // State to show resend button
   const router = useRouter(); // Initialize router
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -34,12 +38,14 @@ export default function LoginPage() {
         // Provide a user-friendly error message
         if (signInError.message.includes("Invalid login credentials")) {
              setError("Invalid email or password. Please try again.");
+             setShowResend(false);
         } else if (signInError.message.includes("Email not confirmed")) {
-             setError("Please confirm your email address before logging in.");
-             // Optionally, add a button/link to resend confirmation email
+             setError("Email not confirmed. Please check your inbox or resend the confirmation email.");
+             setShowResend(true); // Show the resend button
         }
          else {
              setError("Login failed. Please try again later.");
+             setShowResend(false);
         }
         setLoading(false);
         return;
@@ -47,10 +53,9 @@ export default function LoginPage() {
 
       // Login successful
       setMessage("Login successful! Redirecting to your account...");
-      // Redirect to the account dashboard page after a short delay
+      // Use full page navigation to ensure session cookie is sent reliably
       setTimeout(() => {
-        router.push('/account'); // Redirect to the main account page
-        // router.refresh(); // Optional: force refresh to update session state if needed elsewhere
+        window.location.assign('/account');
       }, 1500); // Delay for user to see the message
 
     } catch (catchError: any) {
@@ -62,6 +67,34 @@ export default function LoginPage() {
     // setLoading(false); // Removed this line - loading state ends on redirect or error
   };
 
+  const handleResendConfirmation = async () => {
+    if (!email) {
+        toast.error("Please enter your email address first.");
+        return;
+    }
+    setLoading(true); // Use the main loading state or add a specific one
+    setError(null);
+    setMessage(null);
+    try {
+        const { error: resendError } = await supabase.auth.resend({
+            type: 'signup',
+            email: email,
+        });
+        if (resendError) {
+            console.error("Error resending confirmation:", resendError);
+            toast.error(resendError.message || "Failed to resend confirmation email.");
+        } else {
+            toast.success("Confirmation email resent. Please check your inbox.");
+            setShowResend(false); // Hide button after successful resend
+        }
+    } catch (err) {
+        console.error("Unexpected error resending confirmation:", err);
+        toast.error("An unexpected error occurred.");
+    } finally {
+        setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-md mx-auto px-4"> {/* Centered, max-width container */}
@@ -71,6 +104,17 @@ export default function LoginPage() {
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
               <span className="block sm:inline">{error}</span>
+              {/* Show resend button conditionally */}
+              {showResend && (
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  className="ml-2 text-xs font-semibold text-red-800 underline hover:text-red-600 disabled:opacity-50"
+                  disabled={loading}
+                >
+                  Resend Email
+                </button>
+              )}
             </div>
           )}
            {message && (
@@ -115,7 +159,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             {/* TODO: Add Remember me checkbox if needed */}
             <div className="text-sm">
-              <Link href="#" className="font-medium text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
+              <Link href="/account/forgot-password" className="font-medium text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
                 Forgot your password?
               </Link>
             </div>

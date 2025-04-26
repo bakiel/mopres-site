@@ -239,6 +239,22 @@ function PreorderFormContent() {
                 </div>
               </div>
 
+              {/* ZA Standard Sizes */}
+              <div className="mb-4">
+                 <h3 className="mb-2.5 text-base text-brand-gold font-semibold">ZA Standard Sizes</h3>
+                 <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2.5">
+                   {[...Array(12)].map((_, i) => {
+                     const size = i + 1;
+                     return (
+                       <div key={`za-${size}`} className="flex items-center">
+                         <input type="radio" id={`sizeZA${size}`} name="size" value={`ZA ${size}`} className="w-auto mr-1.5 accent-brand-gold" />
+                         <label htmlFor={`sizeZA${size}`} className="text-sm font-normal">ZA {size}</label>
+                       </div>
+                     );
+                   })}
+                 </div>
+              </div>
+
               {/* Other Size Options */}
               <div className="mb-4">
                   {/* Use brand-gold for header */}

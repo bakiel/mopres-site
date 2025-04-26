@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import { useRouter } from 'next/navigation';
 import SectionTitle from '@/components/SectionTitle';
 import Button from '@/components/Button';
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient'; // Import shared function
+import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import factory and helper
 import type { User } from '@supabase/supabase-js';
+import toast from 'react-hot-toast'; // Import toast
 
 // Define type for Wishlist Item (joining product details)
 // TODO: Refine based on actual schema and query
@@ -25,9 +27,12 @@ type WishlistItem = {
 };
 
 export default function WishlistPage() {
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
   const [user, setUser] = useState<User | null>(null);
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Overall page loading
+  const [wishlistLoading, setWishlistLoading] = useState(false); // Loading state for remove action
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -97,17 +102,37 @@ export default function WishlistPage() {
   }, [router]);
 
    const handleRemoveItem = async (wishlistItemId: string) => {
-    // Placeholder function - Implement actual removal logic later
+    if (!user) {
+      toast.error("Please login to manage your wishlist.");
+      return;
+    }
     console.log("Attempting to remove wishlist item:", wishlistItemId);
-    alert("Remove functionality not yet implemented.");
-    // TODO: Implement Supabase delete operation and update state
-    // const { error } = await supabase.from('wishlist_items').delete().match({ id: wishlistItemId, user_id: user?.id });
-    // if (!error) {
-    //   setWishlistItems(currentItems => currentItems.filter(item => item.id !== wishlistItemId));
-    // } else {
-    //   console.error("Error removing wishlist item:", error);
-    //   alert("Failed to remove item from wishlist.");
-    // }
+    setWishlistLoading(true); // Optional: Add loading state for individual item removal
+
+    try {
+      const { error } = await supabase
+        .from('wishlist_items')
+        .delete()
+        .match({ id: wishlistItemId, user_id: user.id }); // Match by item ID and user ID
+
+      if (error) {
+        console.error("Error removing wishlist item:", error);
+        throw new Error("Failed to remove item from wishlist.");
+      }
+
+      // Update local state to remove the item
+      setWishlistItems(currentItems => currentItems.filter(item => item.id !== wishlistItemId));
+      // Show a success notification
+      toast.success("Item removed from wishlist.");
+
+    } catch (removeError: any) {
+      console.error("Error removing wishlist item:", removeError);
+      setError(removeError.message || "Failed to remove item from wishlist.");
+       // Show an error notification
+      toast.error(removeError.message || "Failed to remove item from wishlist.");
+    } finally {
+       setWishlistLoading(false); // Optional: End loading state
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -143,12 +168,14 @@ export default function WishlistPage() {
               // Use implicit return with conditional rendering, ensure key is on the fragment/element returned by map
               return product ? (
                 <div key={item.id} className="flex flex-col md:flex-row items-center gap-6 bg-white p-4 border border-border-light rounded shadow-sm">
-                  <Link href={`/shop/products/${product.slug}`} className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32 block overflow-hidden rounded border border-border-light">
-                    <img
+                  <Link href={`/shop/products/${product.slug}`} className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32 block overflow-hidden rounded border border-border-light relative"> {/* Added relative for Image fill */}
+                    <Image
                     src={getProductImageUrl(product.images?.[0])}
                     alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
+                    fill // Use fill layout
+                    style={{ objectFit: 'cover' }} // Ensure image covers the area
+                    sizes="(max-width: 768px) 96px, 128px" // Provide sizes hint
+                    />
                 </Link>
                 <div className="flex-grow text-center md:text-left">
                   <Link href={`/shop/products/${product.slug}`}>

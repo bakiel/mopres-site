@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Poppins, Montserrat } from "next/font/google";
 import "./globals.css";
 import Layout from "../components/Layout"; // Import the Layout component
+import { Toaster } from 'react-hot-toast'; // Import Toaster
+
 
 // Configure Poppins font
 const poppins = Poppins({
@@ -38,6 +40,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${poppins.variable} ${montserrat.variable} font-poppins antialiased`}>
         <Layout>{children}</Layout>
+        <Toaster position="top-center" /> {/* Add Toaster component */}
       </body>
     </html>
   );

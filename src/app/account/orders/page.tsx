@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SectionTitle from '@/components/SectionTitle';
 import Button from '@/components/Button'; // Import Button component
-import { supabase } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
 import type { User } from '@supabase/supabase-js';
 
 // Define a type for the order data (adjust based on actual schema)
@@ -20,6 +20,8 @@ type Order = {
 };
 
 export default function OrderHistoryPage() {
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,8 +137,9 @@ export default function OrderHistoryPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark">{formatCurrency(order.total_amount)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-text-dark capitalize">{order.status}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {/* TODO: Link to a detailed order view page if implemented */}
-                      <span className="text-gray-400">View Details</span> {/* Placeholder */}
+                      <Link href={`/account/orders/${order.id}`} className="text-brand-gold hover:underline">
+                        View Details
+                      </Link>
                     </td>
                   </tr>
                 ))}

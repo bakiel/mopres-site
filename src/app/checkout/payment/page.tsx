@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { getCart, getCartTotal, clearCart, CartItem } from '@/lib/cartUtils'; // Import cart utilities
-import { supabase } from '@/lib/supabaseClient'; // Import for order creation later
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
 import type { User } from '@supabase/supabase-js';
 
 // Re-use ShippingAddress type if needed, or define locally
@@ -22,6 +22,8 @@ type ShippingAddress = {
 };
 
 export default function PaymentPage() {
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -77,50 +79,36 @@ export default function PaymentPage() {
         // invoice_number: Generate later or use order ID? Let's use order ID for now.
     };
 
+    // Prepare order items data for the RPC call
+    const orderItemsData = cartItems.map(item => ({
+        product_id: item.productId, // Assuming productId is the UUID from products table
+        quantity: item.quantity,
+        size: item.size,
+        price: item.price, // Price at time of order
+        sku: item.sku || 'N/A', // Include SKU
+    }));
+
     try {
-        // 1. Insert into 'orders' table
-        const { data: newOrder, error: orderError } = await supabase
-            .from('orders')
-            .insert(orderData)
-            .select('id') // Select the newly created order ID
-            .single();
+        // Call the Supabase RPC function to create the order and order items transactionally
+        const { data: newOrderId, error: rpcError } = await supabase.rpc('create_order_with_items', {
+            order_data: orderData,
+            order_items_data: orderItemsData
+        });
 
-        if (orderError || !newOrder) {
-            console.error("Error inserting order:", orderError);
-            throw new Error("Failed to create order record.");
+        if (rpcError || !newOrderId) {
+            console.error("Error calling create_order_with_items RPC:", rpcError);
+            throw new Error("Failed to create order.");
         }
 
-        const orderId = newOrder.id;
-
-        // 2. Prepare order items data
-        const orderItemsData = cartItems.map(item => ({
-            order_id: orderId,
-            product_id: item.productId, // Assuming productId is the UUID from products table
-            product_name: item.name,
-            product_sku: 'N/A', // TODO: Need SKU in CartItem or fetch it
-            quantity: item.quantity,
-            price: item.price, // Price at time of order
-            size: item.size
-        }));
-
-        // 3. Insert into 'order_items' table
-        const { error: itemsError } = await supabase
-            .from('order_items')
-            .insert(orderItemsData);
-
-        if (itemsError) {
-            console.error("Error inserting order items:", itemsError);
-            // TODO: Consider rolling back the order insertion if items fail? (Requires transaction/function)
-            throw new Error("Failed to save order items.");
-        }
+        const orderId = newOrderId; // The RPC function returns the new order ID
 
         // Order placed successfully
-        console.log("Order placed successfully in Supabase:", orderId);
+        console.log("Order placed successfully via RPC:", orderId);
 
         // Store details for confirmation page
          if (typeof window !== 'undefined') {
             localStorage.setItem('lastOrder', JSON.stringify({
-                id: orderId, // Use actual order ID
+                id: orderId, // Use actual order ID returned by RPC
                 total: orderTotal,
                 items: cartItems, // Store items for display/invoice
                 address: shippingAddress, // Store address for display
@@ -130,8 +118,8 @@ export default function PaymentPage() {
         // Clear the cart after successful order
         clearCart();
 
-        // Redirect to confirmation page
-        router.push('/checkout/confirmation');
+        // Redirect to confirmation page with order ID
+        router.push('/checkout/confirmation/' + orderId);
 
     } catch (orderError: any) {
         console.error("Error placing order (placeholder):", orderError);

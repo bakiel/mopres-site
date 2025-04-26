@@ -86,7 +86,7 @@ const Header: FC = () => { // Type Header as FC
             <div className="flex-shrink-0">
               <Link href="/" className="flex items-center gap-3 text-white hover:text-white" onClick={closeMobileMenu}> {/* Close menu on logo click */}
                 {/* Ensure the image path is correct or use an absolute URL */}
-                <img src="https://i.ibb.co/tpRBJb3r/Gold-letter-Mopres-logo-favicon.png" alt="MoPres Logo Mark" className="h-[35px] w-auto" />
+                <img src="/Gold-letter-Mopres-logo-favicon.png" alt="MoPres Logo Mark" className="h-[35px] w-auto" />
                 <span className="font-montserrat text-2xl font-semibold uppercase tracking-[1.5px]">MoPres</span>
               </Link>
             </div>

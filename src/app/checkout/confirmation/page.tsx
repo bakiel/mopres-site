@@ -1,13 +1,15 @@
-'use client'; // Needs client-side access to localStorage
+'use client'; // Needs client-side access for PDF generation and routing
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation'; // Import useParams
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable'; // Correct import for jspdf-autotable
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { CartItem, getCartTotal } from '@/lib/cartUtils';
+import { CartItem } from '@/lib/cartUtils'; // Only need CartItem type
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Import the factory function
+import Image from 'next/image'; // Import Image for logo in PDF
 
 // Re-use ShippingAddress type
 type ShippingAddress = {
@@ -21,34 +23,92 @@ type ShippingAddress = {
   phone: string;
 };
 
-// Type for the stored order details
-type LastOrder = {
+// Type for the fetched order details (matching Supabase structure)
+type FetchedOrder = {
     id: string;
-    total: number;
-    items: CartItem[];
-    address: ShippingAddress;
-}
+    total_amount: number;
+    shipping_fee: number;
+    customer_name: string;
+    customer_email: string;
+    customer_phone: string;
+    shipping_address: ShippingAddress; // Assuming this is stored as JSONB
+    order_items: {
+        id: string;
+        product_id: string;
+        quantity: number;
+        size?: string;
+        price: number;
+        sku?: string;
+        products: { // Joined product data
+            name: string;
+            slug: string;
+            images: string[];
+        }[] | null; // Updated to expect an array or null
+    }[];
+};
+
 
 export default function ConfirmationPage() {
-  const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
+  // Create the client instance inside the component
+  const supabase = createSupabaseBrowserClient();
+  const { orderId } = useParams<{ orderId: string }>(); // Get orderId from URL params
+  const [order, setOrder] = useState<FetchedOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedOrder = localStorage.getItem('lastOrder');
-      if (storedOrder) {
-        setLastOrder(JSON.parse(storedOrder));
-        // Optional: Clear the stored order after displaying it once?
-        // localStorage.removeItem('lastOrder');
-      } else {
-        // If no order details found, maybe redirect to home or account
-        console.warn("No last order details found in localStorage.");
-        // router.push('/'); // Or '/account/orders' if user is logged in
+    const fetchOrder = async () => {
+      if (!orderId) {
+        setError("Order ID is missing.");
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-    }
-  }, [router]);
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            total_amount,
+            shipping_fee,
+            customer_name,
+            customer_email,
+            customer_phone,
+            shipping_address,
+            order_items (
+              id,
+              product_id,
+              quantity,
+              size,
+              price,
+              sku,
+              products (
+                name,
+                slug,
+                images
+              )
+            )
+          `)
+          .eq('id', orderId)
+          .single();
+
+        if (fetchError || !data) {
+          console.error("Error fetching order details:", fetchError);
+          setError("Could not load order details.");
+        } else {
+          setOrder(data as FetchedOrder); // Cast fetched data to FetchedOrder type
+        }
+      } catch (err: any) {
+        console.error("Unexpected error fetching order:", err);
+        setError("An unexpected error occurred.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
+  }, [orderId]); // Re-run effect if orderId changes
 
   // --- PDF Generation Logic ---
 
@@ -60,10 +120,10 @@ export default function ConfirmationPage() {
    * Adds banking details to the invoice PDF
    * @param {jsPDF} doc - The jsPDF document instance
    * @param {number} yPosition - The current Y position in the document
-   * @param {LastOrder} order - The order details
+   * @param {FetchedOrder} order - The order details
    * @returns {number} - The new Y position after adding banking details
    */
-  function addBankingDetails(doc: jsPDF, yPosition: number, order: LastOrder): number {
+  function addBankingDetails(doc: jsPDF, yPosition: number, order: FetchedOrder): number {
     const startY = yPosition + 10; // Add a small gap
 
     doc.setFontSize(12);
@@ -82,7 +142,7 @@ export default function ConfirmationPage() {
       ['Branch Code:', '210648'],
       // ['Branch Name:', 'JUBILEE MALL'], // Optional
       // ['Swift Code:', 'FIRNZAJJ'], // Optional for international
-      ['Reference:', `Order #${order.id} ${order.address.fullName.split(' ').pop()}`] // Use Order ID and Last Name
+      ['Reference:', `Order #${order.id} ${order.customer_name.split(' ').pop()}`] // Use Order ID and Customer Last Name
     ];
 
     autoTable(doc, {
@@ -114,7 +174,7 @@ export default function ConfirmationPage() {
 
 
   const generateInvoice = async () => {
-    if (!lastOrder) {
+    if (!order) {
       alert("Order details not found.");
       return;
     }
@@ -124,21 +184,25 @@ export default function ConfirmationPage() {
 
     // --- Header ---
     // Add Logo (Requires handling image loading/embedding - simplified for now)
-    // try {
-    //   // You might need to fetch the image or have it locally/base64 encoded
-    //   // const logoUrl = 'https://i.ibb.co/99JhZpV1/Mopres-Gold-luxury-lifestyle-logo.png';
-    //   // const imgData = await fetch(logoUrl).then(res => res.blob()); // Needs CORS handling or proxy
-    //   // doc.addImage(imgData, 'PNG', 15, yPos, 40, 15); // Adjust coords/size
-    //   // yPos += 20;
-    //   doc.setFontSize(10);
-    //   doc.text('MoPres Logo Placeholder', 15, yPos); // Placeholder
-    //   yPos += 5;
-    // } catch (e) {
-    //   console.error("Error adding logo:", e);
-    //   doc.setFontSize(10);
-    //   doc.text('MoPres Logo Placeholder', 15, yPos); // Placeholder
-    //   yPos += 5;
-    // }
+    // Using a local image from the public directory
+    const logoImg = new (window as any).Image(); // Use window.Image to avoid Next.js Image component issues in jsPDF
+    logoImg.src = '/Mopres_Gold_luxury_lifestyle_logo.png'; // Path to the local logo in public
+
+    await new Promise((resolve, reject) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = reject;
+    });
+
+    try {
+        doc.addImage(logoImg, 'PNG', 15, yPos, 40, 15); // Adjust coords/size as needed
+        yPos += 20; // Space after logo
+    } catch (e) {
+        console.error("Error adding logo to PDF:", e);
+        doc.setFontSize(10);
+        doc.text('MoPres Logo Placeholder', 15, yPos); // Fallback placeholder
+        yPos += 5;
+    }
+
 
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
@@ -152,7 +216,7 @@ export default function ConfirmationPage() {
     const orderX = doc.internal.pageSize.getWidth() - 15; // Right align
 
     doc.text('MoPres Luxury', companyX, yPos);
-    doc.text(`Order #: ${lastOrder.id}`, orderX, yPos, { align: 'right' });
+    doc.text(`Order #: ${order.id}`, orderX, yPos, { align: 'right' });
     yPos += 5;
     doc.text('6680 Witrigwend Street, Unit 378', companyX, yPos);
     doc.text(`Date: ${new Date().toLocaleDateString('en-ZA')}`, orderX, yPos, { align: 'right' });
@@ -167,26 +231,26 @@ export default function ConfirmationPage() {
     doc.text('Ship To:', companyX, yPos);
     yPos += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text(lastOrder.address.fullName, companyX, yPos);
+    doc.text(order.shipping_address.fullName, companyX, yPos);
     yPos += 5;
-    doc.text(lastOrder.address.addressLine1, companyX, yPos);
+    doc.text(order.shipping_address.addressLine1, companyX, yPos);
     yPos += 5;
-    if (lastOrder.address.addressLine2) {
-        doc.text(lastOrder.address.addressLine2, companyX, yPos);
+    if (order.shipping_address.addressLine2) {
+        doc.text(order.shipping_address.addressLine2, companyX, yPos);
         yPos += 5;
     }
-    doc.text(`${lastOrder.address.city}, ${lastOrder.address.province}, ${lastOrder.address.postalCode}`, companyX, yPos);
+    doc.text(`${order.shipping_address.city}, ${order.shipping_address.province}, ${order.shipping_address.postalCode}`, companyX, yPos);
     yPos += 5;
-    doc.text(lastOrder.address.country || 'South Africa', companyX, yPos);
+    doc.text(order.shipping_address.country || 'South Africa', companyX, yPos);
     yPos += 5;
-    doc.text(`Phone: ${lastOrder.address.phone}`, companyX, yPos);
+    doc.text(`Phone: ${order.shipping_address.phone}`, companyX, yPos);
     yPos += 15; // Space before table
 
     // --- Order Items Table ---
     const tableColumn = ["Item", "SKU", "Size", "Qty", "Unit Price", "Total"];
-    const tableRows = lastOrder.items.map(item => [
-      item.name,
-      item.sku || 'N/A', // Assuming sku is available on CartItem
+    const tableRows = order.order_items.map(item => [
+      item.products?.[0]?.name || 'Unknown Product', // Access name from the first element of the products array
+      item.sku || 'N/A',
       item.size || 'N/A',
       item.quantity,
       formatCurrency(item.price),
@@ -207,8 +271,8 @@ export default function ConfirmationPage() {
     // --- Totals ---
     const totalsX = doc.internal.pageSize.getWidth() - 65; // Position for totals labels
     const valuesX = doc.internal.pageSize.getWidth() - 15; // Position for totals values
-    const subtotal = lastOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = lastOrder.total - subtotal; // Calculate shipping
+    const subtotal = order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shipping = order.shipping_fee; // Use fetched shipping fee
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -220,11 +284,11 @@ export default function ConfirmationPage() {
     yPos += 7;
     doc.setFont('helvetica', 'bold');
     doc.text('Total Due (EFT):', totalsX, yPos);
-    doc.text(formatCurrency(lastOrder.total), valuesX, yPos, { align: 'right' });
+    doc.text(formatCurrency(order.total_amount), valuesX, yPos, { align: 'right' });
     yPos += 10;
 
     // --- Banking Details ---
-    yPos = addBankingDetails(doc, yPos, lastOrder);
+    yPos = addBankingDetails(doc, yPos, order);
 
     // --- Footer ---
     doc.setFontSize(8);
@@ -232,7 +296,7 @@ export default function ConfirmationPage() {
     doc.text('Thank you for your business!', doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
 
     // --- Save PDF ---
-    doc.save(`MoPres_Invoice_${lastOrder.id}.pdf`);
+    doc.save(`MoPres_Invoice_${order.id}.pdf`);
   };
 
 
@@ -243,7 +307,6 @@ export default function ConfirmationPage() {
     });
   };
 
-  // Removed duplicate formatCurrency function here
 
   if (loading) {
       return (
@@ -255,12 +318,12 @@ export default function ConfirmationPage() {
       );
   }
 
-  if (!lastOrder) {
+  if (error || !order) {
        return (
           <div className="bg-background-body py-12 lg:py-20">
               <div className="w-full max-w-screen-md mx-auto px-4 text-center">
                  <SectionTitle centered>Order Not Found</SectionTitle>
-                 <p className="text-text-light mt-4 mb-6">We couldn't find details for your last order.</p>
+                 <p className="text-text-light mt-4 mb-6">{error || "We couldn't find details for your order."}</p>
                  <Link href="/shop">
                     <Button variant="primary">Continue Shopping</Button>
                  </Link>
@@ -269,9 +332,10 @@ export default function ConfirmationPage() {
       );
   }
 
-  // Recalculate subtotal for display consistency
-  const displaySubtotal = lastOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const displayShipping = lastOrder.total - displaySubtotal;
+  // Use fetched order data for display
+  const displaySubtotal = order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const displayShipping = order.shipping_fee;
+
 
   return (
     <div className="bg-background-body py-12 lg:py-20">
@@ -284,7 +348,7 @@ export default function ConfirmationPage() {
             </svg>
             <h2 className="text-xl font-semibold mb-2">Your Order is Confirmed</h2>
             <p className="text-text-light mb-4">
-                Your Order Number is: <strong className="text-text-dark font-mono">{lastOrder.id}</strong>
+                Your Order Number is: <strong className="text-text-dark font-mono">{order.id}</strong>
             </p>
             <p className="text-text-light mb-6">
                 Please use this number as the reference when making your EFT payment. You will receive an email confirmation shortly (if applicable).
@@ -293,9 +357,9 @@ export default function ConfirmationPage() {
             {/* Order Details Summary */}
             <div className="text-left border-t border-b border-border-light py-6 my-6 space-y-3 text-sm">
                  <h4 className="font-semibold text-base mb-3">Order Summary:</h4>
-                 {lastOrder.items.map(item => (
-                     <div key={`${item.productId}-${item.size || 'no-size'}`} className="flex justify-between items-center">
-                         <span>{item.name} {item.size ? `(${item.size})` : ''} x {item.quantity}</span>
+                 {order.order_items.map(item => (
+                     <div key={item.id} className="flex justify-between items-center"> {/* Use item.id for key */}
+                         <span>{item.products?.[0]?.name || 'Unknown Product'} {item.size ? `(${item.size})` : ''} x {item.quantity}</span> {/* Access name from the first element */}
                          <span>{formatCurrency(item.price * item.quantity)}</span>
                      </div>
                  ))}
@@ -309,19 +373,19 @@ export default function ConfirmationPage() {
                  </div>
                  <div className="flex justify-between font-bold text-base pt-2 border-t">
                      <span>Total Due (via EFT)</span>
-                     <span>{formatCurrency(lastOrder.total)}</span>
+                     <span>{formatCurrency(order.total_amount)}</span>
                  </div>
             </div>
 
              {/* Shipping Address Summary */}
              <div className="text-left text-sm mb-6">
                  <h4 className="font-semibold text-base mb-2">Shipping To:</h4>
-                 <p>{lastOrder.address.fullName}</p>
-                 <p>{lastOrder.address.addressLine1}</p>
-                 {lastOrder.address.addressLine2 && <p>{lastOrder.address.addressLine2}</p>}
-                 <p>{lastOrder.address.city}, {lastOrder.address.province}, {lastOrder.address.postalCode}</p>
-                 <p>{lastOrder.address.country}</p>
-                 <p>Phone: {lastOrder.address.phone}</p>
+                 <p>{order.shipping_address.fullName}</p>
+                 <p>{order.shipping_address.addressLine1}</p>
+                 {order.shipping_address.addressLine2 && <p>{order.shipping_address.addressLine2}</p>}
+                 <p>{order.shipping_address.city}, {order.shipping_address.province}, {order.shipping_address.postalCode}</p>
+                 <p>{order.shipping_address.country}</p>
+                 <p>Phone: {order.shipping_address.phone}</p>
              </div>
 
             <Button

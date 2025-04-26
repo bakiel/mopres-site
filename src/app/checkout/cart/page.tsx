@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { getCart, removeFromCart, updateCartItemQuantity, getCartTotal, CartItem } from '@/lib/cartUtils'; // Import cart utilities
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient'; // Import Supabase client and shared function
+import { getProductImageUrl } from '@/lib/supabaseClient'; // Import shared function (supabase client not needed here)
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);

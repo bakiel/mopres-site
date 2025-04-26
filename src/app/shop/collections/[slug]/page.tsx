@@ -1,9 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { supabase, getProductImageUrl } from '@/lib/supabaseClient'; // Import shared function
+import { cookies } from 'next/headers'; // Import cookies
+// Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
 import { notFound } from 'next/navigation'; // Import notFound for handling missing collections
+import { Suspense } from 'react'; // Import Suspense
 
 // Define types (can be moved to a types file later)
 type Collection = {
@@ -22,18 +26,32 @@ type Product = {
   images: string[];
 };
 
-// Define props type for the page component
+// Define props type for the page component, including searchParams
 interface CollectionPageProps {
   params: {
     slug: string;
   };
+  searchParams: {
+    page?: string;
+  };
 }
 
-// Make the component async to fetch data based on the slug
-export default async function CollectionPage({ params }: CollectionPageProps) {
-  const { slug } = params;
+const ITEMS_PER_PAGE = 12; // Define items per page
+
+// Make the component async to fetch data based on the slug and searchParams
+export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
+  // Create Supabase client INSIDE the component function scope using the ssr factory
+  const cookieStore = cookies();
+  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+
+  // Destructure params and searchParams correctly
+  const slug = params.slug;
+  const currentPage = parseInt(searchParams?.page || '1', 10); // Add optional chaining for safety
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
   let collection: Collection | null = null;
   let products: Product[] = [];
+  let totalProducts = 0;
   let fetchError: string | null = null;
 
   try {
@@ -53,18 +71,20 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
     }
     collection = collectionData;
 
-    // 2. Fetch products belonging to this collection using the collection ID
-    const { data: productsData, error: productsError } = await supabase
+    // 2. Fetch products belonging to this collection with pagination
+    const { data: productsData, error: productsError, count } = await supabase
       .from('products')
-      .select('id, name, slug, price, images')
+      .select('id, name, slug, price, images', { count: 'exact' }) // Select necessary fields and count
       .eq('collection_id', collection.id) // Filter by collection ID
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + ITEMS_PER_PAGE - 1); // Apply range for pagination
 
     if (productsError) {
       console.error("Supabase fetch error (Collection Products):", productsError);
       throw new Error(productsError.message);
     }
     products = productsData || [];
+    totalProducts = count || 0; // Get the total count
 
   } catch (error: any) {
     console.error(`Error fetching data for collection "${slug}":`, error);
@@ -96,6 +116,8 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
      notFound();
   }
 
+  const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
+
   // Ensure the return statement has a single root element
   return (
     <div className="bg-background-body py-12 lg:py-20">
@@ -112,27 +134,61 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
 
         {/* Product Grid */}
         {products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {products.map((product) => (
-              <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col">
-                <Link href={`/shop/products/${product.slug}`} className="block mb-6 aspect-square overflow-hidden group">
-                  <img
-                    src={getProductImageUrl(product.images?.[0])}
-                    alt={product.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-std ease-in-out group-hover:scale-105"
-                  />
-                </Link>
-                <div className="flex-grow flex flex-col">
-                  <h3 className="font-montserrat text-base font-medium mb-3 truncate flex-grow">{product.name}</h3>
-                  <p className="price text-base text-brand-gold mb-5 font-poppins">
-                    {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
-                  </p>
-                  <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {products.map((product) => (
+                <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col">
+                  <Link href={`/shop/products/${product.slug}`} className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added relative for Image fill */}
+                    <Image
+                      src={getProductImageUrl(product.images?.[0])}
+                      alt={product.name}
+                      fill // Use fill layout
+                      style={{ objectFit: 'cover' }} // Ensure image covers the area
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 25vw" // Provide sizes hint
+                      className="transition-transform duration-std ease-in-out group-hover:scale-105"
+                    />
+                  </Link>
+                  <div className="flex-grow flex flex-col">
+                    <h3 className="font-montserrat text-base font-medium mb-3 truncate flex-grow">{product.name}</h3>
+                    <p className="price text-base text-brand-gold mb-5 font-poppins">
+                      {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
+                    </p>
+                    <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button>
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-4 mt-12">
+                {/* Previous Button */}
+                <Link
+                  href={`/shop/collections/${slug}?page=${currentPage - 1}`}
+                  className={`px-4 py-2 border rounded ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white'}`}
+                  aria-disabled={currentPage === 1}
+                  tabIndex={currentPage === 1 ? -1 : undefined}
+                >
+                  Previous
+                </Link>
+
+                {/* Page Numbers (Simplified for now) */}
+                <span className="text-text-dark font-poppins">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                {/* Next Button */}
+                <Link
+                  href={`/shop/collections/${slug}?page=${currentPage + 1}`}
+                  className={`px-4 py-2 border rounded ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white'}`}
+                  aria-disabled={currentPage === totalPages}
+                  tabIndex={currentPage === totalPages ? -1 : undefined}
+                >
+                  Next
+                </Link>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <p className="text-center text-text-light font-poppins">No products found in this collection.</p>
         )}
@@ -147,3 +203,12 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
     </div>
   );
 }
+
+// Optional: Add Suspense boundary if needed for loading states
+// export default function CollectionPageWithSuspense(props: CollectionPageProps) {
+//   return (
+//     <Suspense fallback={<div>Loading collection...</div>}>
+//       <CollectionPage {...props} />
+//     </Suspense>
+//   );
+// }
