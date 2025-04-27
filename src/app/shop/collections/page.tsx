@@ -75,7 +75,10 @@ export default async function CollectionsListPage() {
                   </Button>
                 </div>
                  {/* Link overlay for clicking the whole card */}
-                 <Link href={`/shop/collections/${collection.slug}`} className="absolute inset-0 z-10" aria-label={`View ${collection.name} collection`}></Link>
+                 <Link
+                   href={`/shop/collections/${collection.slug}`}
+                   className="absolute inset-0 z-10"
+                   aria-label={`View ${collection.name} collection`}></Link>
               </div>
             ))}
           </div>

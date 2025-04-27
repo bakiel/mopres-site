@@ -164,9 +164,11 @@ export default function WishlistPage() {
           <div className="mt-8 space-y-6 font-poppins">
             {wishlistItems.map((item) => (
               item.products && ( // Render only if product data exists
-                 <div key={item.id} className="bg-white p-4 md:p-6 border border-border-light rounded shadow-sm flex flex-col sm:flex-row items-center gap-4">
+                 (<div key={item.id} className="bg-white p-4 md:p-6 border border-border-light rounded shadow-sm flex flex-col sm:flex-row items-center gap-4">
                    {/* Image */}
-                   <Link href={`/shop/products/${item.products.slug}`} className="flex-shrink-0 w-24 h-24 block relative overflow-hidden rounded border border-border-light"> {/* Added relative */}
+                   <Link
+                     href={`/shop/products/${item.products.slug}`}
+                     className="flex-shrink-0 w-24 h-24 block relative overflow-hidden rounded border border-border-light"> {/* Added relative */}
                     <Image // Use next/image
                       src={getProductImageUrl(item.products.images?.[0])}
                       alt={item.products.name}
@@ -176,33 +178,33 @@ export default function WishlistPage() {
                       className="rounded"
                     />
                   </Link>
-                  {/* Details */}
-                  <div className="flex-grow text-center sm:text-left">
-                    <Link href={`/shop/products/${item.products.slug}`}>
-                      <h3 className="font-semibold text-lg hover:text-brand-gold transition-colors">{item.products.name}</h3>
-                    </Link>
-                    <p className="text-text-dark mt-1 font-medium">{formatCurrency(item.products.sale_price ?? item.products.price)}</p>
-                    {/* Add stock status if needed */}
-                  </div>
-                  {/* Actions */}
-                  <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 mt-4 sm:mt-0">
-                     <Button
-                        variant="primary"
-                        onClick={() => handleMoveToCart(item)}
-                        className="w-full sm:w-auto"
-                     >
-                        Move to Cart
-                     </Button>
-                     {/* Corrected Button Variant and Styling (Fifth time!) */}
-                     <Button
-                        variant="outline-light" // Use valid variant
-                        onClick={() => handleRemoveItem(item.id, item.products?.name || 'Item')}
-                        className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 hover:border-red-500" // Apply danger styling via className
-                     >
-                        Remove
-                     </Button>
-                  </div>
-                </div>
+                   {/* Details */}
+                   <div className="flex-grow text-center sm:text-left">
+                     <Link href={`/shop/products/${item.products.slug}`}>
+                       <h3 className="font-semibold text-lg hover:text-brand-gold transition-colors">{item.products.name}</h3>
+                     </Link>
+                     <p className="text-text-dark mt-1 font-medium">{formatCurrency(item.products.sale_price ?? item.products.price)}</p>
+                     {/* Add stock status if needed */}
+                   </div>
+                   {/* Actions */}
+                   <div className="flex-shrink-0 flex flex-col sm:flex-row items-center gap-3 mt-4 sm:mt-0">
+                      <Button
+                         variant="primary"
+                         onClick={() => handleMoveToCart(item)}
+                         className="w-full sm:w-auto"
+                      >
+                         Move to Cart
+                      </Button>
+                      {/* Corrected Button Variant and Styling (Fifth time!) */}
+                      <Button
+                         variant="outline-light" // Use valid variant
+                         onClick={() => handleRemoveItem(item.id, item.products?.name || 'Item')}
+                         className="w-full sm:w-auto text-red-600 border-red-300 hover:bg-red-50 hover:border-red-500" // Apply danger styling via className
+                      >
+                         Remove
+                      </Button>
+                   </div>
+                 </div>)
               )
             ))}
           </div>

@@ -53,7 +53,10 @@ export default function CartPage() {
               {cartItems.map((item) => (
                  <div key={`${item.productId}-${item.size || 'no-size'}`} className="flex flex-col md:flex-row items-center gap-4 md:gap-6 bg-white p-4 border border-border-light rounded shadow-sm">
                    {/* Image */}
-                   <Link href={`/shop/products/${item.slug}`} className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 block relative overflow-hidden rounded border border-border-light"> {/* Added relative */}
+                   <Link
+                     href={`/shop/products/${item.slug}`}
+                     className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 block relative overflow-hidden rounded border border-border-light"
+                     legacyBehavior> {/* Added relative */}
                     <Image // Use next/image
                       src={getProductImageUrl(item.image)} // Use function to get Supabase URL or fallback
                       alt={item.name}
@@ -65,7 +68,7 @@ export default function CartPage() {
                   </Link>
                   {/* Details */}
                   <div className="flex-grow text-center md:text-left">
-                    <Link href={`/shop/products/${item.slug}`}>
+                    <Link href={`/shop/products/${item.slug}`} legacyBehavior>
                       <h3 className="font-semibold text-lg hover:text-brand-gold transition-colors">{item.name}</h3>
                     </Link>
                     {item.size && <p className="text-sm text-text-light mt-1 font-poppins">Size: {item.size}</p>} {/* Added font-poppins */}

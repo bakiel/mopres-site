@@ -212,7 +212,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
               {relatedProducts.map((related) => (
                 <div key={related.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col">
-                  <Link href={`/shop/products/${related.slug}`} className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added relative for Image fill */}
+                  <Link
+                    href={`/shop/products/${related.slug}`}
+                    className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added relative for Image fill */}
                     <Image
                       src={getProductImageUrl(related.images?.[0])}
                       alt={related.name}

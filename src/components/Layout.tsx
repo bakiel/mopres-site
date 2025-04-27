@@ -22,7 +22,7 @@ const Layout: FC<LayoutProps> = ({ children }) => { // Type Layout as FC with La
         {children}
       </main>
       <Footer />
-      <Toaster position="bottom-right" /> {/* Add Toaster */}
+      {/* Toaster is now rendered in RootLayout */}
       <CartSidebar /> {/* Render CartSidebar */}
     </div>
   );

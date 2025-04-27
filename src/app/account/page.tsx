@@ -57,15 +57,15 @@ export default function AccountPage() {
   if (!user) {
      // This case should ideally be handled by the redirect in useEffect,
      // but added as a fallback.
-     return (
-        <div className="bg-background-body py-12 lg:py-20">
-            <div className="w-full max-w-screen-lg mx-auto px-4 text-center">
-                <p className="text-text-light">Please log in to view your account.</p>
-                <Link href="/account/login?redirect=/account">
-                    <Button variant="primary" className="mt-4">Login</Button>
-                </Link>
-            </div>
-        </div>
+       return (
+         <div className="bg-background-body py-12 lg:py-20">
+           <div className="w-full max-w-screen-lg mx-auto px-4 text-center">
+             <p className="text-text-light">Please log in to view your account.</p>
+             <Link href="/account/login?redirect=/account">
+                 <Button variant="primary" className="mt-4">Login</Button>
+             </Link>
+         </div>
+       </div>
      );
   }
 

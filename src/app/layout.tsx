@@ -24,10 +24,7 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "MoPres | Contemporary Luxury Footwear",
   description: "Experience timeless elegance and unparalleled craftsmanship with MoPres.",
-  // Add favicon link here if available in public folder
-  icons: {
-    icon: '/Gold_letter_Mopres_logo_favicon.png', // Correct path to the favicon
-  },
+  // Favicon is now handled automatically by Next.js via src/app/icon.png
 };
 
 export default function RootLayout({

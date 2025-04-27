@@ -245,9 +245,9 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
             />
           ) : (
             // Fallback for no image
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            (<div className="w-full h-full bg-gray-200 flex items-center justify-center">
               <span className="text-text-light">No Image Available</span>
-            </div>
+            </div>)
           )}
         </div>
             {/* <Image
@@ -287,7 +287,6 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
           </div>
         )}
       </div>
-
       {/* Product Details Section */}
       <div className="product-info">
         <h1 className="font-poppins text-3xl lg:text-4xl font-bold mb-4">{product.name}</h1>
@@ -511,7 +510,6 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
         </div>
 
       </div>
-
       {/* Size Guide Popup */}
       <SizeGuidePopup isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
     </div>

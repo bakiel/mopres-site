@@ -158,8 +158,8 @@ function PreorderFormContent() {
 
               {showSizeGuide && (
                  // Use border-light for border, background-light for bg
-                <div className="border border-border-light p-4 mb-5 rounded bg-background-light overflow-x-auto">
-                   {/* Use brand-gold for header */}
+                (<div className="border border-border-light p-4 mb-5 rounded bg-background-light overflow-x-auto">
+                  {/* Use brand-gold for header */}
                   <h4 className="text-base font-semibold mb-3 text-brand-gold">Shoe Size Conversion Chart</h4>
                   <table className="w-full border-collapse text-xs sm:text-sm min-w-[450px]">
                     <thead>
@@ -189,9 +189,9 @@ function PreorderFormContent() {
                       ))}
                     </tbody>
                   </table>
-                   {/* Use text-light for note */}
+                  {/* Use text-light for note */}
                   <p className="text-xs text-text-light mt-3 italic">Based on South African shoe sizing standards (SANS 606:2012)</p>
-                </div>
+                </div>)
               )}
 
               {/* Women's Sizes */}

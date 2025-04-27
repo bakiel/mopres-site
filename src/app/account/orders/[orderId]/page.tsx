@@ -107,139 +107,142 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
   const trackingUrl = getTrackingUrl(order.shipping_carrier, order.tracking_number);
 
   return (
-    <div className="bg-background-body py-12 lg:py-20">
-      <div className="w-full max-w-screen-lg mx-auto px-4">
-        <div className="flex justify-between items-center mb-6">
-            <SectionTitle>Order Details</SectionTitle>
-             <Link href="/account/orders" className="text-brand-gold hover:underline font-poppins text-sm">
-                &larr; Back to Orders
-            </Link>
-        </div>
+      <div className="bg-background-body py-12 lg:py-20">
+          <div className="w-full max-w-screen-lg mx-auto px-4">
+            <div className="flex justify-between items-center mb-6">
+                <SectionTitle>Order Details</SectionTitle>
+                 <Link href="/account/orders" className="text-brand-gold hover:underline font-poppins text-sm">
+                    &larr; Back to Orders
+                </Link>
+            </div>
 
 
-        <div className="bg-white p-6 md:p-8 border border-border-light rounded shadow-sm mb-8">
-            {/* Corrected Grid Structure */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b border-border-light text-sm">
-                <div>
-                    <span className="block text-xs text-text-light mb-1">Order #</span>
-                    <span className="font-medium text-text-dark">{order.order_ref}</span>
-                </div>
-                 <div>
-                    <span className="block text-xs text-text-light mb-1">Date Placed</span>
-                    <span className="font-medium text-text-dark">{formatDate(order.created_at)}</span>
-                </div>
-                 <div>
-                    <span className="block text-xs text-text-light mb-1">Total Amount</span>
-                    <span className="font-medium text-text-dark">{formatCurrency(order.total_amount)}</span>
-                </div>
-                 <div>
-                    <span className="block text-xs text-text-light mb-1">Status</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                    </span>
-                </div>
-            </div> {/* Correctly closed grid div */}
+            <div className="bg-white p-6 md:p-8 border border-border-light rounded shadow-sm mb-8">
+                {/* Corrected Grid Structure */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b border-border-light text-sm">
+                    <div>
+                        <span className="block text-xs text-text-light mb-1">Order #</span>
+                        <span className="font-medium text-text-dark">{order.order_ref}</span>
+                    </div>
+                     <div>
+                        <span className="block text-xs text-text-light mb-1">Date Placed</span>
+                        <span className="font-medium text-text-dark">{formatDate(order.created_at)}</span>
+                    </div>
+                     <div>
+                        <span className="block text-xs text-text-light mb-1">Total Amount</span>
+                        <span className="font-medium text-text-dark">{formatCurrency(order.total_amount)}</span>
+                    </div>
+                     <div>
+                        <span className="block text-xs text-text-light mb-1">Status</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                            {order.status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                        </span>
+                    </div>
+                </div> {/* Correctly closed grid div */}
 
-            {/* Tracking Information */}
-            {order.status === 'shipped' && (order.tracking_number || order.shipping_carrier) && (
-                 <div className="mb-6 pb-6 border-b border-border-light">
-                    <h3 className="text-base font-semibold font-montserrat mb-3">Tracking Information</h3>
-                    <p className="text-sm text-text-light">
-                        Carrier: <span className="text-text-dark font-medium">{order.shipping_carrier || 'N/A'}</span>
-                    </p>
-                     <p className="text-sm text-text-light">
-                        Tracking #: <span className="text-text-dark font-medium">{order.tracking_number || 'N/A'}</span>
-                        {trackingUrl && (
-                            <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-brand-gold hover:underline text-xs">(Track Package)</a>
+                {/* Tracking Information */}
+                {order.status === 'shipped' && (order.tracking_number || order.shipping_carrier) && (
+                     <div className="mb-6 pb-6 border-b border-border-light">
+                        <h3 className="text-base font-semibold font-montserrat mb-3">Tracking Information</h3>
+                        <p className="text-sm text-text-light">
+                            Carrier: <span className="text-text-dark font-medium">{order.shipping_carrier || 'N/A'}</span>
+                        </p>
+                         <p className="text-sm text-text-light">
+                            Tracking #: <span className="text-text-dark font-medium">{order.tracking_number || 'N/A'}</span>
+                            {trackingUrl && (
+                                <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-brand-gold hover:underline text-xs">(Track Package)</a>
+                            )}
+                        </p>
+                     </div>
+                )}
+
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Shipping Address */}
+                    <div>
+                        <h3 className="text-base font-semibold font-montserrat mb-3">Shipping Address</h3>
+                        {order.shipping_address ? (
+                            <div className="text-sm text-text-light space-y-1 font-poppins">
+                                <p>{order.shipping_address.firstName} {order.shipping_address.lastName}</p>
+                                <p>{order.shipping_address.addressLine1}</p>
+                                {order.shipping_address.addressLine2 && <p>{order.shipping_address.addressLine2}</p>}
+                                <p>{order.shipping_address.city}, {order.shipping_address.province}, {order.shipping_address.postalCode}</p>
+                                <p>{order.shipping_address.country}</p>
+                                {order.shipping_address.phone && <p>Phone: {order.shipping_address.phone}</p>}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-text-light font-poppins">Address details not available.</p>
                         )}
-                    </p>
-                 </div>
-            )}
-
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Shipping Address */}
-                <div>
-                    <h3 className="text-base font-semibold font-montserrat mb-3">Shipping Address</h3>
-                    {order.shipping_address ? (
-                        <div className="text-sm text-text-light space-y-1 font-poppins">
-                            <p>{order.shipping_address.firstName} {order.shipping_address.lastName}</p>
-                            <p>{order.shipping_address.addressLine1}</p>
-                            {order.shipping_address.addressLine2 && <p>{order.shipping_address.addressLine2}</p>}
-                            <p>{order.shipping_address.city}, {order.shipping_address.province}, {order.shipping_address.postalCode}</p>
-                            <p>{order.shipping_address.country}</p>
-                            {order.shipping_address.phone && <p>Phone: {order.shipping_address.phone}</p>}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-text-light font-poppins">Address details not available.</p>
-                    )}
-                </div>
-                 {/* Payment Method */}
-                 <div>
-                    <h3 className="text-base font-semibold font-montserrat mb-3">Payment Method</h3>
-                     <p className="text-sm text-text-light font-poppins">
-                        {order.payment_method === 'eft' ? 'EFT / Bank Deposit' : order.payment_method || 'N/A'}
-                    </p>
-                    {/* Add more payment details if needed */}
-                 </div>
-            </div>
-        </div>
-
-        {/* Order Items */}
-        <h3 className="text-lg font-semibold font-montserrat mb-4">Items Ordered</h3>
-        <div className="space-y-4 font-poppins">
-            {order.order_items.map((item: OrderItem) => ( // Added type for item
-             item.products && ( // Check if product data exists
-                <div key={item.id} className="bg-white p-4 border border-border-light rounded shadow-sm flex items-center gap-4">
-                    <Link href={`/shop/products/${item.products.slug}`} className="flex-shrink-0 w-16 h-16 block relative overflow-hidden rounded"> {/* Added relative and overflow */}
-                        <Image
-                            src={getProductImageUrl(item.products.images?.[0])}
-                            alt={item.products.name}
-                            fill // Use fill layout
-                            style={{ objectFit: 'cover' }} // Ensure image covers the area
-                            sizes="64px" // Provide size hint
-                            className="rounded"
-                        />
-                    </Link>
-                    <div className="flex-grow text-sm">
-                        <Link href={`/shop/products/${item.products.slug}`} className="font-medium text-text-dark hover:text-brand-gold">{item.products.name}</Link>
-                        {item.size && <p className="text-xs text-text-light">Size: {item.size}</p>}
-                        <p className="text-xs text-text-light">Qty: {item.quantity}</p>
                     </div>
-                    <div className="text-sm font-medium text-text-dark">
-                        {formatCurrency(item.price * item.quantity)}
-                         {item.quantity > 1 && <span className="block text-xs text-text-light text-right">({formatCurrency(item.price)} each)</span>}
-                    </div>
+                     {/* Payment Method */}
+                     <div>
+                        <h3 className="text-base font-semibold font-montserrat mb-3">Payment Method</h3>
+                         <p className="text-sm text-text-light font-poppins">
+                            {order.payment_method === 'eft' ? 'EFT / Bank Deposit' : order.payment_method || 'N/A'}
+                        </p>
+                        {/* Add more payment details if needed */}
+                     </div>
                 </div>
-             )
-           ))}
-        </div>
-
-         {/* Order Totals */}
-         <div className="mt-6 pt-6 border-t border-border-light flex justify-end">
-            <div className="w-full max-w-xs space-y-2 text-sm">
-                 <div className="flex justify-between">
-                    <span className="text-text-light">Subtotal:</span>
-                    <span className="font-medium">{formatCurrency(subtotal)}</span>
-                 </div>
-                 <div className="flex justify-between">
-                    <span className="text-text-light">Shipping:</span>
-                    <span className="font-medium">{order.shipping_cost === 0 ? 'FREE' : formatCurrency(order.shipping_cost)}</span>
-                 </div>
-                 <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
-                    <span>Total:</span>
-                    <span>{formatCurrency(order.total_amount)}</span>
-                 </div>
             </div>
-         </div>
 
-         {/* TODO: Add button to download invoice using InvoiceTemplate and jsPDF/html2canvas */}
-         {/* <div className="mt-8 text-center">
-             <Button variant="secondary">Download Invoice (PDF)</Button>
-         </div> */}
+            {/* Order Items */}
+            <h3 className="text-lg font-semibold font-montserrat mb-4">Items Ordered</h3>
+            <div className="space-y-4 font-poppins">
+                {order.order_items.map((item: OrderItem) => ( // Added type for item
+                 (// Check if product data exists
+                 (item.products && (<div key={item.id} className="bg-white p-4 border border-border-light rounded shadow-sm flex items-center gap-4">
+                     <Link
+                         href={`/shop/products/${item.products.slug}`}
+                         className="flex-shrink-0 w-16 h-16 block relative overflow-hidden rounded"> {/* Added relative and overflow */}
+                         <Image
+                           src={getProductImageUrl(item.products.images?.[0])}
+                             alt={item.products.name}
+                             fill // Use fill layout
+                             style={{ objectFit: 'cover' }} // Ensure image covers the area
+                             sizes="64px" // Provide size hint
+                             className="rounded"
+                         />
+                     </Link>
+                     <div className="flex-grow text-sm">
+                         <Link
+                             href={`/shop/products/${item.products.slug}`}
+                             className="font-medium text-text-dark hover:text-brand-gold">{item.products.name}</Link>
+                         {item.size && <p className="text-xs text-text-light">Size: {item.size}</p>}
+                         <p className="text-xs text-text-light">Qty: {item.quantity}</p>
+                     </div>
+                     <div className="text-sm font-medium text-text-dark">
+                         {formatCurrency(item.price * item.quantity)}
+                          {item.quantity > 1 && <span className="block text-xs text-text-light text-right">({formatCurrency(item.price)} each)</span>}
+                     </div>
+                 </div>)))
+               ))}
+            </div>
 
+             {/* Order Totals */}
+             <div className="mt-6 pt-6 border-t border-border-light flex justify-end">
+                <div className="w-full max-w-xs space-y-2 text-sm">
+                     <div className="flex justify-between">
+                        <span className="text-text-light">Subtotal:</span>
+                        <span className="font-medium">{formatCurrency(subtotal)}</span>
+                     </div>
+                     <div className="flex justify-between">
+                        <span className="text-text-light">Shipping:</span>
+                        <span className="font-medium">{order.shipping_cost === 0 ? 'FREE' : formatCurrency(order.shipping_cost)}</span>
+                     </div>
+                     <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
+                        <span>Total:</span>
+                        <span>{formatCurrency(order.total_amount)}</span>
+                     </div>
+                </div>
+             </div>
+
+             {/* TODO: Add button to download invoice using InvoiceTemplate and jsPDF/html2canvas */}
+             {/* <div className="mt-8 text-center">
+                 <Button variant="secondary">Download Invoice (PDF)</Button>
+             </div> */}
+
+          </div>
+          {/* Removed commented-out InvoiceTemplate block to fix syntax errors */}
       </div>
-       {/* Removed commented-out InvoiceTemplate block to fix syntax errors */}
-    </div>
   );
 }

@@ -114,52 +114,50 @@ import Button from '@/components/Button';
                 </div>
             )}
             {!message && ( // Only show form if success message isn't displayed
-                <>
-                <div>
-                    <label htmlFor="password" className="block mb-2 font-medium text-sm text-text-dark">
-                    New Password
-                    </label>
-                    <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full py-3 px-4 border border-border-light bg-white text-base rounded-sm transition-colors duration-300 ease-in-out focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/15 placeholder:text-gray-400 placeholder:font-light"
-                    placeholder="Enter new password (min. 6 characters)"
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="confirm-password" className="block mb-2 font-medium text-sm text-text-dark">
-                    Confirm New Password
-                    </label>
-                    <input
-                    id="confirm-password"
-                    name="confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full py-3 px-4 border border-border-light bg-white text-base rounded-sm transition-colors duration-300 ease-in-out focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/15 placeholder:text-gray-400 placeholder:font-light"
-                    placeholder="Re-enter your new password"
-                    />
-                </div>
-
-                <div>
-                    <Button
-                    type="submit"
-                    variant="primary"
-                    className="w-full"
-                    disabled={loading}
-                    >
-                    {loading ? 'Updating...' : 'Update Password'}
-                    </Button>
-                </div>
-                </>
+                (<>
+                  <div>
+                      <label htmlFor="password" className="block mb-2 font-medium text-sm text-text-dark">
+                      New Password
+                      </label>
+                      <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full py-3 px-4 border border-border-light bg-white text-base rounded-sm transition-colors duration-300 ease-in-out focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/15 placeholder:text-gray-400 placeholder:font-light"
+                      placeholder="Enter new password (min. 6 characters)"
+                      />
+                  </div>
+                  <div>
+                      <label htmlFor="confirm-password" className="block mb-2 font-medium text-sm text-text-dark">
+                      Confirm New Password
+                      </label>
+                      <input
+                      id="confirm-password"
+                      name="confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full py-3 px-4 border border-border-light bg-white text-base rounded-sm transition-colors duration-300 ease-in-out focus:outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/15 placeholder:text-gray-400 placeholder:font-light"
+                      placeholder="Re-enter your new password"
+                      />
+                  </div>
+                  <div>
+                      <Button
+                      type="submit"
+                      variant="primary"
+                      className="w-full"
+                      disabled={loading}
+                      >
+                      {loading ? 'Updating...' : 'Update Password'}
+                      </Button>
+                  </div>
+                </>)
             )}
             {message && (
                  <p className="mt-8 text-center text-sm text-text-light font-poppins">

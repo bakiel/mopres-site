@@ -174,7 +174,9 @@ export default function RegisterPage() {
 
         <p className="mt-8 text-center text-sm text-text-light font-poppins"> {/* Added font-poppins */}
           Already have an account?{' '}
-          <Link href="/account/login" className="font-medium text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
+          <Link
+            href="/account/login"
+            className="font-medium text-brand-gold hover:underline font-poppins"> {/* Added font-poppins */}
             Login here
           </Link>
         </p>

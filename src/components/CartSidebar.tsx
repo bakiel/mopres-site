@@ -114,7 +114,6 @@ const CartSidebar: React.FC = () => {
         onClick={closeSidebar}
         aria-hidden={!isSidebarOpen}
       />
-
       {/* Sidebar */}
       <div
         className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl z-[1051] transform transition-transform duration-300 ease-in-out ${
@@ -143,17 +142,21 @@ const CartSidebar: React.FC = () => {
           {items.length === 0 ? (
             <div className="text-center text-text-light py-10">
               <p className="mb-4 font-poppins">Your cart is empty.</p>
-              <Button variant="secondary" onClick={closeSidebar} href="/shop">
+              {/* Replace Button with styled Link */}
+              <Link href="/shop" onClick={closeSidebar} className="inline-block py-[0.8rem] px-[1.8rem] font-poppins font-medium text-[0.9rem] text-center rounded-[2px] cursor-pointer border uppercase tracking-[1px] shadow-[0_2px_5px_rgba(0,0,0,0.05)] transition-all duration-std ease-in-out hover:shadow-[0_4px_10px_rgba(0,0,0,0.1)] hover:-translate-y-[2px] bg-transparent text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white">
                 Continue Shopping
-              </Button>
+              </Link>
             </div>
           ) : (
             items.map((item) => (
               <div key={`${item.productId}-${item.size || 'no-size'}`} className="flex items-start gap-4 border-b border-border-light pb-4 last:border-b-0">
                 {/* Image */}
-                <Link href={`/shop/products/${item.slug || item.productId}`} onClick={closeSidebar} className="flex-shrink-0">
-                  <Image
-                    src={getProductImageUrl(item.image)}
+                <Link
+                  href={`/shop/products/${item.slug || item.productId}`}
+                  onClick={closeSidebar}
+                  className="flex-shrink-0">
+                       <Image
+                         src={getProductImageUrl(item.image)}
                     alt={item.name}
                     width={80}
                     height={80}
@@ -163,9 +166,12 @@ const CartSidebar: React.FC = () => {
 
                 {/* Details */}
                 <div className="flex-grow">
-                  <Link href={`/shop/products/${item.slug || item.productId}`} onClick={closeSidebar} className="hover:text-brand-gold">
-                    <h3 className="font-medium text-sm text-text-dark mb-1 font-poppins line-clamp-2">{item.name}</h3>
-                  </Link>
+                  <Link
+                    href={`/shop/products/${item.slug || item.productId}`}
+                    onClick={closeSidebar}
+                    className="hover:text-brand-gold">
+                         <h4 className="font-medium text-xs text-text-dark mb-1 font-poppins line-clamp-1">{item.name}</h4>
+                       </Link>
                   {item.size && <p className="text-xs text-text-light mb-1 font-poppins">Size: {item.size}</p>}
                   <p className="text-sm text-brand-gold font-medium mb-2 font-poppins">{formatCurrency(item.price)}</p>
 
@@ -189,12 +195,13 @@ const CartSidebar: React.FC = () => {
                         +
                       </button>
                     </div>
+                    {/* Remove Button */}
                     <button
                       onClick={() => removeItem(item.productId, item.size)}
-                      className="text-red-500 hover:text-red-700 transition-colors ml-3"
-                        aria-label="Remove item"
+                      className="text-xs text-red-500 hover:underline flex items-center gap-1"
+                      aria-label={`Remove ${item.name} from cart`}
                     >
-                      <TrashIcon />
+                      <TrashIcon /> Remove
                     </button>
                   </div>
                    {/* Save for Later Button */}
@@ -217,7 +224,10 @@ const CartSidebar: React.FC = () => {
                 {savedItems.map((item) => (
                   <div key={`saved-${item.productId}-${item.size || 'no-size'}`} className="flex items-start gap-4 border-b border-border-light pb-4 last:border-b-0">
                     {/* Image */}
-                    <Link href={`/shop/products/${item.slug || item.productId}`} onClick={closeSidebar} className="flex-shrink-0">
+                    <Link
+                      href={`/shop/products/${item.slug || item.productId}`}
+                      onClick={closeSidebar}
+                      className="flex-shrink-0">
                       <Image
                         src={getProductImageUrl(item.image)}
                         alt={item.name}
@@ -228,7 +238,10 @@ const CartSidebar: React.FC = () => {
                     </Link>
                     {/* Details */}
                     <div className="flex-grow">
-                      <Link href={`/shop/products/${item.slug || item.productId}`} onClick={closeSidebar} className="hover:text-brand-gold">
+                      <Link
+                        href={`/shop/products/${item.slug || item.productId}`}
+                        onClick={closeSidebar}
+                        className="hover:text-brand-gold">
                         <h4 className="font-medium text-sm text-text-dark mb-1 font-poppins line-clamp-2">{item.name}</h4>
                       </Link>
                       {item.size && <p className="text-xs text-text-light mb-1 font-poppins">Size: {item.size}</p>}
@@ -262,9 +275,12 @@ const CartSidebar: React.FC = () => {
                <div className="space-y-4">
                  {crossSellItems.map((item) => (
                    <div key={`cross-${item.productId}`} className="flex items-center gap-3">
-                     <Link href={`/shop/products/${item.slug || item.productId}`} onClick={closeSidebar} className="flex-shrink-0">
-                       <Image
-                         src={getProductImageUrl(item.image)}
+                     <Link
+                       href={`/shop/products/${item.slug || item.productId}`}
+                       onClick={closeSidebar}
+                       className="flex-shrink-0">
+                      <Image
+                        src={getProductImageUrl(item.image)}
                          alt={item.name}
                          width={50}
                          height={50}
@@ -272,9 +288,12 @@ const CartSidebar: React.FC = () => {
                        />
                      </Link>
                      <div className="flex-grow">
-                       <Link href={`/shop/products/${item.slug || item.productId}`} onClick={closeSidebar} className="hover:text-brand-gold">
-                         <h4 className="font-medium text-xs text-text-dark mb-1 font-poppins line-clamp-1">{item.name}</h4>
-                       </Link>
+                       <Link
+                         href={`/shop/products/${item.slug || item.productId}`}
+                         onClick={closeSidebar}
+                         className="hover:text-brand-gold">
+                        <h4 className="font-medium text-sm text-text-dark mb-1 font-poppins line-clamp-2">{item.name}</h4>
+                      </Link>
                        <p className="text-xs text-brand-gold font-medium font-poppins">{formatCurrency(item.price)}</p>
                      </div>
                       {/* Simple Add button - assumes no size selection needed here */}
@@ -336,10 +355,11 @@ const CartSidebar: React.FC = () => {
                  </div> */}
             </div>
             <p className="text-xs text-text-light mb-4 text-center font-poppins">Final shipping & taxes calculated at checkout.</p>
-            <Link href="/checkout/cart" onClick={closeSidebar} legacyBehavior>
+            {/* Update Links in Footer to remove legacyBehavior and pass Button directly */}
+            <Link href="/checkout/cart" onClick={closeSidebar} passHref>
               <Button variant="secondary" className="w-full mb-2">View Cart Page</Button>
             </Link>
-            <Link href="/checkout/delivery" onClick={closeSidebar} legacyBehavior>
+            <Link href="/checkout/delivery" onClick={closeSidebar} passHref>
                <Button variant="primary" className="w-full">Proceed to Checkout</Button>
             </Link>
           </div>

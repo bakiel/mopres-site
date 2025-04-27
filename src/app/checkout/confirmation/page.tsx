@@ -167,8 +167,8 @@ const ConfirmationContent = () => {
                     </div>
                 </div>
             </div>
-             {/* Render InvoiceTemplate off-screen for capturing */}
-             <InvoiceTemplate order={orderDetails} invoiceRef={invoiceRef} />
+            {/* Render InvoiceTemplate off-screen for capturing */}
+            <InvoiceTemplate order={orderDetails} invoiceRef={invoiceRef} />
         </div>
     );
 }

@@ -98,8 +98,7 @@ const HeroBanner: React.FC = () => {
               {/* Use Link for internal navigation, Button styling */}
               <Link
                 href={slide.buttonLink}
-                className="inline-block bg-brand-gold text-black py-3 px-8 rounded font-semibold font-poppins hover:bg-opacity-90 transition duration-300"
-              >
+                className="inline-block bg-brand-gold text-black py-3 px-8 rounded font-semibold font-poppins hover:bg-opacity-90 transition duration-300">
                 {slide.buttonText}
               </Link>
             </div> {/* Close Content Overlay div */}

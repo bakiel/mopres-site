@@ -153,36 +153,56 @@ const PredictiveSearch: React.FC = () => {
   }
 
   return (
-    <div className="relative flex items-center" ref={searchContainerRef}>
-      {/* Collection Select (Optional: Style better later) */}
-       <select
-          value={selectedCollection}
-          onChange={handleCollectionChange}
-          onFocus={handleFocus} // Keep results open when interacting with select
-          className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-6 text-xs bg-[#444] text-white/70 border-none rounded focus:outline-none focus:ring-0 appearance-none pr-5"
-          style={{ backgroundImage: 'none' }} // Hide default arrow
+    <div className="relative w-full max-w-md" ref={searchContainerRef}> {/* Keep ref, remove flex items-center from outer div */}
+      {/* Search wrapper with better spacing */}
+      <div className="w-full flex items-center bg-gray-800/80 rounded-full border border-gray-700 overflow-hidden focus-within:border-brand-gold"> {/* Added focus-within */}
+        {/* Dropdown with fixed width and ellipsis */}
+        <div className="relative min-w-[90px] max-w-[90px] flex-shrink-0"> {/* Added flex-shrink-0 */}
+          <select
+            value={selectedCollection} // Connect state
+            onChange={handleCollectionChange} // Connect handler
+            onFocus={handleFocus} // Connect handler
+            className="w-full appearance-none bg-transparent text-gray-300 pl-4 pr-7 py-2 focus:outline-none cursor-pointer truncate text-sm" // Added text-sm
+          >
+            <option value="">All</option>
+            {/* Map existing collections state */}
+            {collections.map(col => (
+              <option key={col.id} value={col.id}>{col.name}</option>
+            ))}
+          </select>
+          {/* Custom dropdown arrow */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"> {/* Added text color */}
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-5 w-px bg-gray-600 mx-1 flex-shrink-0"></div> {/* Added flex-shrink-0 */}
+
+        {/* Input field */}
+        <input
+          type="search" // Keep type="search"
+          placeholder="Search products..."
+          value={searchTerm} // Connect state
+          onChange={handleInputChange} // Connect handler
+          onFocus={handleFocus} // Connect handler
+          className="flex-grow bg-transparent border-none text-white py-2 pl-2 pr-2 focus:outline-none placeholder-gray-400 text-sm" // Adjusted padding, added text-sm
+        />
+
+        {/* Search button */}
+        <button
+          type="button" // Add type="button"
+          className="flex-shrink-0 text-gray-400 hover:text-white mr-3 p-1" // Added padding for better click area
+          aria-label="Search"
+          // No onClick needed as search is predictive
         >
-          <option value="">All</option>
-          {collections.map(col => (
-            <option key={col.id} value={col.id}>{col.name}</option>
-          ))}
-        </select>
-
-      <input
-        type="search"
-        placeholder="Search products..."
-        value={searchTerm}
-        onChange={handleInputChange}
-        onFocus={handleFocus}
-        // Adjust padding left to accommodate the select dropdown
-        className="bg-[#333] border border-[#444] text-white/80 text-sm rounded-full py-2 pl-20 pr-4 focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/50 placeholder:text-white/50 transition-all duration-300 w-64 focus:w-72" // Increased width
-      />
-      {/* Search Icon moved slightly right */}
-      <div className="absolute left-[calc(0.75rem+60px)] top-1/2 transform -translate-y-1/2 text-white/60 pointer-events-none"> {/* Adjust left based on select width */}
-        <SearchIcon />
+          {/* Use existing SearchIcon component */}
+          <SearchIcon />
+        </button>
       </div>
-
-      {/* Results Dropdown */}
+      {/* Results Dropdown - Keep this part as is, adjust width/positioning if needed */}
       {isFocused && (searchTerm.length > 0 || isLoading) && (
         <div className="absolute top-full left-0 mt-2 w-64 md:w-80 bg-white border border-border-light rounded-md shadow-lg z-[1002] max-h-80 overflow-y-auto">
           {isLoading && <div className="p-4 text-sm text-text-light text-center">Searching...</div>}
@@ -196,25 +216,23 @@ const PredictiveSearch: React.FC = () => {
                   <Link
                     href={`/shop/products/${product.slug}`}
                     className="flex items-center p-3 hover:bg-background-light transition-colors duration-150"
-                    onClick={closeResults} // Close results on click
-                  >
-                    <Image
-                      src={getProductImageUrl(product.images?.[0])}
-                      alt={product.name}
+                    // Keep closeResults handler
+                    // Remove legacyBehavior as it's deprecated and handled by codemod later
+                    onClick={closeResults}>
+                    {/* Wrap multiple children in a Fragment */}
+                    <>
+                      <Image
+                        src={getProductImageUrl(product.images?.[0])}
+                        alt={product.name}
                       width={40}
                       height={40}
-                      className="w-10 h-10 object-cover rounded mr-3 flex-shrink-0"
-                    />
-                    <span className="text-sm text-text-dark font-poppins truncate">{product.name}</span>
+                        className="w-10 h-10 object-cover rounded mr-3 flex-shrink-0"
+                      />
+                      <span className="text-sm text-text-dark font-poppins truncate">{product.name}</span>
+                    </>
                   </Link>
                 </li>
               ))}
-               {/* Optional: Add a "View all results" link */}
-               {/* <li className="border-t border-border-light">
-                 <Link href={`/search?q=${encodeURIComponent(searchTerm)}`} className="block p-3 text-center text-sm text-brand-gold hover:underline font-poppins" onClick={closeResults}>
-                   View all results
-                 </Link>
-               </li> */}
             </ul>
           )}
         </div>

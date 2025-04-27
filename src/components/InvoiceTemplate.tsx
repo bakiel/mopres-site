@@ -94,7 +94,6 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ order, invoiceRef }) 
           <p style={{ margin: '0 0 2px 0' }}>info@mopres.co.za | +27 83 500 5311</p>
         </div>
       </div>
-
       {/* Order Details */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '25px', fontSize: '11px' }}>
         <div>
@@ -112,7 +111,6 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ order, invoiceRef }) 
           <p style={{ margin: '2px 0' }}><strong style={{ color: '#555' }}>Order Status:</strong> {order.status}</p>
         </div>
       </div>
-
       {/* Items Table */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '25px' }}>
         <thead>
@@ -138,7 +136,6 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ order, invoiceRef }) 
           ))}
         </tbody>
       </table>
-
       {/* Totals Section */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '25px' }}>
         <div style={{ width: '250px', fontSize: '11px' }}>
@@ -156,32 +153,30 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ order, invoiceRef }) 
           </div>
         </div>
       </div>
-
       {/* Payment Instructions & QR Code */}
-       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderTop: '1px solid #eee', paddingTop: '15px', fontSize: '11px', color: '#444' }}>
-        <div>
-            <h4 style={{ fontWeight: 'bold', marginBottom: '8px', color: '#000' }}>Payment Instructions (EFT/Bank Deposit)</h4>
-            <p style={{ margin: '2px 0' }}>Please use the Invoice No. (<strong style={{ color: '#000' }}>{order.order_ref}</strong>) as your payment reference.</p>
-        <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Bank:</strong> FNB</p>
-        <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Account Name:</strong> MoPres (Pty) Ltd</p>
-        <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Account Number:</strong> 628XXXXXXXX</p>
-        <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Branch Code:</strong> 250655</p>
-        <p style={{ margin: '8px 0 2px 0' }}>Email proof of payment to: payments@mopres.co.za</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderTop: '1px solid #eee', paddingTop: '15px', fontSize: '11px', color: '#444' }}>
+       <div>
+           <h4 style={{ fontWeight: 'bold', marginBottom: '8px', color: '#000' }}>Payment Instructions (EFT/Bank Deposit)</h4>
+           <p style={{ margin: '2px 0' }}>Please use the Invoice No. (<strong style={{ color: '#000' }}>{order.order_ref}</strong>) as your payment reference.</p>
+       <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Bank:</strong> FNB</p>
+       <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Account Name:</strong> MoPres (Pty) Ltd</p>
+       <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Account Number:</strong> 628XXXXXXXX</p>
+       <p style={{ margin: '2px 0' }}><strong style={{ color: '#000' }}>Branch Code:</strong> 250655</p>
+       <p style={{ margin: '8px 0 2px 0' }}>Email proof of payment to: payments@mopres.co.za</p>
+       </div>
+        {/* QR Code Section */}
+        <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '10px', marginBottom: '5px', color: '#555' }}>Scan for Order Ref:</p>
+            <QRCodeCanvas
+               value={order.order_ref} // Value to encode
+               size={64} // Size of the QR code
+               bgColor={"#ffffff"}
+               fgColor={"#000000"}
+               level={"L"} // Error correction level
+               includeMargin={false}
+            />
         </div>
-         {/* QR Code Section */}
-         <div style={{ textAlign: 'right' }}>
-             <p style={{ fontSize: '10px', marginBottom: '5px', color: '#555' }}>Scan for Order Ref:</p>
-             <QRCodeCanvas
-                value={order.order_ref} // Value to encode
-                size={64} // Size of the QR code
-                bgColor={"#ffffff"}
-                fgColor={"#000000"}
-                level={"L"} // Error correction level
-                includeMargin={false}
-             />
-         </div>
-      </div>
-
+     </div>
       {/* Footer */}
       <div style={{ borderTop: '2px solid #AF8F53', paddingTop: '15px', marginTop: '30px', fontSize: '10px', textAlign: 'center', color: '#666' }}>
         <p>Thank you for your business!</p>

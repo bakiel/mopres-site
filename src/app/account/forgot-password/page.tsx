@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
             </div>
           )}
           {!message && ( // Only show form if message isn't displayed
-            <>
+            (<>
               <div>
                 <label htmlFor="email" className="block mb-2 font-medium text-sm text-text-dark">
                   Email Address
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
                   {loading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
               </div>
-            </>
+            </>)
           )}
         </form>
 

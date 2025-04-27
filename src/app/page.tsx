@@ -129,7 +129,6 @@ export default async function Home() {
     <>
       {/* --- Hero Banner Section --- */}
       <HeroBanner /> {/* Remove featuredProducts prop */}
-
       {/* --- Featured Products Section --- */}
       <section id="featured" className="featured bg-background-light py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
@@ -140,35 +139,40 @@ export default async function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
               {/* Map over fetched featured design products */}
               {featuredDesigns.map((product) => (
-                <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col group"> {/* Added group class */}
-                    <Link href={`/shop/products/${product.slug}`} className="relative block mb-6 aspect-square overflow-hidden"> {/* Link wraps image, added relative */}
-                      <Image
-                        src={getProductImageUrl(product.images?.[0])} // Use shared function
-                        alt={product.name}
-                        fill // Use fill layout
-                        style={{ objectFit: 'cover' }}
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" // Provide sizes hint
-                        className="transition-transform duration-std ease-in-out group-hover:scale-105" // Added hover effect consistency
+                <Link
+                  key={product.id}
+                  href={`/shop/products/${product.slug}`}
+                  className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col group"> {/* Removed legacyBehavior */}
+                  <div> {/* Wrap multiple children in a div instead of Fragment */}
+                  <div className="relative block mb-6 aspect-square overflow-hidden"> {/* Link wraps image, added relative */}
+                    <Image
+                      src={getProductImageUrl(product.images?.[0])} // Use shared function
+                      alt={product.name}
+                      fill // Use fill layout
+                      style={{ objectFit: 'cover' }}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" // Provide sizes hint
+                      className="transition-transform duration-std ease-in-out group-hover:scale-105" // Added hover effect consistency
                       unoptimized // Add unoptimized prop as a workaround
                     />
-                  </Link>
+                  </div>
                   <div className="flex-grow flex flex-col"> {/* Added flex-grow */}
                     <h3 className="font-montserrat text-base font-medium text-text-dark mb-3 truncate flex-grow">{product.name}</h3> {/* Use text-dark */}
                     <p className="price text-base text-brand-gold mb-5 font-poppins"> {/* Use brand-gold, font-poppins */}
                       {/* Format price as South African Rand */}
                       {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
                     </p>
-                    <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button> {/* Added font-poppins, mt-auto */}
+                    {/* Button relies on parent Link for navigation */}
+                    <Button variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins pointer-events-none">View Details</Button> {/* Removed href, added pointer-events-none */}
                   </div>
-                </div>
+                  </div> {/* Close wrapping div */}
+                </Link>
               ))}
             </div>
           ) : (
-            <p className="text-center text-text-light">No featured products found.</p> // Handle case with no products
+            (<p className="text-center text-text-light">No featured products found.</p>) // Handle case with no products
           )}
         </div>
       </section>
-
       {/* --- Collections Section --- */}
       <section id="collections" className="collections bg-background-body py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
@@ -181,7 +185,9 @@ export default async function Home() {
               {collections.map((collection) => (
                 <div key={collection.id} className="collection-card relative border border-border-light overflow-hidden group aspect-[3/4]">
                   {/* Remove outer Link, apply link to image */}
-                  <Link href={`/shop/collections/${collection.slug}`} className="block w-full h-full absolute inset-0 z-0">
+                  <Link
+                    href={`/shop/collections/${collection.slug}`}
+                    className="block w-full h-full absolute inset-0 z-0"> {/* Removed legacyBehavior */}
                     <Image
                       src={collection.image ? `/${collection.image}` : '/placeholder.svg'}
                       alt={collection.name}
@@ -196,8 +202,8 @@ export default async function Home() {
                   <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-6 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20 z-10">
                     {/* Title (not linked separately, relies on background link) */}
                     <h3 className="font-montserrat text-xl lg:text-2xl text-white font-semibold mb-4 text-shadow-sm">{collection.name}</h3>
-                    {/* Button remains separate and clickable */}
-                    <Button href={`/shop/collections/${collection.slug}`} variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins text-sm px-5 py-2">Shop Now</Button>
+                    {/* Button relies on parent Link for navigation */}
+                    <Button variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins text-sm px-5 py-2 pointer-events-none">Shop Now</Button> {/* Removed href, added pointer-events-none */}
                   </div>
                 </div>
               ))}
@@ -207,7 +213,6 @@ export default async function Home() {
           )}
         </div> {/* Close max-w-screen-xl */}
       </section> {/* Close collections section */}
-
       {/* --- New Arrivals Section --- */}
       <section id="new-arrivals" className="new-arrivals bg-background-body py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
@@ -218,8 +223,12 @@ export default async function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
               {/* Map over fetched new arrival products */}
               {newArrivals.map((product) => (
-                <div key={product.id} className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col group">
-                  <Link href={`/shop/products/${product.slug}`} className="relative block mb-6 aspect-square overflow-hidden">
+                <Link
+                  key={product.id}
+                  href={`/shop/products/${product.slug}`}
+                  className="product-card bg-white p-4 pb-8 border border-border-light transition-transform duration-std ease-in-out hover:-translate-y-1 hover:shadow-xl flex flex-col group"> {/* Removed legacyBehavior */}
+                  <div> {/* Wrap multiple children in a div instead of Fragment */}
+                  <div className="relative block mb-6 aspect-square overflow-hidden">
                     <Image
                       src={getProductImageUrl(product.images?.[0])}
                       alt={product.name}
@@ -229,15 +238,17 @@ export default async function Home() {
                       className="transition-transform duration-std ease-in-out group-hover:scale-105"
                       unoptimized
                     />
-                  </Link>
+                  </div>
                   <div className="flex-grow flex flex-col">
                     <h3 className="font-montserrat text-base font-medium text-text-dark mb-3 truncate flex-grow">{product.name}</h3>
                     <p className="price text-base text-brand-gold mb-5 font-poppins">
                       {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(product.price)}
                     </p>
-                    <Button href={`/shop/products/${product.slug}`} variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins">View Details</Button>
+                    {/* Button relies on parent Link for navigation */}
+                    <Button variant="secondary" className="text-xs px-5 py-2.5 mt-auto font-poppins pointer-events-none">View Details</Button> {/* Removed href, added pointer-events-none */}
                   </div>
-                </div>
+                  </div> {/* Close wrapping div */}
+                </Link>
               ))}
             </div>
           ) : (
@@ -245,7 +256,6 @@ export default async function Home() {
           )}
         </div>
       </section>
-
       {/* --- About Section --- */}
       {/* Note: Background texture needs to be handled via CSS */}
       <section id="about" className="about relative bg-brand-black text-white py-16 lg:py-24 overflow-hidden">
@@ -260,7 +270,10 @@ export default async function Home() {
             <div className="about-text space-y-6">
               <p className="text-white/80 font-poppins font-light leading-relaxed text-lg">MoPres is a contemporary luxury lifestyle brand specializing in high-quality, handcrafted footwear for the modern woman. Our designs seamlessly blend timeless elegance with innovative craftsmanship.</p> {/* Added font-poppins */}
               <p className="text-white/80 font-poppins font-light leading-relaxed text-lg">Each pair of MoPres shoes is meticulously created using premium materials and exceptional attention to detail. We cater to a discerning clientele who values both sophisticated style and enduring comfort.</p> {/* Added font-poppins */}
-              <Button href="/about" variant="secondary">Learn More</Button>
+              {/* Replace Button with styled Link */}
+              <Link href="/about" className="inline-block py-[0.8rem] px-[1.8rem] font-poppins font-medium text-[0.9rem] text-center rounded-[2px] cursor-pointer border uppercase tracking-[1px] shadow-[0_2px_5px_rgba(0,0,0,0.05)] transition-all duration-std ease-in-out hover:shadow-[0_4px_10px_rgba(0,0,0,0.1)] hover:-translate-y-[2px] bg-transparent text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-white">
+                Learn More
+              </Link>
             </div>
             <div className="about-image text-center md:text-right">
               <img src="/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres Brand Logo" loading="lazy" className="inline-block rounded-sm filter brightness-110 max-w-xs md:max-w-sm" />
@@ -268,10 +281,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
       {/* --- Testimonial Section --- */}
       <TestimonialCarousel />
-
       {/* --- Contact Section --- */}
       <section id="contact" className="contact bg-background-light py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
