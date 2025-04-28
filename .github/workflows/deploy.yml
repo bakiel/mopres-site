@@ -34,10 +34,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up Node
         uses: actions/setup-node@v4
+        working-directory: ./mopres-nextjs # Specify working directory here
         with:
           node-version: 20 # Use Node.js 20 or your preferred version
           cache: 'npm'
-          cache-dependency-path: mopres-nextjs/package-lock.json # Point to the correct lock file relative to repo root
+          # Removed cache-dependency-path, let it find package-lock.json in working-directory
       - name: Install dependencies
         run: npm install
         working-directory: ./mopres-nextjs # Specify working directory here
