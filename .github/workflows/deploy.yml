@@ -28,10 +28,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        # Set the working directory to your Next.js project folder
-        working-directory: ./mopres-nextjs
+    # Removed defaults block
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,11 +37,13 @@ jobs:
         with:
           node-version: 20 # Use Node.js 20 or your preferred version
           cache: 'npm'
-          cache-dependency-path: mopres-nextjs/package-lock.json # Point to the correct lock file
+          cache-dependency-path: mopres-nextjs/package-lock.json # Point to the correct lock file relative to repo root
       - name: Install dependencies
         run: npm install
+        working-directory: ./mopres-nextjs # Specify working directory here
       - name: Build and Export
         run: npm run build # This runs 'next build && next export'
+        working-directory: ./mopres-nextjs # Specify working directory here
         env:
           # If you have build-time environment variables, add them here
           # NEXT_PUBLIC_EXAMPLE_VAR: ${{ secrets.EXAMPLE_VAR }}
