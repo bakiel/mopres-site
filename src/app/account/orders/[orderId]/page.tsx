@@ -73,7 +73,8 @@ interface OrderDetailsPageProps {
     searchParams: { [key: string]: string | string[] | undefined }; // Include searchParams even if unused
 }
 
-export default async function OrderDetailsPage({ params }: OrderDetailsPageProps) {
+// Use inline type for props to avoid potential conflicts with external PageProps constraints
+export default async function OrderDetailsPage({ params }: { params: { orderId: string } }) {
   const cookieStore = cookies();
   const supabase = createSupabaseServerClient(cookieStore);
   const orderId = params.orderId;
