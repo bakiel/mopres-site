@@ -41,10 +41,10 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
       - name: Install dependencies
         run: npm install
-        working-directory: ./mopres-nextjs # Specify working directory here
+        working-directory: mopres-nextjs # Use working-directory again
       - name: Build and Export
         run: npm run build # This runs 'next build && next export'
-        working-directory: ./mopres-nextjs # Specify working directory here
+        working-directory: mopres-nextjs # Use working-directory again
         env:
           # If you have build-time environment variables, add them here
           # NEXT_PUBLIC_EXAMPLE_VAR: ${{ secrets.EXAMPLE_VAR }}
@@ -53,14 +53,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       # Add this new step to create .nojekyll file
       - name: Create .nojekyll file
-        run: touch ./mopres-nextjs/out/.nojekyll
+        run: touch mopres-nextjs/out/.nojekyll # Removed leading ./
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload the exported 'out' directory from your Next.js project
-          path: './mopres-nextjs/out'
+          path: 'mopres-nextjs/out' # Removed leading ./
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
