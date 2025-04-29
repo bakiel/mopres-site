@@ -37,8 +37,8 @@ jobs:
         with:
           node-version: 20 # Use Node.js 20 or your preferred version
           cache: 'npm'
-          # Explicitly relative path relative to repository root for caching
-          cache-dependency-path: mopres-nextjs/package-lock.json # Removed leading ./
+          # Use glob pattern to find package-lock.json in any subdirectory
+          cache-dependency-path: '**/package-lock.json'
       - name: Install dependencies
         run: npm install
         working-directory: ./mopres-nextjs # Specify working directory here
