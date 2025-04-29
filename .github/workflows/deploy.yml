@@ -54,17 +54,4 @@ jobs:
           # Make sure to add corresponding secrets in your repository settings
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      # Add this new step to create .nojekyll file
-      - name: Create .nojekyll file
-        # Path is relative to workspace root
-        run: touch out/.nojekyll
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload the exported 'out' directory from the workspace root
-          path: 'out'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      # GitHub Pages deployment steps removed - Vercel will handle deployment via Git integration.

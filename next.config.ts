@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export', // Add this line for static export
+  // output: 'export', // REMOVED: Not needed for Vercel
   /* config options here */
   images: {
-    unoptimized: true, // Add this line to disable Image Optimization for export
+    // unoptimized: true, // REMOVED: Vercel handles image optimization
     remotePatterns: [
       {
         protocol: 'https',
@@ -23,15 +23,11 @@ const nextConfig: NextConfig = {
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: true, // Keep ESLint ignore for now, can be removed later if build passes on Vercel
   },
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
+  // typescript: { // REMOVED: Let Vercel handle type checking during its build
+  //   ignoreBuildErrors: true,
+  // },
 };
 
 export default nextConfig;
