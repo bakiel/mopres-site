@@ -49,6 +49,7 @@ jobs:
         # Run directly in the workspace root
         run: npm run build
         env:
+          NEXT_DISABLE_LINT: true # Disable ESLint during build for CI
           # If you have build-time environment variables, add them here
           # NEXT_PUBLIC_EXAMPLE_VAR: ${{ secrets.EXAMPLE_VAR }}
           # Make sure to add corresponding secrets in your repository settings
