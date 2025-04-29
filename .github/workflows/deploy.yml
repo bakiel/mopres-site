@@ -43,11 +43,11 @@ jobs:
           # Use glob pattern to find package-lock.json in any subdirectory
           cache-dependency-path: '**/package-lock.json'
       - name: Install dependencies
-        # Explicitly cd into the directory before running npm install
-        run: cd mopres-nextjs && npm install
+        # Run directly in the workspace root
+        run: npm install
       - name: Build and Export
-        # Explicitly cd into the directory before running npm run build
-        run: cd mopres-nextjs && npm run build
+        # Run directly in the workspace root
+        run: npm run build
         env:
           # If you have build-time environment variables, add them here
           # NEXT_PUBLIC_EXAMPLE_VAR: ${{ secrets.EXAMPLE_VAR }}
@@ -56,14 +56,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       # Add this new step to create .nojekyll file
       - name: Create .nojekyll file
-        run: touch mopres-nextjs/out/.nojekyll # Removed leading ./
+        # Path is relative to workspace root
+        run: touch out/.nojekyll
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the exported 'out' directory from your Next.js project
-          path: 'mopres-nextjs/out' # Removed leading ./
+          # Upload the exported 'out' directory from the workspace root
+          path: 'out'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
