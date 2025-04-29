@@ -216,7 +216,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     href={`/shop/products/${related.slug}`}
                     className="block mb-6 aspect-square overflow-hidden group relative"> {/* Added relative for Image fill */}
                     <Image
-                      src={getProductImageUrl(related.images?.[0])}
+                      src={getProductImageUrl(supabase, related.images?.[0])} // Pass supabase instance
                       alt={related.name}
                       fill // Use fill layout
                       style={{ objectFit: 'cover' }} // Ensure image covers the area

@@ -170,7 +170,7 @@ export default function WishlistPage() {
                      href={`/shop/products/${item.products.slug}`}
                      className="flex-shrink-0 w-24 h-24 block relative overflow-hidden rounded border border-border-light"> {/* Added relative */}
                     <Image // Use next/image
-                      src={getProductImageUrl(item.products.images?.[0])}
+                      src={getProductImageUrl(supabase, item.products.images?.[0])} // Pass supabase instance
                       alt={item.products.name}
                       fill // Use fill layout
                       style={{ objectFit: 'cover' }} // Ensure image covers the area

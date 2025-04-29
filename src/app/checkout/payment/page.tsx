@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { useCartStore } from '@/store/cartStore';
-import { getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator
 
 // TODO: Define type for delivery info passed from previous step
 interface DeliveryInfo {
@@ -25,6 +25,7 @@ interface DeliveryInfo {
 
 export default function PaymentPage() {
   const router = useRouter();
+  const supabase = createSupabaseBrowserClient(); // Create client instance
   const { items: cartItems, getTotalPrice, clearCart } = useCartStore();
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null); // State to hold delivery info
   const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +162,7 @@ export default function PaymentPage() {
                              <div className="flex items-center gap-3">
                                  <div className="relative w-10 h-10 flex-shrink-0"> {/* Added relative container */}
                                      <Image
-                                         src={getProductImageUrl(item.image)}
+                                         src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                                          alt={item.name}
                                          fill // Use fill layout
                                          style={{ objectFit: 'cover' }} // Ensure image covers the area

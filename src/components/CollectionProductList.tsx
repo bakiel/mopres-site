@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Button from '@/components/Button';
-import { getProductImageUrl } from '@/lib/supabaseClient'; // Assuming this helper exists
+import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator and helper
 import ClientPriceFormat from './ClientPriceFormat'; // Import the new component
 
 // Define Product type (should match the one in page.tsx or a shared types file)
@@ -32,6 +32,7 @@ const CollectionProductList: React.FC<CollectionProductListProps> = ({
   totalPages,
   currentSearchParams, // Receive current search params
 }) => {
+  const supabase = createSupabaseBrowserClient(); // Create client instance
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Default to grid view
 
   return (
@@ -78,7 +79,7 @@ const CollectionProductList: React.FC<CollectionProductListProps> = ({
                     href={`/shop/products/${product.slug}`}
                     className="relative block mb-6 aspect-square overflow-hidden"> {/* Added relative, removed legacyBehavior */}
                     <Image
-                      src={getProductImageUrl(product.images?.[0])}
+                      src={getProductImageUrl(supabase, product.images?.[0])} // Pass supabase instance
                       alt={product.name}
                       fill
                       style={{ objectFit: 'cover' }}
@@ -106,7 +107,7 @@ const CollectionProductList: React.FC<CollectionProductListProps> = ({
                     href={`/shop/products/${product.slug}`}
                     className="relative block w-full sm:w-32 h-32 flex-shrink-0 overflow-hidden group"> {/* Added relative, removed legacyBehavior */}
                     <Image
-                      src={getProductImageUrl(product.images?.[0])}
+                      src={getProductImageUrl(supabase, product.images?.[0])} // Pass supabase instance
                       alt={product.name}
                       fill
                       style={{ objectFit: 'cover' }}

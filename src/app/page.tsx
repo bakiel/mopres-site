@@ -1,7 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { cookies } from 'next/headers';
+import { cookies } from 'next/headers'; // Keep this import
+
+// Force dynamic rendering because we use cookies
+export const dynamic = 'force-dynamic';
+
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
@@ -146,7 +150,7 @@ export default async function Home() {
                   <div> {/* Wrap multiple children in a div instead of Fragment */}
                   <div className="relative block mb-6 aspect-square overflow-hidden"> {/* Link wraps image, added relative */}
                     <Image
-                      src={getProductImageUrl(product.images?.[0])} // Use shared function
+                      src={product.images && product.images.length > 0 ? getProductImageUrl(supabase, product.images[0]) : fallbackImagePath} // Check images array
                       alt={product.name}
                       fill // Use fill layout
                       style={{ objectFit: 'cover' }}
@@ -230,7 +234,7 @@ export default async function Home() {
                   <div> {/* Wrap multiple children in a div instead of Fragment */}
                   <div className="relative block mb-6 aspect-square overflow-hidden">
                     <Image
-                      src={getProductImageUrl(product.images?.[0])}
+                      src={product.images && product.images.length > 0 ? getProductImageUrl(supabase, product.images[0]) : fallbackImagePath} // Check images array
                       alt={product.name}
                       fill
                       style={{ objectFit: 'cover' }}

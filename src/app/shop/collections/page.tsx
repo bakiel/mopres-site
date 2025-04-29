@@ -55,7 +55,7 @@ export default async function CollectionsListPage() {
             {collections.map((collection) => (
               <div key={collection.id} className="collection-card relative border border-border-light overflow-hidden group">
                 <Image
-                  src={getProductImageUrl(collection.image)} // Use shared function
+                  src={getProductImageUrl(supabase, collection.image)} // Pass supabase instance
                   alt={collection.name}
                   fill // Use fill layout
                   style={{ objectFit: 'cover' }} // Ensure image covers the area

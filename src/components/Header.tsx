@@ -111,11 +111,10 @@ const Header: FC = () => {
                 <Image
                   src="/Mopress Header Logo.png"
                   alt="MoPres Logo"
-                  width={160} // Adjusted width
-                  height={40} // Adjusted height
+                  width={160} // Set explicit width
+                  height={40} // Set explicit height based on original aspect ratio (assuming 160x40)
                   priority // Mark as priority as it's likely LCP
-                  className="h-10 w-auto" // Maintain height and auto width
-                  style={{ height: 'auto' }} // Explicitly maintain aspect ratio
+                  // Removed Tailwind size classes, relying on width/height props
                 />
               </Link>
             </div>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'; // Import useEffect
 import Link from 'next/link';
 import Image from 'next/image'; // Import next/image
 import { useRouter } from 'next/navigation';
-import { getProductImageUrl } from '@/lib/supabaseClient'; // Import image helper
+import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import image helper and client creator
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { useCartStore } from '@/store/cartStore'; // Import cart store if needed for summary
@@ -25,6 +25,7 @@ interface DeliveryFormData {
 
 export default function DeliveryPage() {
   const router = useRouter();
+  const supabase = createSupabaseBrowserClient(); // Create client instance
   const { items: cartItems, getTotalPrice } = useCartStore(); // Get cart items for summary/guard
   const [formData, setFormData] = useState<DeliveryFormData>({
     email: '',
@@ -175,7 +176,7 @@ export default function DeliveryPage() {
                              <div className="flex items-center gap-3">
                                  <div className="relative w-10 h-10 flex-shrink-0"> {/* Added relative container */}
                                      <Image
-                                         src={getProductImageUrl(item.image)}
+                                         src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                                          alt={item.name}
                                          fill // Use fill layout
                                          style={{ objectFit: 'cover' }} // Ensure image covers the area

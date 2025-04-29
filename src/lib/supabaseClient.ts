@@ -65,23 +65,22 @@ export function createSupabaseServerClient(cookieStore: any): SupabaseClient { /
   );
 }
 
-
-// We keep the utility function below, but it should ideally use an instance
-// appropriate for its context (client/server). For getProductImageUrl,
-// a simple client instance might be sufficient as it doesn't rely on user auth state.
-// We create one instance here for that specific utility.
-const supabaseInstanceForUtils = createBrowserClient(supabaseUrl!, supabaseAnonKey!);
-
 // Optional: Export types if needed elsewhere
 // export type SupabaseClient = SupabaseClient; // Type export remains valid
 
 /**
  * Generates the public URL for an image stored in the 'product-images' bucket.
+ * @param supabase - An initialized Supabase client instance (server or browser).
  * @param filename - The name of the image file (e.g., 'imagename.jpg').
  * @returns The public URL of the image or a placeholder path.
  */
-export const getProductImageUrl = (filename: string | null | undefined): string => {
+export const getProductImageUrl = (supabase: SupabaseClient, filename: string | null | undefined): string => {
   const placeholderPath = '/placeholder.svg'; // Use SVG placeholder
+
+  if (!supabase) {
+    console.error("getProductImageUrl: Supabase client instance is required.");
+    return placeholderPath;
+  }
 
   if (!filename || typeof filename !== 'string' || filename.trim() === '') {
     console.warn(`getProductImageUrl called with invalid filename: ${filename}. Falling back to placeholder.`);
@@ -94,10 +93,9 @@ export const getProductImageUrl = (filename: string | null | undefined): string 
   // Log the cleaned filename being processed
   console.log(`getProductImageUrl: Processing cleaned filename: "${cleanedFilename}" (original: "${filename}")`);
 
-  // Revert to using the standard Supabase getPublicUrl method
-  // Using the dedicated instance for this utility function.
+  // Use the provided Supabase client instance
   try {
-    const { data } = supabaseInstanceForUtils.storage.from('product-images').getPublicUrl(cleanedFilename);
+    const { data } = supabase.storage.from('product-images').getPublicUrl(cleanedFilename);
     console.log(`getProductImageUrl: Supabase getPublicUrl data for "${cleanedFilename}":`, data);
 
     if (!data?.publicUrl) {

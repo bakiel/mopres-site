@@ -38,7 +38,7 @@ jobs:
           node-version: 20 # Use Node.js 20 or your preferred version
           cache: 'npm'
           # Explicitly relative path relative to repository root for caching
-          cache-dependency-path: ./mopres-nextjs/package-lock.json
+          cache-dependency-path: mopres-nextjs/package-lock.json # Removed leading ./
       - name: Install dependencies
         run: npm install
         working-directory: ./mopres-nextjs # Specify working directory here
@@ -51,6 +51,9 @@ jobs:
           # Make sure to add corresponding secrets in your repository settings
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      # Add this new step to create .nojekyll file
+      - name: Create .nojekyll file
+        run: touch ./mopres-nextjs/out/.nojekyll
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

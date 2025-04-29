@@ -195,7 +195,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                          href={`/shop/products/${item.products.slug}`}
                          className="flex-shrink-0 w-16 h-16 block relative overflow-hidden rounded"> {/* Added relative and overflow */}
                          <Image
-                           src={getProductImageUrl(item.products.images?.[0])}
+                           src={getProductImageUrl(supabase, item.products.images?.[0])} // Pass supabase instance
                              alt={item.products.name}
                              fill // Use fill layout
                              style={{ objectFit: 'cover' }} // Ensure image covers the area

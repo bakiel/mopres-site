@@ -1,13 +1,16 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+// No need for 'next/headers' cookies here
 
 export async function middleware(request: NextRequest) {
+  // Initialize response object - This is crucial for setting cookies
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
+  // Create Supabase client using the request/response pattern for middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -17,16 +20,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          // Set cookie on the response object
           response.cookies.set({
             name,
             value,
@@ -34,16 +28,7 @@ export async function middleware(request: NextRequest) {
           });
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          // Set cookie on the response object to remove it
           response.cookies.set({
             name,
             value: '',
@@ -54,9 +39,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Explicitly refresh session to ensure server client has latest state
-  await supabase.auth.refreshSession();
-
+  // Get session (refresh is handled implicitly by getSession with ssr client)
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -97,6 +80,7 @@ export async function middleware(request: NextRequest) {
 
    // Refresh session if expired - handled by supabase client library with ssr package
 
+  // Return the potentially modified response object
   return response;
 }
 

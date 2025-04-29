@@ -39,6 +39,17 @@ const CartSidebar: React.FC = () => {
 
   const [crossSellItems, setCrossSellItems] = useState<CartItem[]>([]); // State for recommendations
   const [isLoadingCrossSell, setIsLoadingCrossSell] = useState(false);
+  const [clientTotalItems, setClientTotalItems] = useState<number>(0); // State for client-side item count
+
+  // Effect to update client-side item count after hydration
+  useEffect(() => {
+    setClientTotalItems(getTotalItems());
+    // Subscribe to store changes
+    const unsubscribe = useCartStore.subscribe(
+      (state) => setClientTotalItems(state.getTotalItems())
+    );
+    return unsubscribe; // Cleanup on unmount
+  }, [getTotalItems]);
 
   // Fetch cross-sell items when cart items change or sidebar opens
   useEffect(() => {
@@ -125,8 +136,12 @@ const CartSidebar: React.FC = () => {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border-light flex-shrink-0">
-          <h2 id="cart-sidebar-title" className="text-lg font-semibold font-montserrat text-text-dark">
-            Shopping Cart ({getTotalItems()})
+          <h2
+            id="cart-sidebar-title"
+            className="text-lg font-semibold font-montserrat text-text-dark"
+            suppressHydrationWarning={true} // Suppress warning for this specific element
+          >
+            Shopping Cart ({clientTotalItems}) {/* Use client-side state here */}
           </h2>
           <button
             onClick={closeSidebar}
@@ -156,7 +171,7 @@ const CartSidebar: React.FC = () => {
                   onClick={closeSidebar}
                   className="flex-shrink-0">
                        <Image
-                         src={getProductImageUrl(item.image)}
+                         src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                     alt={item.name}
                     width={80}
                     height={80}
@@ -229,7 +244,7 @@ const CartSidebar: React.FC = () => {
                       onClick={closeSidebar}
                       className="flex-shrink-0">
                       <Image
-                        src={getProductImageUrl(item.image)}
+                        src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                         alt={item.name}
                         width={60} // Slightly smaller image for saved items
                         height={60}
@@ -280,7 +295,7 @@ const CartSidebar: React.FC = () => {
                        onClick={closeSidebar}
                        className="flex-shrink-0">
                       <Image
-                        src={getProductImageUrl(item.image)}
+                        src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                          alt={item.name}
                          width={50}
                          height={50}

@@ -236,8 +236,8 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
              <InnerImageZoom
               // Pass alt text via imgAttributes prop
               imgAttributes={{ alt: `${product.name} - Image ${currentImageIndex + 1}` }}
-              src={getProductImageUrl(product.images[currentImageIndex])}
-              zoomSrc={getProductImageUrl(product.images[currentImageIndex])}
+              src={getProductImageUrl(supabase, product.images[currentImageIndex])} // Pass supabase instance
+              zoomSrc={getProductImageUrl(supabase, product.images[currentImageIndex])} // Pass supabase instance
               zoomType="hover"
               hideHint={true}
               className="w-full h-full object-cover" // Ensure it fills container
@@ -276,7 +276,7 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
                 onClick={() => setCurrentImageIndex(index)}
               >
                 <Image
-                  src={getProductImageUrl(image)}
+                  src={getProductImageUrl(supabase, image)} // Pass supabase instance
                   alt={`${product.name} - Thumbnail ${index + 1}`}
                   width={100} // Explicit width for thumbnail
                   height={100} // Explicit height for thumbnail

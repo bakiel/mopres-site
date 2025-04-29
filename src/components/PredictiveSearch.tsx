@@ -222,7 +222,7 @@ const PredictiveSearch: React.FC = () => {
                     {/* Wrap multiple children in a Fragment */}
                     <>
                       <Image
-                        src={getProductImageUrl(product.images?.[0])}
+                        src={getProductImageUrl(supabase, product.images?.[0])} // Pass supabase instance
                         alt={product.name}
                       width={40}
                       height={40}

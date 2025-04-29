@@ -5,10 +5,11 @@
  import Button from '@/components/Button';
  import SectionTitle from '@/components/SectionTitle';
  import { useCartStore } from '@/store/cartStore'; // Removed CartItem import
- import { getProductImageUrl } from '@/lib/supabaseClient';
+ import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator
  import Image from 'next/image'; // Import next/image
 
 export default function CartPage() {
+  const supabase = createSupabaseBrowserClient(); // Create client instance
   // Get state and actions from Zustand store
   const {
     items: cartItems, // Rename items to cartItems for consistency
@@ -58,7 +59,7 @@ export default function CartPage() {
                      className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 block relative overflow-hidden rounded border border-border-light"
                      legacyBehavior> {/* Added relative */}
                     <Image // Use next/image
-                      src={getProductImageUrl(item.image)} // Use function to get Supabase URL or fallback
+                      src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                       alt={item.name}
                       fill // Use fill layout
                       style={{ objectFit: 'cover' }} // Ensure image covers the area
