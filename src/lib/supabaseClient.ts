@@ -25,7 +25,7 @@ export function createSupabaseBrowserClient(): SupabaseClient {
 // Function to create a Supabase client instance for server components/actions.
 // Requires the cookie store obtained from `cookies()` in the calling context.
 // Let TypeScript infer the cookieStore type based on usage by createServerClient.
-export function createSupabaseServerClient(cookieStore: any): SupabaseClient { // Use 'any' or let it be inferred
+export function createSupabaseServerClient(cookieStore: any): SupabaseClient { // Revert back to 'any' or inferred
   // No longer call cookies() here, use the passed argument
 
   return createServerClient(
@@ -52,8 +52,10 @@ export function createSupabaseServerClient(cookieStore: any): SupabaseClient { /
         },
         remove: async (name: string, options: CookieOptions) => {
           try {
-            // Use await for async operation
-            await cookieStore.set(name, '', options);
+            // Use await for async operation and correct method (pass only name)
+            await cookieStore.delete(name);
+            // Note: Supabase ssr might pass options, but cookieStore.delete might not accept them directly.
+            // If deletion needs options, the approach might need adjustment based on cookieStore's specific API.
           } catch (error) {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing

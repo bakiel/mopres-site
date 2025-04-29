@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // output: 'export', // REMOVED: Not needed for Vercel
+  // output: 'export', // REMOVED: Not suitable for dynamic routes like account pages
   /* config options here */
   images: {
     // unoptimized: true, // REMOVED: Vercel handles image optimization

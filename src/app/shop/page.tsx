@@ -20,28 +20,29 @@ type Product = {
   created_at: string; // Add created_at for sorting
 };
 
-// Define props type to accept searchParams
-interface ShopPageProps {
-  searchParams: {
+const ITEMS_PER_PAGE = 12; // Define items per page
+
+// Make the component async to fetch data
+export default async function ShopPage({
+  searchParams: searchParamsPromise // Rename prop
+}: {
+  searchParams: Promise<{ // Wrap searchParams type in Promise
     page?: string;
-    sort?: string; // Keep sort parameter, handled by CollectionFilters now
+    sort?: string;
     inStock?: string;
     minPrice?: string;
     maxPrice?: string;
     heelHeight?: string;
-  };
-}
-
-const ITEMS_PER_PAGE = 12; // Define items per page
-
-// Make the component async to fetch data
-export default async function ShopPage({ searchParams }: ShopPageProps) {
-  // Create Supabase client INSIDE the component function scope using the new factory
-  const cookieStore = cookies();
+  }>;
+}) {
+  // Create Supabase client INSIDE the component function scope using the ssr factory
+  const cookieStore = await cookies(); // Await cookies() here
   const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
 
-  const currentPage = parseInt(searchParams.page || '1', 10);
-  const sortBy = searchParams.sort || 'created_at-desc'; // Match default in CollectionFilters
+  // Await searchParams
+  const searchParams = await searchParamsPromise;
+  const currentPage = parseInt(searchParams?.page || '1', 10);
+  const sortBy = searchParams?.sort || 'created_at-desc'; // Match default in CollectionFilters
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Get filter values

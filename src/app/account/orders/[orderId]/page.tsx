@@ -8,7 +8,7 @@
  import { notFound, redirect } from 'next/navigation';
  // Removed unused InvoiceTemplate import
 
-// Define types for Order and OrderItem (consider centralizing these)
+ // Define types for Order and OrderItem (consider centralizing these)
 interface OrderItem {
   id: string;
   quantity: number;
@@ -65,46 +65,41 @@ const getTrackingUrl = (carrier?: string | null, trackingNumber?: string | null)
     // Fallback generic search (less ideal)
     // return `https://www.google.com/search?q=${encodeURIComponent(carrier + ' tracking ' + trackingNumber)}`;
     return null; // Return null if no specific link is known
-}
+ }
 
-// Define standard props type for the page component
-type Props = {
-  params: { orderId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-};
+ export default async function OrderDetailsPage({ params: paramsPromise }: { params: Promise<{ orderId: string }> }) {
+   const cookieStore = await cookies(); // Await cookies() here
+   const supabase = createSupabaseServerClient(cookieStore);
+   // Await the params promise
+   const { orderId } = await paramsPromise;
 
-export default async function OrderDetailsPage({ params }: Props) {
-  const cookieStore = cookies();
-  const supabase = createSupabaseServerClient(cookieStore);
-  const orderId = params.orderId;
+   // Check user session
+   const { data: { session } } = await supabase.auth.getSession();
+   if (!session?.user) {
+     redirect(`/account/login?redirect=/account/orders/${orderId}`);
+   }
 
-  // Check user session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
-    redirect(`/account/login?redirect=/account/orders/${orderId}`);
-  }
+   // Fetch the specific order with items and product details
+   const { data: order, error } = await supabase
+     .from('orders')
+     .select(`
+       *,
+       order_items (
+         *,
+         products (id, name, slug, images)
+       )
+     `)
+     .eq('id', orderId)
+     .eq('user_id', session.user.id) // Ensure user owns the order
+     .single(); // Expect only one result
 
-  // Fetch the specific order with items and product details
-  const { data: order, error } = await supabase
-    .from('orders')
-    .select(`
-      *,
-      order_items (
-        *,
-        products (id, name, slug, images)
-      )
-    `)
-    .eq('id', orderId)
-    .eq('user_id', session.user.id) // Ensure user owns the order
-    .single(); // Expect only one result
+   if (error || !order) {
+     console.error("Error fetching order details:", error);
+     notFound(); // Show 404 if order not found or doesn't belong to user
+   }
 
-  if (error || !order) {
-    console.error("Error fetching order details:", error);
-    notFound(); // Show 404 if order not found or doesn't belong to user
-  }
-
-  const subtotal = order.total_amount - order.shipping_cost;
-  const trackingUrl = getTrackingUrl(order.shipping_carrier, order.tracking_number);
+   const subtotal = order.total_amount - order.shipping_cost;
+   const trackingUrl = getTrackingUrl(order.shipping_carrier, order.tracking_number);
 
   return (
       <div className="bg-background-body py-12 lg:py-20">
@@ -193,22 +188,22 @@ export default async function OrderDetailsPage({ params }: Props) {
                  (item.products && (<div key={item.id} className="bg-white p-4 border border-border-light rounded shadow-sm flex items-center gap-4">
                      <Link
                          href={`/shop/products/${item.products.slug}`}
-                         className="flex-shrink-0 w-16 h-16 block relative overflow-hidden rounded"> {/* Added relative and overflow */}
-                         <Image
-                           src={getProductImageUrl(supabase, item.products.images?.[0])} // Pass supabase instance
-                             alt={item.products.name}
-                             fill // Use fill layout
-                             style={{ objectFit: 'cover' }} // Ensure image covers the area
+                          className="flex-shrink-0 w-16 h-16 block relative overflow-hidden rounded"> {/* Added relative and overflow */}
+                          <Image
+                            src={getProductImageUrl(supabase, item.products.images?.[0])} // Pass supabase instance
+                              alt={item.products.name}
+                              fill // Use fill layout
+                              style={{ objectFit: 'cover' }} // Ensure image covers the area
                              sizes="64px" // Provide size hint
                              className="rounded"
                          />
                      </Link>
                      <div className="flex-grow text-sm">
-                         <Link
-                             href={`/shop/products/${item.products.slug}`}
-                             className="font-medium text-text-dark hover:text-brand-gold">{item.products.name}</Link>
-                         {item.size && <p className="text-xs text-text-light">Size: {item.size}</p>}
-                         <p className="text-xs text-text-light">Qty: {item.quantity}</p>
+                          <Link
+                              href={`/shop/products/${item.products.slug}`}
+                              className="font-medium text-text-dark hover:text-brand-gold">{item.products.name}</Link>
+                          {item.size && <p className="text-xs text-text-light">Size: {item.size}</p>}
+                          <p className="text-xs text-text-light">Qty: {item.quantity}</p>
                      </div>
                      <div className="text-sm font-medium text-text-dark">
                          {formatCurrency(item.price * item.quantity)}

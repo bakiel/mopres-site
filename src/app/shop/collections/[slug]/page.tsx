@@ -30,31 +30,30 @@ type Product = {
   description?: string; // Ensure description is included if needed by list view
 };
 
-// Define props type for the page component, including searchParams
-interface CollectionPageProps {
-  params: {
-    slug: string;
-  };
-  searchParams: {
+const ITEMS_PER_PAGE = 12; // Define items per page
+
+// Make the component async to fetch data based on the slug and searchParams
+export default async function CollectionPage({
+  params: paramsPromise,
+  searchParams: searchParamsPromise // Rename prop
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ // Wrap searchParams type in Promise
     page?: string;
     inStock?: string;
     minPrice?: string;
     maxPrice?: string;
     heelHeight?: string;
-    sortBy?: string; // Add sortBy to the interface
-  };
-}
-
-const ITEMS_PER_PAGE = 12; // Define items per page
-
-// Make the component async to fetch data based on the slug and searchParams
-export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
+    sortBy?: string;
+  }>;
+}) {
   // Create Supabase client INSIDE the component function scope using the ssr factory
-  const cookieStore = cookies();
+  const cookieStore = await cookies(); // Await cookies() here
   const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
 
-  // Destructure params and searchParams correctly
-  const slug = params.slug;
+  // Await both promises
+  const { slug } = await paramsPromise;
+  const searchParams = await searchParamsPromise; // Await searchParams
   const currentPage = parseInt(searchParams?.page || '1', 10);
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 

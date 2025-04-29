@@ -35,13 +35,6 @@ type RelatedProduct = {
   images: string[];
 };
 
-// --- Server Component for Data Fetching --- (No 'use client' here)
-interface ProductPageProps {
-  params: {
-    slug: string;
-  };
-}
-
 // Error component specific to server-side fetching
 const ServerProductError = ({ error, slug }: { error: string, slug?: string }) => {
     return (
@@ -110,12 +103,13 @@ const ProductLoadingSkeleton = () => (
 );
 
 
-export default async function ProductPage({ params }: ProductPageProps) {
+export default async function ProductPage({ params: paramsPromise }: { params: Promise<{ slug: string }> }) {
   // Create Supabase client INSIDE the component function scope using the ssr factory
-  const cookieStore = cookies();
+  const cookieStore = await cookies(); // Await cookies() here
   const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
 
-  const slug = params.slug;
+  // Await params
+  const { slug } = await paramsPromise;
   let product: ProductDetail | null = null;
   let relatedProducts: RelatedProduct[] = [];
   let fetchError: string | null = null;
