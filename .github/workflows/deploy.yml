@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      # Add step to list files for debugging path issues
+      - name: List files in workspace
+        run: ls -la
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -40,11 +43,11 @@ jobs:
           # Use glob pattern to find package-lock.json in any subdirectory
           cache-dependency-path: '**/package-lock.json'
       - name: Install dependencies
-        run: npm install
-        working-directory: mopres-nextjs # Use working-directory again
+        # Explicitly cd into the directory before running npm install
+        run: cd mopres-nextjs && npm install
       - name: Build and Export
-        run: npm run build # This runs 'next build && next export'
-        working-directory: mopres-nextjs # Use working-directory again
+        # Explicitly cd into the directory before running npm run build
+        run: cd mopres-nextjs && npm run build
         env:
           # If you have build-time environment variables, add them here
           # NEXT_PUBLIC_EXAMPLE_VAR: ${{ secrets.EXAMPLE_VAR }}
