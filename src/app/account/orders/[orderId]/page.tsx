@@ -67,6 +67,13 @@ const getTrackingUrl = (carrier?: string | null, trackingNumber?: string | null)
     return null; // Return null if no specific link is known
 }
 
+// Add empty generateStaticParams to satisfy 'output: export' requirement
+// Note: This means specific order pages won't be pre-rendered at build time.
+// Dynamic data fetching might need to happen client-side.
+export async function generateStaticParams() {
+  return [];
+}
+
 // Align with standard Next.js PageProps structure
 interface OrderDetailsPageProps {
     params: { orderId: string }; // Keep specific param name
