@@ -48,8 +48,7 @@ interface CollectionPageProps {
 const ITEMS_PER_PAGE = 12; // Define items per page
 
 // Make the component async to fetch data based on the slug and searchParams
-// Explicitly type params as 'any' to bypass stubborn type error
-export default async function CollectionPage({ params, searchParams }: { params: any, searchParams: CollectionPageProps['searchParams'] }) {
+export default async function CollectionPage({ params, searchParams }: CollectionPageProps) {
   // Create Supabase client INSIDE the component function scope using the ssr factory
   const cookieStore = cookies();
   const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
