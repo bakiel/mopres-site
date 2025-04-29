@@ -67,21 +67,13 @@ const getTrackingUrl = (carrier?: string | null, trackingNumber?: string | null)
     return null; // Return null if no specific link is known
 }
 
-// Add empty generateStaticParams to satisfy 'output: export' requirement
-// Note: This means specific order pages won't be pre-rendered at build time.
-// Dynamic data fetching might need to happen client-side.
-export async function generateStaticParams() {
-  return [];
-}
+// Define standard props type for the page component
+type Props = {
+  params: { orderId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
 
-// Align with standard Next.js PageProps structure
-interface OrderDetailsPageProps {
-    params: { orderId: string }; // Keep specific param name
-    searchParams: { [key: string]: string | string[] | undefined }; // Include searchParams even if unused
-}
-
-// Use inline type for props, explicitly typing params as 'any' to bypass stubborn type error
-export default async function OrderDetailsPage({ params }: { params: any }) {
+export default async function OrderDetailsPage({ params }: Props) {
   const cookieStore = cookies();
   const supabase = createSupabaseServerClient(cookieStore);
   const orderId = params.orderId;
