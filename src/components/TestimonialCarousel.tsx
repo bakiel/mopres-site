@@ -101,6 +101,12 @@ const TestimonialCarousel: React.FC = () => {
             delay: 7000, // Slower autoplay for testimonials
             disableOnInteraction: true, // Stop autoplay on interaction
           }}
+          style={{
+            '--swiper-navigation-color': 'var(--color-brand-gold)',
+            '--swiper-pagination-color': 'var(--color-brand-gold)', // Active bullet
+            '--swiper-pagination-bullet-inactive-color': 'var(--color-brand-black)', // Inactive bullets
+            '--swiper-pagination-bullet-inactive-opacity': '0.7', // Opacity for inactive bullets
+          } as React.CSSProperties}
           className="pb-12" // Add padding bottom for pagination
         >
           {testimonials.map((testimonial) => (

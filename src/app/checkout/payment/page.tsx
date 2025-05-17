@@ -9,6 +9,15 @@ import SectionTitle from '@/components/SectionTitle';
 import { useCartStore } from '@/store/cartStore';
 import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator
 
+// Simple Loading Overlay Component
+const LoadingOverlay = () => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50">
+    {/* Simple CSS Spinner */}
+    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
+    <p className="text-white text-lg font-semibold font-poppins">Processing your order, please wait...</p>
+  </div>
+);
+
 // TODO: Define type for delivery info passed from previous step
 interface DeliveryInfo {
     email: string;
@@ -29,7 +38,7 @@ export default function PaymentPage() {
   const { items: cartItems, getTotalPrice, clearCart } = useCartStore();
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null); // State to hold delivery info
   const [isLoading, setIsLoading] = useState(false);
-  const [orderRef, setOrderRef] = useState(''); // State for generated order reference
+  const [isMounted, setIsMounted] = useState(false); // State to track client-side mount
 
   // TODO: Retrieve delivery info (e.g., from localStorage or state)
   // For now, using placeholder effect
@@ -44,16 +53,17 @@ export default function PaymentPage() {
         // router.replace('/checkout/delivery');
     }
 
-    // Generate a unique order reference (simple example)
-    const generateOrderRef = () => `MP-${Date.now().toString().slice(-6)}`;
-    setOrderRef(generateOrderRef());
-
      // Redirect if cart is empty (check again on this page)
      if (cartItems.length === 0) {
         router.replace('/checkout/cart');
      }
 
   }, [cartItems, router]);
+
+  // Effect to set isMounted to true after component mounts on the client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
@@ -65,33 +75,131 @@ export default function PaymentPage() {
   const totalAmount = subtotal + shippingCost;
 
   const handlePlaceOrder = async () => {
-    setIsLoading(true);
-    // TODO:
-    // 1. Create order in Supabase 'orders' table (include items, deliveryInfo, total, status='pending_payment', orderRef)
-    // 2. Create corresponding 'order_items' in Supabase
-    // 3. Handle potential errors during order creation
-    // 4. Clear the cart (useCartStore clearCart action)
-    // 5. Redirect to confirmation page, passing order details/ID
+    // Validation check
+    if (!deliveryInfo || cartItems.length === 0) {
+        alert('Missing required information to place the order.');
+        // Don't set isLoading true if validation fails before starting
+        return;
+    }
 
-    console.log('Placing order with ref:', orderRef, 'Data:', { deliveryInfo, cartItems, totalAmount });
+    setIsLoading(true); // Set loading state *before* starting async operations
+    console.log("handlePlaceOrder: Loading state set to true."); // Added log
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+        // 1. Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+            throw new Error(userError?.message || 'Could not retrieve user information. Please log in again.');
+        }
 
-    // On successful order creation:
-    // clearCart(); // Clear the cart
-    // router.push(`/checkout/confirmation?orderRef=${orderRef}`); // Redirect to confirmation
+        // Generate a new order reference *before* creating the order data
+        const newOrderRef = `MP-${Date.now().toString().slice(-6)}`;
+        console.log(`Generated Order Reference for insert: ${newOrderRef}`);
 
-    // Simulate success for now
-    setIsLoading(false);
-    // For testing, manually clear cart and redirect
-     clearCart();
-     router.push(`/checkout/confirmation?orderRef=${orderRef}`);
+        // 2. Create order in Supabase 'orders' table
+        const orderData = {
+            user_id: user.id,
+            order_ref: newOrderRef, // Use the newly generated ref here
+            total_amount: totalAmount,
+            shipping_fee: shippingCost,
+            status: 'pending_payment', // Initial status
+            shipping_address: deliveryInfo, // Store the whole object as JSONB
+            customer_email: deliveryInfo.email,
+            customer_name: `${deliveryInfo.firstName} ${deliveryInfo.lastName}`,
+            // Add other relevant fields if needed, e.g., payment_method: 'EFT'
+        };
 
+        console.log("handlePlaceOrder: Attempting to insert into 'orders' table:", orderData); // Added log
+        // 2. Create order in Supabase 'orders' table (removed logs)
+        const { data: newOrder, error: orderError } = await supabase
+            .from('orders')
+            .insert(orderData)
+            .select()
+            .single(); // Use single() if you expect one row back
+
+        // DEBUG LOG: Show raw result of orders insert
+        console.log("DEBUG: Raw orders insert result - newOrder object:", newOrder, "orderError object:", orderError);
+
+        if (orderError || !newOrder) {
+            // Log the detailed error before throwing
+            console.error('Supabase order insert error (raw object):', orderError); // This is the critical log
+            // Attempt to stringify the error for more details, handling cases where it might be null
+            if (orderError) {
+                try {
+                    console.error('Supabase order insert error DETAILS (stringified):', JSON.stringify(orderError, Object.getOwnPropertyNames(orderError), 2));
+                } catch (e) {
+                    console.error('Supabase order insert error DETAILS (stringification failed):', orderError);
+                }
+            } else if (!newOrder) {
+                console.error('Supabase order insert issue: newOrder is null/undefined, but no explicit orderError received.');
+            }
+            throw new Error(orderError?.message || 'Failed to create order record. Check browser console for "Supabase order insert error" details.');
+        }
+ 
+        console.log("handlePlaceOrder: Successfully inserted into 'orders' table (newOrder object):", newOrder); // Clarified log
+
+        // 3. Create corresponding 'order_items' in Supabase (removed logs)
+        const orderItemsData = cartItems.map(item => ({
+            order_id: newOrder.id, // Link to the created order
+            product_id: item.productId,
+            quantity: item.quantity,
+            price: item.price, // Price at the time of order
+            size: item.size,
+            // Add product_name, image_url if needed for easier display later
+            name: item.name, // Added for DB constraint
+            product_name: item.name,
+            sku: item.sku,
+            product_sku: item.sku, // Added for DB constraint
+        }));
+
+        console.log("handlePlaceOrder: Attempting to insert into 'order_items' table:", orderItemsData); // Added log
+        const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItemsData);
+
+        if (itemsError) {
+             // Log the detailed error before throwing
+            console.error('Supabase order items insert error:', itemsError);
+            // Attempt to delete the created order if items fail
+            // Consider more robust error handling/rollback logic here
+            try {
+                await supabase.from('orders').delete().match({ id: newOrder.id });
+            } catch (cleanupError) {
+                console.error('Failed to cleanup order after items insert failed:', cleanupError);
+            }
+            throw new Error(itemsError.message || 'Failed to save order items.');
+        }
+
+        console.log("handlePlaceOrder: Successfully inserted into 'order_items' table."); // Added log
+
+        // If we reach here, both inserts were successful
+
+        // 4. Clear the cart
+        console.log("handlePlaceOrder: Attempting to clear cart."); // Added log
+        // clearCart(); // Removed as per user feedback - cart should be cleared on confirmation page
+
+        // 5. Redirect to confirmation page
+        console.log(`handlePlaceOrder: Attempting to navigate to confirmation page with orderRef: ${newOrderRef}`); // Use newOrderRef
+        router.push(`/checkout/confirmation?orderRef=${newOrderRef}`); // Use newOrderRef
+
+        // Note: setIsLoading(false) is handled in the finally block
+
+    } catch (error) {
+        console.error("Order placement error:", error); // Log the full error object
+        alert(`Error placing order: ${error instanceof Error ? error.message : 'An unknown error occurred.'}`);
+        // isLoading state is handled in finally block
+    } finally {
+        // This block executes regardless of success or failure in try/catch
+        console.log("handlePlaceOrder: Reached finally block."); // Added log
+        setIsLoading(false);
+    }
   };
 
   return (
-    <div className="bg-background-body py-12 lg:py-20">
+    <div className="bg-background-body py-12 lg:py-20 relative"> {/* Added relative for potential absolute children if needed, though overlay is fixed */}
+      {/* Conditionally render the loading overlay */}
+      {isLoading && <LoadingOverlay />}
+
       <div className="w-full max-w-screen-md mx-auto px-4">
         <SectionTitle centered>Checkout - Payment</SectionTitle>
 
@@ -132,9 +240,9 @@ export default function PaymentPage() {
                 <div className="bg-gray-50 p-3 rounded border border-dashed border-gray-300 space-y-1 text-sm">
                    <p><span className="font-medium">Bank:</span> FNB</p>
                    <p><span className="font-medium">Account Name:</span> MoPres (Pty) Ltd</p>
-                   <p><span className="font-medium">Account Number:</span> 628XXXXXXXX</p> {/* Replace X with actual */}
+                   <p><span className="font-medium">Account Number:</span> 62876543210</p>
                    <p><span className="font-medium">Branch Code:</span> 250655</p>
-                   <p><span className="font-medium">Reference:</span> <strong className="text-brand-gold">{orderRef || 'Generating...'}</strong></p>
+                   <p><span className="font-medium">Reference:</span> <strong className="text-brand-gold">Provided after order placement</strong></p>
                 </div>
                  <p className="text-xs text-text-light mt-3">
                     Send proof of payment to <a href="mailto:payments@mopres.co.za" className="text-blue-600 hover:underline">payments@mopres.co.za</a> to speed up processing.
@@ -146,8 +254,13 @@ export default function PaymentPage() {
                  <Link href="/checkout/delivery" className="text-sm text-brand-gold hover:underline">
                     &larr; Return to Delivery
                  </Link>
-                <Button onClick={handlePlaceOrder} variant="primary" disabled={isLoading || !deliveryInfo || !orderRef}>
-                    {isLoading ? 'Placing Order...' : `Place Order (${formatCurrency(totalAmount)})`}
+                <Button onClick={handlePlaceOrder} variant="primary" disabled={isLoading || !deliveryInfo}>
+                    {isLoading
+                        ? 'Placing Order...'
+                        : isMounted // Only show price after client mount
+                        ? `Place Order (${formatCurrency(totalAmount)})`
+                        : 'Place Order' // Placeholder during SSR/initial render
+                    }
                 </Button>
             </div>
 
@@ -183,17 +296,17 @@ export default function PaymentPage() {
                  <div className="border-t pt-4 space-y-2">
                      <div className="flex justify-between text-sm">
                          <span className="text-text-light">Subtotal</span>
-                         <span className="font-medium">{formatCurrency(subtotal)}</span>
+                         <span className="font-medium">{isMounted ? formatCurrency(subtotal) : 'R 0.00'}</span>
                      </div>
                      <div className="flex justify-between text-sm">
                          <span className="text-text-light">Shipping</span>
                          <span className="font-medium">
-                            {shippingCost === 0 ? 'FREE' : formatCurrency(shippingCost)}
+                            {isMounted ? (shippingCost === 0 ? 'FREE' : formatCurrency(shippingCost)) : 'Calculating...'}
                          </span>
                      </div>
                      <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
                          <span>Total</span>
-                         <span>{formatCurrency(totalAmount)}</span>
+                         <span>{isMounted ? formatCurrency(totalAmount) : 'R 0.00'}</span>
                      </div>
                  </div>
             </div>

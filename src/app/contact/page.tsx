@@ -33,7 +33,7 @@ export default function ContactPage() {
               <li className="flex items-start gap-3">
                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0 text-brand-gold"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                  {/* Using address from architecture doc */}
-                <span>Address: 6680 Witrigwend Street, Unit 378, Herendaig Estate, Colonial Ext 20, Centurion 0157, South Africa</span>
+                <span>Address: 6680 Witrugeend Street, 578 Heuwelsig Estates, Cetisdal, Centurion.</span>
               </li>
                <li className="flex items-start gap-3">
                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0 text-brand-gold"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>

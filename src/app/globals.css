@@ -2,83 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optional: Define original CSS Variables here if needed for specific overrides,
-   but prefer using Tailwind theme configuration (tailwind.config.js) */
-/* Define necessary CSS Variables globally */
-:root {
-    /* Keep only the height variables needed for layout padding */
-    --header-height: 75px;
-    --top-banner-height: 35px;
+@layer base {
+  body {
+    @apply bg-white text-text-dark;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-montserrat font-semibold;
+  }
+  /* Add a variable for the header + banner height to use globally */
+  :root {
+    /* Heights */
+    --top-banner-height: 35px; /* Height of the top announcement banner (from Tailwind config) */
+    --header-height: 75px;     /* Height of the main header (from Tailwind config) */
+    --header-and-banner-height: calc(var(--top-banner-height) + var(--header-height)); /* Total height */
 
-    /* Other variables can be defined here if needed */
-    /*
-    --brand-gold: #AF8F53;
-    --brand-black: #000000;
-    --brand-white: #FFFFFF;
-    --background-body: #FFFFFF;
-    --background-light: #f9f9f9;
-    --text-dark: #222222;
-    --text-light: #6c757d;
-    --border-light: #e9ecef;
-    --transition-fast: all 0.2s ease-in-out;
-    --transition-std: all 0.4s ease-in-out;
-    --mobile-menu-transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    */
+    /* Brand Colors as CSS Custom Properties */
+    --color-brand-gold: #AF8F53;
+    --color-brand-black: #000000;
+    --color-brand-white: #FFFFFF;
+    --color-brand-ivory: #F5F5F3;
+    --color-text-dark: #222222;
+    --color-text-light: #6c757d;
+  }
 }
 
-/* Remove default body styles from create-next-app template */
-/* body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-} */
-
-/* Apply base font from layout.tsx */
-body {
-  font-family: var(--font-poppins), sans-serif; /* Use the variable defined in layout.tsx */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium;
+  }
+  .btn-primary {
+    @apply bg-brand-gold text-white hover:bg-brand-gold/90;
+  }
+  .btn-secondary {
+    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+  }
+  .container-custom {
+    @apply w-full max-w-screen-xl mx-auto px-4;
+  }
+  
+  /* Add this for non-homepage content pages */
+  .content-page {
+    @apply mt-[--header-and-banner-height] pt-8;
+  }
 }
 
-/* Add any other global base styles below */
+@layer utilities {
+  .transition-standard {
+    @apply transition-all duration-std;
+  }
 
-@keyframes fade-in-out {
-  0% { opacity: 0; }
-  25% { opacity: 1; }
-  50% { opacity: 1; }
-  75% { opacity: 0; }
-  100% { opacity: 0; }
-}
+  /* Swiper Customizations */
+  .swiper-button-next,
+  .swiper-button-prev {
+    color: var(--color-brand-gold) !important; /* Use important to override Swiper's inline styles if any */
+  }
 
-.animate-fade-in-out {
-  animation: fade-in-out 20s infinite ease-in-out; /* Adjust duration as needed */
-}
+  .swiper-button-next:after, /* Targeting the pseudo-elements for arrow icons */
+  .swiper-button-prev:after {
+    font-size: 2rem !important; /* Optional: Adjust arrow size if needed */
+  }
 
-/* --- Custom Swiper Styles --- */
+  .swiper-pagination-bullet {
+    /* background-color and opacity are now controlled by Swiper CSS variables per component */
+    width: 10px !important;
+    height: 10px !important;
+  }
 
-/* Pagination Bullets */
-.swiper-pagination-bullet {
-  background-color: #BFBFBF; /* Platinum Grey */
-  opacity: 0.6;
+  .swiper-pagination-bullet-active {
+    /* background-color and opacity are now controlled by Swiper CSS variables per component */
+    /* No specific global overrides for active bullet color/opacity needed here */
+  }
 }
-
-.swiper-pagination-bullet-active {
-  background-color: #AF8F53 !important; /* Brand Gold - Force override */
-  opacity: 1;
-}
-
-/* Navigation Arrows */
-.swiper-button-prev,
-.swiper-button-next {
-  color: #AF8F53 !important; /* Brand Gold - Force override */
-}
-.swiper-button-prev:hover,
-.swiper-button-next:hover {
-  opacity: 0.8;
-}
-.swiper-button-prev::after,
-.swiper-button-next::after {
- font-size: 1.5rem !important; /* Adjust size */
-}
-
-/* Removed duplicated arrow size style block */

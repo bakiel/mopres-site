@@ -1,14 +1,13 @@
-'use client'; // Needs client-side interaction for form and URL hash reading
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
- import SectionTitle from '@/components/SectionTitle';
- import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
- // Removed unused toast import
+import SectionTitle from '@/components/SectionTitle';
+import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
 
- export default function ResetPasswordPage() {
+export default function ResetPasswordPage() {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const [password, setPassword] = useState('');
@@ -26,8 +25,6 @@ import Button from '@/components/Button';
     const hash = window.location.hash;
     if (hash.includes('type=recovery')) {
         setTokenValid(true);
-        // Supabase client automatically handles the session from the hash when initialized
-        // We might want to verify the session state here if needed, but often just showing the form is enough.
         console.log("Password recovery flow detected.");
     } else {
         console.warn("No password recovery token found in URL hash.");
@@ -74,7 +71,7 @@ import Button from '@/components/Button';
         // Redirect to login after a short delay
          setTimeout(() => router.push('/account/login'), 3000);
        }
-     } catch (catchError) { // Explicitly type error later if needed, or use unknown
+    } catch (catchError) {
        const errorMessage = catchError instanceof Error ? catchError.message : 'An unknown error occurred';
        console.error("Unexpected error during password update:", catchError);
        setError(`An unexpected error occurred: ${errorMessage}`);
@@ -87,6 +84,9 @@ import Button from '@/components/Button';
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-md mx-auto px-4">
         <SectionTitle centered>Set New Password</SectionTitle>
+        <p className="text-center text-text-light mb-6 font-poppins">
+          Create your new MoPres account password below.
+        </p>
 
         {tokenValid === null && <p className="text-center text-text-light">Verifying link...</p>}
 
@@ -113,8 +113,8 @@ import Button from '@/components/Button';
                 <span className="block sm:inline">{message}</span>
                 </div>
             )}
-            {!message && ( // Only show form if success message isn't displayed
-                (<>
+            {!message && (
+                <>
                   <div>
                       <label htmlFor="password" className="block mb-2 font-medium text-sm text-text-dark">
                       New Password
@@ -157,7 +157,7 @@ import Button from '@/components/Button';
                       {loading ? 'Updating...' : 'Update Password'}
                       </Button>
                   </div>
-                </>)
+                </>
             )}
             {message && (
                  <p className="mt-8 text-center text-sm text-text-light font-poppins">

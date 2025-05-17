@@ -141,7 +141,11 @@ const CollectionProductList: React.FC<CollectionProductListProps> = ({
             <div className="flex justify-center items-center space-x-4 mt-12">
               <Link
                 // Construct href preserving existing search params, only changing page
-                href={`${basePath}?${new URLSearchParams(currentSearchParams ? currentSearchParams.replace(/^\?/, '') : '').toString()}&page=${currentPage - 1}`}
+                href={(() => {
+                  const params = new URLSearchParams(currentSearchParams ? currentSearchParams.replace(/^\?/, '') : '');
+                  params.set('page', (currentPage - 1).toString());
+                  return `${basePath}?${params.toString()}`;
+                })()}
                 className={`px-4 py-2 border rounded ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed bg-gray-100' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-black'}`}
                 aria-disabled={currentPage === 1}
                 tabIndex={currentPage === 1 ? -1 : undefined}
@@ -153,7 +157,11 @@ const CollectionProductList: React.FC<CollectionProductListProps> = ({
               </span>
               <Link
                  // Construct href preserving existing search params, only changing page
-                href={`${basePath}?${new URLSearchParams(currentSearchParams ? currentSearchParams.replace(/^\?/, '') : '').toString()}&page=${currentPage + 1}`}
+                href={(() => {
+                  const params = new URLSearchParams(currentSearchParams ? currentSearchParams.replace(/^\?/, '') : '');
+                  params.set('page', (currentPage + 1).toString());
+                  return `${basePath}?${params.toString()}`;
+                })()}
                 className={`px-4 py-2 border rounded ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed bg-gray-100' : 'text-brand-gold border-brand-gold hover:bg-brand-gold hover:text-black'}`}
                 aria-disabled={currentPage === totalPages}
                 tabIndex={currentPage === totalPages ? -1 : undefined}

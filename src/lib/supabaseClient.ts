@@ -17,6 +17,17 @@ if (!supabaseAnonKey) {
 // Function to create a Supabase client instance for browser components.
 // Call this within client components or useEffect hooks.
 export function createSupabaseBrowserClient(): SupabaseClient {
+  // Log the values being used for client creation
+  console.log('[SupabaseClient] Creating browser client with URL:', supabaseUrl);
+  // Avoid logging the full key in production, but okay for local debugging if needed.
+  // Consider logging only a portion or its presence for security.
+  console.log('[SupabaseClient] Using Anon Key (presence check):', !!supabaseAnonKey);
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[SupabaseClient] CRITICAL: Supabase URL or Anon Key is missing when creating browser client!');
+    // Optionally throw an error here if preferred, though logging might be sufficient for diagnosis
+  }
+
   return createBrowserClient(supabaseUrl!, supabaseAnonKey!);
 }
 
@@ -33,10 +44,10 @@ export function createSupabaseServerClient(cookieStore: any): SupabaseClient { /
     supabaseAnonKey!,
     {
       cookies: {
-        // Make get async as required by Next.js App Router
-        get: async (name: string) => {
-          // Use await for async operation
-          const cookie = await cookieStore.get(name);
+        // Get should be synchronous as per Supabase SSR docs pattern for Next.js App Router
+        get(name: string) {
+          // No await needed for synchronous access
+          const cookie = cookieStore.get(name);
           return cookie?.value;
         },
         // Keep set/remove async as they perform actions

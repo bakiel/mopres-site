@@ -57,7 +57,7 @@ export default function CartPage() {
                    <Link
                      href={`/shop/products/${item.slug}`}
                      className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 block relative overflow-hidden rounded border border-border-light"
-                     legacyBehavior> {/* Added relative */}
+                   > {/* Removed legacyBehavior */}
                     <Image // Use next/image
                       src={getProductImageUrl(supabase, item.image)} // Pass supabase instance
                       alt={item.name}
@@ -69,7 +69,7 @@ export default function CartPage() {
                   </Link>
                   {/* Details */}
                   <div className="flex-grow text-center md:text-left">
-                    <Link href={`/shop/products/${item.slug}`} legacyBehavior>
+                    <Link href={`/shop/products/${item.slug}`}>
                       <h3 className="font-semibold text-lg hover:text-brand-gold transition-colors">{item.name}</h3>
                     </Link>
                     {item.size && <p className="text-sm text-text-light mt-1 font-poppins">Size: {item.size}</p>} {/* Added font-poppins */}

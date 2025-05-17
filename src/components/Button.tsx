@@ -21,9 +21,9 @@ const Button: React.FC<ButtonProps> = ({ href, children, variant = 'primary', ty
 
   // Variant styles mapping to Tailwind colors defined in config - kept from previous state
   const variantStyles: Record<ButtonVariant, string> = {
-    primary: "bg-brand-gold text-black border-brand-gold hover:bg-[#9a7d4a] hover:border-[#9a7d4a]", // Adjusted hover based on user feedback example
-    secondary: "bg-white/10 text-white border border-white/20 rounded hover:bg-white/15", // Adjusted based on user feedback example
-    'outline-light': "bg-transparent text-white border-white/80 hover:bg-white hover:text-brand-black hover:border-white", // Kept from previous state
+    primary: "bg-brand-gold text-black border-brand-gold hover:bg-[#9a7d4a] hover:border-[#9a7d4a]",
+    secondary: "bg-white/10 text-black border border-white/20 rounded hover:bg-white/15", // Changed text-white to text-text-dark
+    'outline-light': "bg-transparent text-white border-white/80 hover:bg-white hover:text-black hover:border-white", // Changed default text to white
   };
 
   const buttonClasses = `${baseStyles} ${variantStyles[variant]} ${className}`;

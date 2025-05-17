@@ -1,11 +1,10 @@
-'use client'; // Needs client-side interaction
+'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
-// Removed unused toast import
 
 export default function ForgotPasswordPage() {
   const supabase = createSupabaseBrowserClient();
@@ -30,13 +29,13 @@ export default function ForgotPasswordPage() {
         console.error("Password reset request error:", resetError);
         setError("Failed to send password reset email. Please check the email address and try again.");
       } else {
-        setMessage("Password reset email sent! Please check your inbox (and spam folder) for instructions.");
-         setEmail(''); // Clear email field on success
-       }
-     } catch (catchError) { // Explicitly type error later if needed, or use unknown
-       const errorMessage = catchError instanceof Error ? catchError.message : 'An unknown error occurred';
-       console.error("Unexpected error during password reset request:", catchError);
-       setError(`An unexpected error occurred: ${errorMessage}`);
+        setMessage("Password reset email sent from MoPres! Please check your inbox (and spam folder) for instructions.");
+        setEmail(''); // Clear email field on success
+      }
+    } catch (catchError) {
+      const errorMessage = catchError instanceof Error ? catchError.message : 'An unknown error occurred';
+      console.error("Unexpected error during password reset request:", catchError);
+      setError(`An unexpected error occurred: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -45,10 +44,10 @@ export default function ForgotPasswordPage() {
   return (
     <div className="bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-md mx-auto px-4">
-       <SectionTitle centered>Reset Your Password</SectionTitle>
-         <p className="text-center text-text-light mb-8 font-poppins">
-           Enter your email address below, and we'll send you a link to reset your password. {/* Escaped apostrophe */}
-         </p>
+        <SectionTitle centered>Reset Your Password</SectionTitle>
+        <p className="text-center text-text-light mb-8 font-poppins">
+          Enter your email address below, and we'll send you a link to reset your password.
+        </p>
 
         <form onSubmit={handlePasswordResetRequest} className="mt-8 space-y-6 font-poppins">
           {error && (
@@ -61,8 +60,8 @@ export default function ForgotPasswordPage() {
               <span className="block sm:inline">{message}</span>
             </div>
           )}
-          {!message && ( // Only show form if message isn't displayed
-            (<>
+          {!message && (
+            <>
               <div>
                 <label htmlFor="email" className="block mb-2 font-medium text-sm text-text-dark">
                   Email Address
@@ -89,7 +88,7 @@ export default function ForgotPasswordPage() {
                   {loading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
               </div>
-            </>)
+            </>
           )}
         </form>
 

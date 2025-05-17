@@ -58,7 +58,7 @@ const HeroBanner: React.FC = () => {
   // Removed featuredProducts prop, using static bannerSlides now
 
   return (
-    <section className="relative w-full h-[70vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-brand-black"> {/* Adjusted height and bg */}
+    <section className="relative z-0 w-full h-[70vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-brand-black"> {/* Adjusted height and bg, added z-0 */}
       <Swiper
         modules={[Navigation, Pagination, Autoplay]}
         spaceBetween={0} // No space between slides
@@ -70,6 +70,12 @@ const HeroBanner: React.FC = () => {
           delay: 5000, // Autoplay delay 5 seconds
           disableOnInteraction: false, // Autoplay continues after user interaction
         }}
+        style={{
+          '--swiper-navigation-color': 'var(--color-brand-gold)',
+          '--swiper-pagination-color': 'var(--color-brand-gold)', // Active bullet color
+          '--swiper-pagination-bullet-inactive-color': 'var(--color-brand-white)', // Inactive bullet color
+          '--swiper-pagination-bullet-inactive-opacity': '0.7', // Inactive bullet opacity
+        } as React.CSSProperties}
         className="h-full"
       >
         {bannerSlides.map((slide, index) => (

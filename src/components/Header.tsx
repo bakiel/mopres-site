@@ -114,21 +114,21 @@ const Header: FC = () => {
                   width={160} // Set explicit width
                   height={40} // Set explicit height based on original aspect ratio (assuming 160x40)
                   priority // Mark as priority as it's likely LCP
-                  // Removed Tailwind size classes, relying on width/height props
-                />
+                   // Removed Tailwind size classes, relying on width/height props
+                 />
               </Link>
             </div>
 
             {/* Desktop Navigation Menu */}
             <ul className="hidden lg:flex gap-x-6 xl:gap-x-10 items-center mx-auto flex-nowrap">
               <li className="relative group">
-                 {/* Standard Link: no legacyBehavior, single child span, props on Link */}
+                {/* Standard Link: no legacyBehavior, single child span, props on Link */}
                 <Link
                   href="/shop"
                   className="text-white/85 font-normal text-[0.85rem] uppercase tracking-wider relative pb-2 transition-colors duration-200 hover:text-white whitespace-nowrap flex items-center group-hover:text-white after:content-[''] after:absolute after:w-0 after:h-[1px] after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:bg-brand-gold after:transition-all after:duration-300 after:ease-in-out group-hover:after:w-full">
                   <span className="flex items-center"> {/* Single child wrapper */}
                     Shop
-                    <span className="ml-1.5 text-xs transition-transform duration-300 group-hover:rotate-180">▼</span>
+                     <span className="ml-1.5 text-xs transition-transform duration-300 group-hover:rotate-180">▾</span>
                   </span>
                 </Link>
                 <ul className="absolute top-full left-0 mt-1 bg-brand-black min-w-[230px] py-3 border-t-2 border-brand-gold shadow-lg rounded-b-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-in-out z-[1001]">
@@ -147,13 +147,13 @@ const Header: FC = () => {
               <li><Link href="/about" className="text-white/85 font-normal text-[0.85rem] uppercase tracking-wider relative pb-2 transition-colors duration-200 hover:text-white whitespace-nowrap after:content-[''] after:absolute after:w-0 after:h-[1px] after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:bg-brand-gold after:transition-all after:duration-300 after:ease-in-out hover:after:w-full">About</Link></li>
               <li><Link href="/contact" className="text-white/85 font-normal text-[0.85rem] uppercase tracking-wider relative pb-2 transition-colors duration-200 hover:text-white whitespace-nowrap after:content-[''] after:absolute after:w-0 after:h-[1px] after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:bg-brand-gold after:transition-all after:duration-300 after:ease-in-out hover:after:w-full">Contact</Link></li>
               <li className="relative group">
-                 {/* Standard Link: no legacyBehavior, single child span, props on Link */}
+                {/* Standard Link: no legacyBehavior, single child span, props on Link */}
                 <Link
                   href="/account"
                   className="text-white/85 font-normal text-[0.85rem] uppercase tracking-wider relative pb-2 transition-colors duration-200 hover:text-white whitespace-nowrap flex items-center group-hover:text-white after:content-[''] after:absolute after:w-0 after:h-[1px] after:bottom-0 after:left-1/2 after:transform after:-translate-x-1/2 after:bg-brand-gold after:transition-all after:duration-300 after:ease-in-out group-hover:after:w-full">
                   <span className="flex items-center"> {/* Single child wrapper */}
                     Account
-                    <span className="ml-1.5 text-xs transition-transform duration-300 group-hover:rotate-180">▼</span>
+                     <span className="ml-1.5 text-xs transition-transform duration-300 group-hover:rotate-180">▾</span>
                   </span>
                 </Link>
                 <ul className="absolute top-full left-0 mt-1 bg-brand-black min-w-[230px] py-3 border-t-2 border-brand-gold shadow-lg rounded-b-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-in-out z-[1001]">
@@ -169,7 +169,7 @@ const Header: FC = () => {
             {/* Navigation Icons & Search */}
             <div className="hidden lg:flex gap-7 items-center flex-shrink-0">
               <PredictiveSearch />
-               {/* Standard Link: no legacyBehavior, single child icon, props on Link */}
+              {/* Standard Link: no legacyBehavior, single child icon, props on Link */}
               <Link
                 href="/account"
                 aria-label="My Account"
@@ -204,7 +204,7 @@ const Header: FC = () => {
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
-              ) : (
+                ) : (
                 <MenuIcon />
               )}
             </button>
@@ -221,7 +221,7 @@ const Header: FC = () => {
               onClick={() => {
                 setIsShopDropdownOpen(!isShopDropdownOpen);
                 setIsAccountDropdownOpen(false);
-              }}
+               }}
             >
               {isShopDropdownOpen ? '−' : '+'}
             </button>
@@ -273,10 +273,10 @@ const Header: FC = () => {
               Cart
               {/* Render badge only after mount and if items > 0 */}
               {clientCartItems > 0 && (
-                  <span className="absolute top-1/2 right-4 transform -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-gold text-xs font-bold text-black">
-                    {clientCartItems}
-                  </span>
-                )}
+                <span className="absolute top-1/2 right-4 transform -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-gold text-xs font-bold text-black">
+                  {clientCartItems}
+                </span>
+              )}
             </button>
           </div>
         </div>

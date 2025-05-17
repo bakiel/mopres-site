@@ -110,7 +110,25 @@ const AddressForm: React.FC<AddressFormProps> = ({
         </div>
         <div>
           <label htmlFor="province" className="block text-sm font-medium text-gray-700 mb-1">Province</label>
-          <input type="text" id="province" name="province" value={formData.province} onChange={handleInputChange} required className="w-full p-2 border border-border-light rounded focus:border-brand-gold focus:outline-none focus:ring-1 focus:ring-brand-gold" />
+          <select
+            id="province"
+            name="province"
+            value={formData.province}
+            onChange={handleInputChange}
+            required
+            className="w-full p-2 border border-border-light rounded bg-white focus:border-brand-gold focus:outline-none focus:ring-1 focus:ring-brand-gold"
+          >
+            <option value="" disabled>Select Province...</option>
+            <option value="Eastern Cape">Eastern Cape</option>
+            <option value="Free State">Free State</option>
+            <option value="Gauteng">Gauteng</option>
+            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+            <option value="Limpopo">Limpopo</option>
+            <option value="Mpumalanga">Mpumalanga</option>
+            <option value="North West">North West</option>
+            <option value="Northern Cape">Northern Cape</option>
+            <option value="Western Cape">Western Cape</option>
+          </select>
         </div>
         <div>
           <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>

@@ -1,26 +1,41 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-// No need for 'next/headers' cookies here
 
 export async function middleware(request: NextRequest) {
-  // Initialize response object - This is crucial for setting cookies
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
-  // Create Supabase client using the request/response pattern for middleware
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // Handle missing env vars, maybe log or return an error response
+    console.error('Supabase URL or Anon Key is missing in middleware.');
+    return response; // Or an error response
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Set cookie on the response object
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
           response.cookies.set({
             name,
             value,
@@ -28,7 +43,16 @@ export async function middleware(request: NextRequest) {
           });
         },
         remove(name: string, options: CookieOptions) {
-          // Set cookie on the response object to remove it
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
           response.cookies.set({
             name,
             value: '',
@@ -39,67 +63,30 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Get session (refresh is handled implicitly by getSession with ssr client)
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Refresh session if expired - important for Server Components
+  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
+  await supabase.auth.getSession();
 
-  const { pathname } = request.nextUrl;
+  // Add CORS headers if needed (keeping your original logic, but ensure it doesn't conflict)
+  const origin = request.headers.get('origin') || '*';
+  response.headers.set('Access-Control-Allow-Origin', origin);
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Info, apikey, Range'); // Added Range for storage
+  response.headers.set('Access-Control-Max-Age', '86400');
 
-  // Define protected routes
-  const protectedRoutes = ['/account', '/checkout/delivery', '/checkout/payment']; // Add '/account/orders', '/account/wishlist' etc. if needed directly
-  const accountSubRoutes = /^\/account\/.+/; // Matches /account/orders, /account/wishlist etc. but not /account/login or /account/register
-
-  const isProtectedRoute =
-       protectedRoutes.includes(pathname) ||
-       (pathname.startsWith('/account') &&
-        !pathname.startsWith('/account/login') &&
-        !pathname.startsWith('/account/register') &&
-        !pathname.startsWith('/account/forgot-password') && // Exclude forgot password
-        !pathname.startsWith('/account/reset-password')); // Exclude reset password
-
-
-  // If trying to access a protected route without a session, redirect to login
-  if (isProtectedRoute && !session) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/account/login';
-    // Optional: Add a 'redirectedFrom' query param
-    // redirectUrl.searchParams.set('redirectedFrom', pathname);
-    console.log(`Redirecting unauthenticated user from ${pathname} to /account/login`);
-     return NextResponse.redirect(redirectUrl);
-   }
-
-   // If user is logged in and tries to access login/register, redirect to account dashboard
-   // Restore this block
-   if (session && (pathname === '/account/login' || pathname === '/account/register')) {
-       const redirectUrl = request.nextUrl.clone();
-       redirectUrl.pathname = '/account';
-       console.log(`Redirecting authenticated user from ${pathname} to /account`);
-       return NextResponse.redirect(redirectUrl);
-   }
-
-   // Refresh session if expired - handled by supabase client library with ssr package
-
-  // Return the potentially modified response object
   return response;
 }
 
-// Configure middleware matcher
+// Apply middleware to all routes
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - images/ (assuming your public images folder) - Adjust if needed
-     * - *.png, *.jpg, *.jpeg, *.gif, *.svg etc (image extensions)
+     * Feel free to modify this pattern to include more paths.
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|images|.*\\.(?:png|jpg|jpeg|gif|svg)$).*)',
-    // Explicitly include paths to protect if needed, but the above should cover most app routes
-     '/account/:path*',
-     '/checkout/delivery',
-     '/checkout/payment',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
-import HeroBanner from '@/components/HeroBanner';
-import TestimonialCarousel from '@/components/TestimonialCarousel'; // Import the TestimonialCarousel
+import HeroBanner from '@/components/HeroBanner'; // Import the restored HeroBanner
+import DynamicTestimonialCarousel from '@/components/DynamicTestimonialCarousel';
 
 // Define a type for the product data (adjust based on actual schema)
 type Product = {
@@ -60,16 +60,12 @@ export default async function Home() {
   } catch (error: any) {
     console.error("Error fetching featured products for banner:", error);
     fetchError = "Could not fetch hero banner products.";
-    // In a real app, you might want to log this error to a monitoring service
   }
 
   // Define fallback image path (can be removed if getImageUrl handles it)
   const fallbackImagePath = '/Mopres_Gold_luxury_lifestyle_logo.png';
 
-
-
   // Fetch products for the "Featured Designs" section (needs price)
-  // Note: This is a separate fetch, could be combined if performance allows
   let featuredDesigns: Product[] = [];
   let featuredDesignsError: string | null = null;
   try {
@@ -132,7 +128,8 @@ export default async function Home() {
   return (
     <>
       {/* --- Hero Banner Section --- */}
-      <HeroBanner /> {/* Remove featuredProducts prop */}
+      <HeroBanner />
+      
       {/* --- Featured Products Section --- */}
       <section id="featured" className="featured bg-background-light py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">
@@ -286,7 +283,7 @@ export default async function Home() {
         </div>
       </section>
       {/* --- Testimonial Section --- */}
-      <TestimonialCarousel />
+      <DynamicTestimonialCarousel /> {/* Use the new wrapper component */}
       {/* --- Contact Section --- */}
       <section id="contact" className="contact bg-background-light py-16 lg:py-24">
         <div className="w-full max-w-screen-xl mx-auto px-4">

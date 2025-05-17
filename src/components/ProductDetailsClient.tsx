@@ -13,6 +13,7 @@ import type { User } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 import SizeGuidePopup from './SizeGuidePopup';
 import { usePathname } from 'next/navigation'; // Import usePathname
+import { FaFacebookF, FaTwitter, FaWhatsapp, FaEnvelope } from 'react-icons/fa'; // Import react-icons
 
 // --- Types (Should match types in the parent Server Component) ---
 type ProductDetail = {
@@ -169,8 +170,17 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
         toast.success(`${product.name} added to wishlist.`);
       }
     } catch (error: any) {
-      console.error("Error updating wishlist:", error);
-      toast.error(`Failed to update wishlist: ${error.message}`);
+      // Check for unique constraint violation specifically during an ADD attempt
+      if (error.code === '23505' && !isInWishlist) {
+        console.warn("Wishlist add failed due to existing item (state corrected):", error.message);
+        // Correct the state since the item already exists
+        setIsInWishlist(true);
+        toast.success(`${product.name} is already in your wishlist.`); // Inform user
+      } else {
+        // Handle other errors or delete errors
+        console.error("Error updating wishlist:", error); // Log the original error object for other cases
+        toast.error(`Failed to update wishlist: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setWishlistLoading(false);
     }
@@ -445,11 +455,12 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
         {/* Show wishlist button only if client-side loading is done */}
         {!clientLoading && user && (
           <Button
-            variant="outline-light"
-            className="mt-4 w-full lg:w-auto border-gray-300 text-text-dark hover:bg-gray-100 font-poppins"
+            variant="secondary" // Keep secondary variant, but override styles below
+            className="mt-4 w-full lg:w-auto font-poppins flex items-center justify-center gap-2 !bg-gray-200 !border-gray-400 !text-black hover:!bg-gray-300" // Force visible styles with !important prefix equivalent
             onClick={handleWishlistToggle}
             disabled={wishlistLoading}
           >
+            {/* Restore original text with emojis */}
             {wishlistLoading
               ? (isInWishlist ? 'Removing...' : 'Adding...')
               : (isInWishlist ? '❤️ Remove from Wishlist' : '🤍 Add to Wishlist')
@@ -457,9 +468,9 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
           </Button>
         )}
          {/* Show placeholder or login prompt if client loading or no user */}
-         {clientLoading && <div className="mt-4 h-10 w-full lg:w-auto bg-gray-200 rounded animate-pulse"></div>}
+         {clientLoading && <div className="mt-4 h-10 w-full lg:w-auto bg-gray-200 rounded animate-pulse"></div>} {/* Restore loading state */}
          {!clientLoading && !user && (
-             <p className="mt-4 text-sm text-text-light font-poppins">
+             <p className="mt-4 text-sm text-text-light font-poppins"> {/* Revert login prompt styles */}
                  <Link href="/account/login" className="text-brand-gold hover:underline">Login</Link> to add to wishlist.
              </p>
          )}
@@ -476,7 +487,7 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
               className="text-gray-500 hover:text-blue-600 transition-colors"
               aria-label="Share on Facebook"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+              <FaFacebookF className="w-5 h-5" /> {/* Use React Icon */}
             </a>
             {/* Twitter */}
             <a
@@ -486,7 +497,7 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
               className="text-gray-500 hover:text-sky-500 transition-colors"
               aria-label="Share on Twitter"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path></svg>
+              <FaTwitter className="w-5 h-5" /> {/* Use React Icon */}
             </a>
             {/* WhatsApp */}
             <a
@@ -496,7 +507,7 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
               className="text-gray-500 hover:text-green-500 transition-colors"
               aria-label="Share on WhatsApp"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zM9.57 17.99c-.19 0-.4-.03-.61-.1l-.44-.25-3.11.82.83-3.04-.28-.47a7.88 7.88 0 01-1.17-4.01c0-4.38 3.53-7.94 7.88-7.94s7.88 3.56 7.88 7.94c0 4.38-3.53 7.94-7.88 7.94-.95 0-1.86-.17-2.7-.49zm4.47-5.81c-.26-.13-1.56-.77-1.8-.86-.24-.09-.42-.13-.59.13-.17.26-.68.86-.84 1.03-.15.17-.3.19-.55.06-.25-.13-1.07-.39-2.04-1.26-.75-.67-1.26-1.5-1.41-1.76-.15-.26-.02-.4.11-.54.12-.12.26-.31.39-.47.13-.16.17-.26.26-.44.09-.18 0-.34-.04-.47-.04-.13-.59-1.42-.81-1.95-.21-.52-.43-.45-.59-.46-.15-.01-.33-.01-.5-.01-.17 0-.45.06-.68.31-.23.26-.88.85-.88 2.07 0 1.22.9 2.4 1.03 2.56.13.17 1.76 2.67 4.27 3.78 2.51 1.11 2.51.74 2.96.71.45-.03 1.56-.64 1.78-1.26.22-.62.22-1.15.15-1.26-.07-.12-.26-.19-.5-.31z"></path></svg>
+              <FaWhatsapp className="w-5 h-5" /> {/* Use React Icon */}
             </a>
             {/* Email */}
              <a
@@ -504,7 +515,7 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
               className="text-gray-500 hover:text-gray-700 transition-colors"
               aria-label="Share via Email"
             >
-               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+               <FaEnvelope className="w-5 h-5" /> {/* Use React Icon */}
             </a>
           </div>
         </div>

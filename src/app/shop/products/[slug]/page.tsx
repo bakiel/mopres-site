@@ -38,7 +38,7 @@ type RelatedProduct = {
 // Error component specific to server-side fetching
 const ServerProductError = ({ error, slug }: { error: string, slug?: string }) => {
     return (
-      <div className="bg-background-body py-12 lg:py-20">
+      <div className="content-page bg-background-body py-12 lg:py-20">
         <div className="w-full max-w-screen-xl mx-auto px-4 text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 inline-block">
             <p className="text-red-600 mb-4">Error loading product: {error}</p>
@@ -56,7 +56,7 @@ const ServerProductError = ({ error, slug }: { error: string, slug?: string }) =
 
 // Loading component for Suspense (Optional: Can use loading.tsx instead)
 const ProductLoadingSkeleton = () => (
-    <div className="bg-background-body py-12 lg:py-20 animate-pulse">
+    <div className="content-page bg-background-body py-12 lg:py-20 animate-pulse">
       <div className="w-full max-w-screen-xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
           {/* Image Skeleton */}
@@ -193,7 +193,7 @@ export default async function ProductPage({ params: paramsPromise }: { params: P
 
 
   return (
-    <div className="bg-background-body py-12 lg:py-20">
+    <div className="content-page bg-background-body py-12 lg:py-20">
       <div className="w-full max-w-screen-xl mx-auto px-4">
         {/* Render Client Component with fetched data including formatted prices */}
         <ProductDetailsClient initialProduct={productForClient} />

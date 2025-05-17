@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Mopres Order Confirmation & Payment Instructions</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .header img {
+            max-width: 150px; /* Adjust as needed */
+            height: auto;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .payment-instructions { /* Added style for the new section */
+            margin-top: 25px;
+            padding: 15px;
+            border: 1px solid #eee;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .payment-instructions h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 1.1em;
+        }
+        .payment-instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+        .payment-instructions li {
+            margin-bottom: 8px;
+        }
+        .payment-instructions strong {
+            display: inline-block;
+            min-width: 120px; /* Align labels */
+        }
+        .payment-instructions .important {
+             font-weight: bold;
+             color: #c00; /* Highlight important reference */
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <!-- Optional: Add your logo here -->
+            <!-- <img src="YOUR_LOGO_URL" alt="Mopres Logo"> -->
+            <h1>Thank You for Your Order!</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{CUSTOMER_NAME}},</p>
+            <p>Thank you for shopping with Mopres. Your order reference is {{ORDER_REF}}. We've attached the invoice for your recent order.</p>
+
+            <div class="payment-instructions">
+                <h2>Action Required: Complete Your Payment</h2>
+                <p>Please make an Electronic Funds Transfer (EFT) for the total amount due:</p>
+                <ul>
+                    <li><strong>Total Amount:</strong> {{TOTAL_AMOUNT}}</li>
+                    <li><strong>Bank Name:</strong> FNB</li>
+                    <li><strong>Account Name:</strong> MoPres (Pty) Ltd</li>
+                    <li><strong>Account Number:</strong> 62876543210</li>
+                    <li><strong>Branch Code:</strong> 250655</li>
+                    <li><strong>Payment Reference:</strong> <span class="important">Please use your order reference {{ORDER_REF}}</span></li>
+                </ul>
+                <p>After making the payment, please email your proof of payment to <a href="mailto:payments@mopres.co.za">payments@mopres.co.za</a>.</p>
+            </div>
+
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+            <p>Sincerely,<br>The Mopres Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 Mopres. All rights reserved.</p>
+            <p>Mopres | Your Address | Your Contact Info</p>
+        </div>
+    </div>
+</body>
+</html>

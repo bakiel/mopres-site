@@ -58,13 +58,22 @@ export default function DeliveryPage() {
     e.preventDefault();
     setIsLoading(true);
     // TODO: Validate form data
-    // TODO: Save delivery info (e.g., in localStorage, state management, or backend if creating order draft)
-    console.log('Delivery Info:', formData);
-    // Simulate saving delay
+    // Save delivery info to localStorage before navigating
+    try {
+      console.log('Saving delivery info to localStorage:', formData); // Add log
+      localStorage.setItem('deliveryInfo', JSON.stringify(formData));
+    } catch (error) {
+      console.error("Failed to save delivery info to localStorage:", error);
+      // Optionally handle the error, e.g., show a message to the user
+      setIsLoading(false); // Stop loading if saving fails
+      return; // Prevent navigation if saving fails
+    }
+
+    // Simulate saving delay (can be removed if not needed for UX)
     setTimeout(() => {
       setIsLoading(false);
       router.push('/checkout/payment'); // Navigate to the next step
-    }, 1000);
+    }, 1000); // Keep or adjust delay as needed
   };
 
    const formatCurrency = (amount: number) => {
@@ -136,8 +145,25 @@ export default function DeliveryPage() {
                         </div>
                          <div>
                             <label htmlFor="province" className="block text-sm font-medium text-gray-700 mb-1">Province</label>
-                            {/* Consider making this a dropdown */}
-                            <input type="text" id="province" name="province" value={formData.province} onChange={handleInputChange} required className="w-full p-2 border border-border-light rounded focus:border-brand-gold focus:outline-none focus:ring-1 focus:ring-brand-gold" />
+                            <select
+                                id="province"
+                                name="province"
+                                value={formData.province}
+                                onChange={handleInputChange}
+                                required
+                                className="w-full p-2 border border-border-light rounded bg-white focus:border-brand-gold focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                            >
+                                <option value="" disabled>Select Province...</option>
+                                <option value="Eastern Cape">Eastern Cape</option>
+                                <option value="Free State">Free State</option>
+                                <option value="Gauteng">Gauteng</option>
+                                <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                <option value="Limpopo">Limpopo</option>
+                                <option value="Mpumalanga">Mpumalanga</option>
+                                <option value="North West">North West</option>
+                                <option value="Northern Cape">Northern Cape</option>
+                                <option value="Western Cape">Western Cape</option>
+                            </select>
                         </div>
                          <div>
                             <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
