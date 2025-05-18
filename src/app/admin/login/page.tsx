@@ -15,7 +15,7 @@ import {
   assignAdminRole, 
   checkAutoLoginStatus,
   disableAutoLogin
-} from '@/utils/admin-auth-fix'; // Note the use of our modified auth utilities
+} from '@/utils/admin-auth'; // Import from the correct module
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('admin@mopres.co.za');
