@@ -6,29 +6,6 @@ export async function middleware(request: NextRequest) {
   // Enhanced logging for all paths
   console.log(`⚪ [${new Date().toISOString()}] Middleware executing for path:`, request.nextUrl.pathname);
   
-  // CRITICAL FIX: Completely bypass authentication for admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Enhanced logging with more details for admin access
-    const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
-    const userAgent = request.headers.get('user-agent') || 'unknown';
-    const referrer = request.headers.get('referer') || 'none';
-    
-    console.log(`🔐 [${new Date().toISOString()}] ADMIN ACCESS: ${request.method} ${request.nextUrl.pathname}`);
-    console.log(`👤 Admin access details: IP: ${clientIp} | Referrer: ${referrer}`);
-    console.log(`🌐 User-Agent: ${userAgent}`);
-    
-    // Create a response that allows the request to proceed
-    const response = NextResponse.next();
-    
-    // Add admin headers to simulate authenticated admin user
-    response.headers.set('X-Admin-Override', 'true');
-    response.headers.set('X-Admin-Role', 'admin');
-    response.headers.set('X-Admin-Access-Time', new Date().toISOString());
-    
-    return response;
-  }
-  
-  // For all non-admin routes, proceed normally
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -89,6 +66,41 @@ export async function middleware(request: NextRequest) {
       },
     }
   );
+
+  // Check if the request is for an admin route
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    // Skip auth check for admin login page
+    if (request.nextUrl.pathname === '/admin/login') {
+      return response;
+    }
+    
+    // For all other admin routes, verify the user is authenticated and has admin role
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // If no session, redirect to admin login
+      if (!session) {
+        console.log('🔒 [Admin] No session found, redirecting to admin login');
+        return NextResponse.redirect(new URL('/admin/login', request.url));
+      }
+      
+      // Check user's admin status - assuming there's a user_metadata.role field or similar
+      const { data: userData } = await supabase.auth.getUser();
+      const userRole = userData?.user?.user_metadata?.role;
+      
+      if (userRole !== ADMIN_ROLE) {
+        console.log(`⛔ [Admin] User does not have admin role (${userRole}), redirecting to login`);
+        // Sign the user out and redirect to login
+        await supabase.auth.signOut();
+        return NextResponse.redirect(new URL('/admin/login', request.url));
+      }
+      
+      console.log(`✅ [Admin] Verified admin access: ${userData?.user?.email}`);
+    } catch (error) {
+      console.error('❌ [Admin] Error checking session:', error);
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+  }
 
   // Add CORS headers
   const origin = request.headers.get('origin') || '*';

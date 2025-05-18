@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import { handleAuthError } from '@/lib/auth-utils';
 
 export default function ForgotPasswordPage() {
   const supabase = createSupabaseBrowserClient();
@@ -13,11 +14,23 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    // Log the environment variables as seen by the client
+    console.log("ForgotPasswordPage: NEXT_PUBLIC_SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("ForgotPasswordPage: NEXT_PUBLIC_SUPABASE_ANON_KEY:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
   const handlePasswordResetRequest = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
+
+    if (!email || !email.includes('@')) {
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -27,7 +40,7 @@ export default function ForgotPasswordPage() {
 
       if (resetError) {
         console.error("Password reset request error:", resetError);
-        setError("Failed to send password reset email. Please check the email address and try again.");
+        setError(handleAuthError(resetError));
       } else {
         setMessage("Password reset email sent from MoPres! Please check your inbox (and spam folder) for instructions.");
         setEmail(''); // Clear email field on success

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import { handleAuthError, validatePassword } from '@/lib/auth-utils';
 
 export default function ResetPasswordPage() {
   const supabase = createSupabaseBrowserClient();
@@ -47,15 +48,12 @@ export default function ResetPasswordPage() {
     setError(null);
     setMessage(null);
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    // Validate password using utility function
+    const passwordValidation = validatePassword(password, confirmPassword);
+    if (passwordValidation !== true) {
+      setError(passwordValidation);
       setLoading(false);
       return;
-    }
-    if (password.length < 6) {
-        setError("Password must be at least 6 characters long.");
-        setLoading(false);
-        return;
     }
 
     try {
@@ -66,12 +64,7 @@ export default function ResetPasswordPage() {
 
       if (updateError) {
         console.error("Password update error:", updateError);
-        // Handle specific errors like expired token if possible
-        if (updateError.message.includes("invalid") || updateError.message.includes("expired")) {
-             setError("Password reset link is invalid or has expired. Please request a new one.");
-        } else {
-            setError("Failed to update password. Please try again.");
-        }
+        setError(handleAuthError(updateError));
       } else {
         setMessage("Password updated successfully! You can now log in with your new password.");
         setPassword(''); // Clear fields

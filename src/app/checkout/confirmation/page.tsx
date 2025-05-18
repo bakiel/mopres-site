@@ -378,7 +378,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
       
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-border-light">
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="inline-block bg-green-100 p-3 rounded-full mb-4">
               <svg className="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -387,6 +387,45 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
             <h1 className="text-3xl font-semibold mb-2 font-poppins">Order Confirmed!</h1>
             <p className="text-text-light">Thank you for your purchase</p>
           </div>
+          
+          {/* Action Buttons moved to top for better UX */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-4">
+            <button
+              onClick={handleDownloadInvoice}
+              disabled={pdfLoading}
+              className="px-6 py-3 bg-brand-gold text-white rounded-md font-medium hover:bg-brand-gold-dark transition-colors flex items-center justify-center disabled:opacity-70"
+            >
+              {pdfLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating PDF...
+                </>
+              ) : (
+                'Download Invoice (PDF)'
+              )}
+            </button>
+            <button
+              onClick={handleSendConfirmationEmail}
+              disabled={emailLoading}
+              className="px-6 py-3 bg-gray-700 text-white rounded-md font-medium hover:bg-gray-800 transition-colors flex items-center justify-center disabled:opacity-70"
+            >
+              {emailLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sending Email...
+                </>
+              ) : (
+                'Resend Confirmation Email'
+              )}
+            </button>
+          </div>
+          
+          {/* Visual separator */}
+          <div className="border-t border-gray-200 mb-8"></div>
           
           <div className="bg-background-light p-6 rounded-md mb-8">
             <div className="flex justify-between items-center mb-4">
@@ -477,7 +516,9 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
                 <div className="flex items-center">
                   {item.products?.images?.[0] && (
                     <img 
-                      src={item.products.images[0]} 
+                      src={item.products.images[0].startsWith('http') 
+                        ? item.products.images[0] 
+                        : supabase.storage.from('product-images').getPublicUrl(item.products.images[0]).data.publicUrl} 
                       alt={item.products.name} 
                       className="w-16 h-16 object-cover rounded-md mr-4"
                     />
@@ -535,41 +576,6 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
               If you have any questions, please contact our support team.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <button
-                onClick={handleDownloadInvoice}
-                disabled={pdfLoading}
-                className="px-6 py-3 bg-brand-gold text-white rounded-md font-medium hover:bg-brand-gold-dark transition-colors flex items-center justify-center disabled:opacity-70"
-              >
-                {pdfLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating PDF...
-                  </>
-                ) : (
-                  'Download Invoice (PDF)'
-                )}
-              </button>
-              <button
-                onClick={handleSendConfirmationEmail}
-                disabled={emailLoading}
-                className="px-6 py-3 bg-gray-700 text-white rounded-md font-medium hover:bg-gray-800 transition-colors flex items-center justify-center disabled:opacity-70"
-              >
-                {emailLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Sending Email...
-                  </>
-                ) : (
-                  'Resend Confirmation Email'
-                )}
-              </button>
-            </div>
-            
             <Link 
               href="/shop"
               className="inline-block px-8 py-3 border border-brand-gold text-brand-gold rounded-md font-medium hover:bg-brand-gold hover:text-white transition-colors"
@@ -604,7 +610,7 @@ function ConfirmationPageFallback() {
 // New wrapper component to call useSearchParams inside Suspense
 function ConfirmationPageClientWrapper() {
   const searchParams = useSearchParams();
-  const orderRef = searchParams ? searchParams.get('order_ref') : null; // Using 'order_ref' as per build log
+  const orderRef = searchParams ? searchParams.get('orderRef') : null; // Changed to 'orderRef' to match payment page
   return <ConfirmationPageContent orderRef={orderRef} />;
 }
 

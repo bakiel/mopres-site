@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import { handleAuthError, validatePassword } from '@/lib/auth-utils';
 
 export default function RegisterPage() {
   // Create the client instance inside the component
@@ -22,16 +23,12 @@ export default function RegisterPage() {
     setError(null);
     setMessage(null);
 
-    // Basic validation
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    // Validate password using utility function
+    const passwordValidation = validatePassword(password, confirmPassword);
+    if (passwordValidation !== true) {
+      setError(passwordValidation);
       setLoading(false);
       return;
-    }
-    if (password.length < 6) {
-        setError("Password must be at least 6 characters long.");
-        setLoading(false);
-        return;
     }
 
     try {
@@ -39,19 +36,14 @@ export default function RegisterPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email,
         password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/account/login`
+        }
       });
 
       if (signUpError) {
         console.error("Registration error:", signUpError);
-        // Handle specific errors
-        if (signUpError.message.includes("User already registered")) {
-            setError("An account with this email already exists. Please login or use a different email.");
-        } else if (signUpError.message.includes("Password should be at least 6 characters")) {
-             setError("Password must be at least 6 characters long.");
-        }
-        else {
-            setError("Registration failed. Please try again later.");
-        }
+        setError(handleAuthError(signUpError));
         setLoading(false);
         return;
       }

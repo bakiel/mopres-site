@@ -66,7 +66,11 @@ const CartSidebar: React.FC = () => {
         const collectionIds = Array.from(new Set(items.map(item => item.collection_id).filter(Boolean) as string[])); // Convert Set to Array and assert type
         const productIdsInCart = items.map(item => item.productId);
 
+        console.log("fetchCrossSell: collectionIds:", collectionIds);
+        console.log("fetchCrossSell: productIdsInCart:", productIdsInCart);
+
         if (collectionIds.length > 0) {
+          console.log("fetchCrossSell: Querying Supabase for cross-sell products...");
           const { data, error } = await supabase
             .from('products')
             .select('id, name, slug, price, images, collection_id, sku') // Select needed fields
@@ -74,7 +78,10 @@ const CartSidebar: React.FC = () => {
             .not('id', 'in', `(${productIdsInCart.join(',')})`) // Exclude items already in cart
             .limit(3); // Limit recommendations
 
-          if (error) throw error;
+          if (error) {
+            console.error("fetchCrossSell: Supabase query error object:", JSON.stringify(error, null, 2));
+            throw error;
+          }
 
           // Map data to CartItem structure (or a simpler recommendation structure)
           const recommendations = (data || []).map(p => ({

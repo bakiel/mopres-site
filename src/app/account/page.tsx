@@ -1,207 +1,237 @@
-'use client'; // Needs client-side state for user and interactions
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import React, { useEffect, useState } from 'react';
 import SectionTitle from '@/components/SectionTitle';
-import Button from '@/components/Button';
-import ProfileForm from '@/components/ProfileForm';
-import NotificationPreferencesForm from '@/components/NotificationPreferencesForm'; // Import notification form
-import type { User } from '@supabase/supabase-js';
-import toast from 'react-hot-toast';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import AccountLayout from '@/components/AccountLayout';
+import Link from 'next/link';
 
 export default function AccountPage() {
-  const router = useRouter();
   const supabase = createSupabaseBrowserClient();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error || !session?.user) {
-        console.error("Session error or no user:", error);
-        router.push('/account/login?redirect=/account'); // Redirect if not logged in
-      } else {
-        setUser(session.user);
+    const fetchUserData = async () => {
+      try {
+        // Get the current user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         
-        // Fetch recent orders
-        const { data: orders, error: ordersError } = await supabase
-          .from('orders')
-          .select('id, order_ref, created_at, total_amount, status')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .limit(3);
-          
-        if (ordersError) {
-          console.error("Error fetching recent orders:", ordersError);
-        } else {
-          setRecentOrders(orders || []);
+        if (userError) {
+          console.error('Error fetching user:', userError);
+          return;
         }
+        
+        if (userData.user) {
+          setUser(userData.user);
+          
+          // Fetch recent orders for this user
+          const { data: orderData, error: orderError } = await supabase
+            .from('orders')
+            .select('id, order_ref, created_at, total_amount, status')
+            .eq('customer_email', userData.user.email)
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (orderError) {
+            console.error('Error fetching orders:', orderError);
+          } else {
+            setOrders(orderData || []);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    getUser();
-  }, [router, supabase]);
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error logging out:', error);
-      toast.error(`Logout failed: ${error.message}`);
-    } else {
-      setUser(null); // Clear user state
-      router.push('/'); // Redirect to homepage after logout
-      // Optionally clear cart/other user-specific state here
-      toast.success("Logged out successfully.");
-    }
-  };
-  
-  // Helper function to format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-ZA', {
-      year: 'numeric', month: 'short', day: 'numeric',
-    });
-  };
-
-  // Helper function to format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
-  };
-
-  // Helper function to get status badge color
-  const getStatusColor = (status: string): string => {
-    switch (status.toLowerCase()) {
-      case 'pending_payment': return 'bg-yellow-100 text-yellow-800';
-      case 'processing': return 'bg-blue-100 text-blue-800';
-      case 'shipped': return 'bg-green-100 text-green-800';
-      case 'delivered': return 'bg-green-200 text-green-900';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'refunded': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+    
+    fetchUserData();
+  }, [supabase]);
 
   if (loading) {
     return (
-      <div className="bg-background-body py-12 lg:py-20">
-        <div className="w-full max-w-screen-lg mx-auto px-4 text-center">
-          <p className="text-text-light">Loading account...</p>
+      <AccountLayout>
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="animate-pulse flex space-x-4">
+            <div className="flex-1 space-y-4 py-1">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </AccountLayout>
     );
   }
 
-  if (!user) {
-     // This case should ideally be handled by the redirect in useEffect,
-     // but added as a fallback.
-       return (
-         <div className="bg-background-body py-12 lg:py-20">
-           <div className="w-full max-w-screen-lg mx-auto px-4 text-center">
-             <p className="text-text-light">Please log in to view your account.</p>
-             <Link href="/account/login?redirect=/account">
-                 <Button variant="primary" className="mt-4">Login</Button>
-             </Link>
-         </div>
-       </div>
-     );
-  }
-
-  // Get user's first name for greeting, fallback to 'Customer'
-  const firstName = user.user_metadata?.first_name || 'Customer';
-
   return (
-    <div className="bg-background-body py-12 lg:py-20">
-      <div className="w-full max-w-screen-lg mx-auto px-4">
-        <SectionTitle centered>My Account</SectionTitle>
-        <p className="text-center text-text-light mb-10 font-poppins">
-            Welcome back, {firstName}!
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left Sidebar/Navigation */}
-          <div className="md:col-span-1 space-y-4">
-             <h3 className="text-lg font-semibold font-montserrat mb-3">Account Menu</h3>
-             <nav className="flex flex-col space-y-2 font-poppins text-sm">
-                <Link href="/account/orders" className="text-text-dark hover:text-brand-gold p-2 rounded hover:bg-gray-100 transition-colors">Order History</Link>
-                <Link href="/account/addresses" className="text-text-dark hover:text-brand-gold p-2 rounded hover:bg-gray-100 transition-colors">Manage Addresses</Link>
-                <Link href="/account/wishlist" className="text-text-dark hover:text-brand-gold p-2 rounded hover:bg-gray-100 transition-colors">My Wishlist</Link>
-                {/* Add link for Profile Editing section if needed, or keep form inline */}
-                {/* <Link href="/account/profile" className="text-text-dark hover:text-brand-gold p-2 rounded hover:bg-gray-100 transition-colors">Edit Profile</Link> */}
-                <button
-                    onClick={handleLogout}
-                    className="text-left text-red-600 hover:text-red-800 p-2 rounded hover:bg-red-50 transition-colors"
-                >
-                    Logout
-                </button>
-             </nav>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="md:col-span-2 space-y-8">
-             {/* Recent Orders Section */}
-             <div className="bg-white p-6 border border-border-light rounded shadow-md">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-semibold font-montserrat">Recent Orders</h4>
-                  <Link href="/account/orders" className="text-brand-gold hover:underline text-sm">View All Orders</Link>
-                </div>
-                
-                {recentOrders.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentOrders.map((order) => (
-                      <div key={order.id} className="border border-gray-200 rounded p-4 hover:border-brand-gold transition-colors">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">Order #{order.order_ref}</p>
-                            <p className="text-sm text-gray-600">{formatDate(order.created_at)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">{formatCurrency(order.total_amount)}</p>
-                            <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${getStatusColor(order.status)}`}>
-                              {order.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-2 text-right">
-                          <Link href={`/account/orders/${order.id}`}>
-                            <span className="text-brand-gold hover:underline text-sm">View Details →</span>
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-text-light">You haven't placed any orders yet.</p>
-                )}
-                
-                {recentOrders.length > 0 && (
-                  <div className="mt-4 text-center">
-                    <Link href="/account/orders">
-                      <Button variant="secondary" className="text-sm">View All Orders</Button>
-                    </Link>
-                  </div>
-                )}
-             </div>
-             
-             {/* Render ProfileForm */}
-             <ProfileForm user={user} />
-
-             {/* Render Notification Preferences Form */}
-             <NotificationPreferencesForm user={user} />
-
-             {/* Account Overview */}
-             <div className="bg-white p-6 border border-border-light rounded shadow-md">
-                <h4 className="font-semibold font-montserrat mb-3">Account Overview</h4>
-                <p className="text-sm text-text-light font-poppins">
-                    From your account dashboard you can view your recent orders, manage your shipping addresses, and edit your password and account details.
+    <AccountLayout>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-brand-gold px-6 py-4">
+          <h1 className="text-white text-xl font-medium">Account Overview</h1>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Account Information Section */}
+            <div>
+              <h2 className="text-lg font-medium text-gray-800 mb-4">Account Information</h2>
+              
+              <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                <p className="text-gray-700">
+                  <span className="font-medium">Email:</span> {user?.email}
                 </p>
-                {/* Add more dashboard widgets/summaries here later */}
-             </div>
+                
+                <p className="text-gray-700 mt-1">
+                  <span className="font-medium">Member Since:</span>{' '}
+                  {user?.created_at 
+                    ? new Date(user.created_at).toLocaleDateString('en-ZA', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : 'N/A'}
+                </p>
+                
+                <p className="text-gray-700 mt-1">
+                  <span className="font-medium">Email Verified:</span>{' '}
+                  {user?.email_confirmed_at ? 'Yes' : 'No'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Recent Orders Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-gray-800">Recent Orders</h2>
+                <Link 
+                  href="/account/orders" 
+                  className="text-sm text-brand-gold hover:underline"
+                >
+                  View All Orders
+                </Link>
+              </div>
+              
+              {orders.length === 0 ? (
+                <div className="bg-gray-50 p-4 rounded-md border border-gray-200 text-center">
+                  <p className="text-gray-500">You haven't placed any orders yet.</p>
+                  <Link 
+                    href="/shop" 
+                    className="mt-2 inline-block text-brand-gold hover:underline"
+                  >
+                    Start Shopping
+                  </Link>
+                </div>
+              ) : (
+                <div className="overflow-hidden border border-gray-200 rounded-md">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Order
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {orders.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <Link 
+                              href={`/account/orders/${order.order_ref}`}
+                              className="text-brand-gold hover:underline"
+                            >
+                              #{order.order_ref}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                            {new Date(order.created_at).toLocaleDateString('en-ZA')}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {order.status.replace(/_/g, ' ').charAt(0).toUpperCase() + order.status.replace(/_/g, ' ').slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                            {new Intl.NumberFormat('en-ZA', {
+                              style: 'currency',
+                              currency: 'ZAR'
+                            }).format(order.total_amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Account Management Section */}
+          <div className="mt-8">
+            <h2 className="text-lg font-medium text-gray-800 mb-4">Account Management</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 border border-gray-200 rounded-md hover:border-brand-gold transition-colors">
+                <h3 className="font-medium text-gray-800 mb-2">Update Password</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Change your account password for security.
+                </p>
+                <Link 
+                  href="/account/forgot-password" 
+                  className="text-sm text-brand-gold hover:underline"
+                >
+                  Change Password
+                </Link>
+              </div>
+              
+              <div className="p-4 border border-gray-200 rounded-md hover:border-brand-gold transition-colors">
+                <h3 className="font-medium text-gray-800 mb-2">Manage Addresses</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Add or update your shipping addresses.
+                </p>
+                <Link 
+                  href="/account/addresses" 
+                  className="text-sm text-brand-gold hover:underline"
+                >
+                  Manage Addresses
+                </Link>
+              </div>
+              
+              <div className="p-4 border border-gray-200 rounded-md hover:border-brand-gold transition-colors">
+                <h3 className="font-medium text-gray-800 mb-2">Wishlist</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  View and manage your saved items.
+                </p>
+                <Link 
+                  href="/account/wishlist" 
+                  className="text-sm text-brand-gold hover:underline"
+                >
+                  View Wishlist
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AccountLayout>
   );
 }

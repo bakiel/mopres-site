@@ -19,6 +19,30 @@ const LoadingOverlay = () => (
   </div>
 );
 
+// Error Dialog Component
+const ErrorDialog = ({ message, onClose }: { message: string; onClose: () => void }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <h3 className="text-lg font-semibold text-red-600 mb-3 font-montserrat">Checkout Error</h3>
+      <p className="text-text-dark mb-4">{message}</p>
+      <div className="flex justify-between">
+        <Link href="/auth/register" className="px-4 py-2 bg-brand-gold text-white rounded hover:bg-brand-gold-dark">
+          Register
+        </Link>
+        <Link href="/auth/login" className="px-4 py-2 bg-brand-gold text-white rounded hover:bg-brand-gold-dark">
+          Login
+        </Link>
+        <button 
+          onClick={onClose}
+          className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 // TODO: Define type for delivery info passed from previous step
 interface DeliveryInfo {
     email: string;
@@ -40,6 +64,7 @@ export default function PaymentPage() {
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo | null>(null); // State to hold delivery info
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false); // State to track client-side mount
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // New state for error message
 
   // TODO: Retrieve delivery info (e.g., from localStorage or state)
   // For now, using placeholder effect
@@ -88,9 +113,28 @@ export default function PaymentPage() {
 
     try {
         // 1. Get current user
+        console.log("handlePlaceOrder: Attempting to get current session...");
+        const sessionResponse = await supabase.auth.getSession();
+        console.log("handlePlaceOrder: supabase.auth.getSession() response:", JSON.stringify(sessionResponse, null, 2));
+
+        if (sessionResponse.error) {
+          console.error("handlePlaceOrder: Error getting session:", sessionResponse.error);
+        }
+        if (!sessionResponse.data.session) {
+          console.warn("handlePlaceOrder: No active session found by getSession().");
+        } else {
+          console.log("handlePlaceOrder: Active session found by getSession(). User ID:", sessionResponse.data.session.user.id);
+        }
+
+        console.log("handlePlaceOrder: Attempting supabase.auth.getUser()...");
         const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        console.log("handlePlaceOrder: supabase.auth.getUser() result - user:", JSON.stringify(user, null, 2));
+        console.log("handlePlaceOrder: supabase.auth.getUser() result - userError:", JSON.stringify(userError, null, 2));
+
         if (userError || !user) {
-            throw new Error(userError?.message || 'Could not retrieve user information. Please log in again.');
+          console.error("handlePlaceOrder: Critical - getUser() failed or returned no user.", { userError, user });
+          throw new Error(userError?.message || 'Please register or log in before checkout. You need to create an account to complete your purchase.');
         }
 
         // Generate a new order reference *before* creating the order data
@@ -187,7 +231,18 @@ export default function PaymentPage() {
 
     } catch (error) {
         console.error("Order placement error:", error); // Log the full error object
-        alert(`Error placing order: ${error instanceof Error ? error.message : 'An unknown error occurred.'}`);
+        
+        // Check if the error is related to authentication
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+        
+        if (errorMessage.includes('register') || errorMessage.includes('log in') || errorMessage.includes('Auth session')) {
+            // Set error message for auth errors
+            setErrorMessage('You need to be logged in to complete checkout. Please register or log in to continue with your purchase.');
+        } else {
+            // For other errors
+            setErrorMessage(`Error placing order: ${errorMessage}`);
+        }
+        
         // isLoading state is handled in finally block
     } finally {
         // This block executes regardless of success or failure in try/catch
@@ -200,6 +255,9 @@ export default function PaymentPage() {
     <div className="bg-background-body py-12 lg:py-20 relative"> {/* Added relative for potential absolute children if needed, though overlay is fixed */}
       {/* Conditionally render the loading overlay */}
       {isLoading && <LoadingOverlay />}
+      
+      {/* Conditionally render the error dialog */}
+      {errorMessage && <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />}
 
       <div className="w-full max-w-screen-md mx-auto px-4">
         <SectionTitle centered>Checkout - Payment</SectionTitle>
@@ -233,6 +291,13 @@ export default function PaymentPage() {
             {/* Payment Method - EFT Only */}
             <div>
               <h3 className="text-lg font-semibold mb-3 font-montserrat">Payment Method</h3>
+              
+              {/* Account Required Notice */}
+              <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm text-blue-800">
+                <p className="font-medium">Account Required</p>
+                <p>You must be logged in to complete your purchase. If you don't have an account yet, you'll be prompted to register when placing your order.</p>
+              </div>
+              
               <div className="border border-border-light rounded p-4 bg-white shadow-sm">
                 <p className="font-medium text-text-dark mb-2">EFT / Bank Deposit</p>
                 <p className="text-sm text-text-light mb-4">

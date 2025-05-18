@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
 import toast from 'react-hot-toast';
+import { handleAuthError } from '@/lib/auth-utils';
 
 export default function LoginPage() {
   // Create the client instance inside the component
@@ -31,18 +32,10 @@ export default function LoginPage() {
 
       if (signInError) {
         console.error("Login error:", signInError);
-        // Provide a user-friendly error message
-        if (signInError.message.includes("Invalid login credentials")) {
-             setError("Invalid email or password. Please try again.");
-             setShowResend(false);
-        } else if (signInError.message.includes("Email not confirmed")) {
-             setError("Email not confirmed. Please check your inbox or resend the confirmation email.");
-             setShowResend(true); // Show the resend button
-        }
-         else {
-             setError("Login failed. Please try again later.");
-             setShowResend(false);
-        }
+        const errorMsg = handleAuthError(signInError);
+        setError(errorMsg);
+        // Special case for email not confirmed
+        setShowResend(errorMsg.includes("Email not confirmed"));
         setLoading(false);
         return;
       }
