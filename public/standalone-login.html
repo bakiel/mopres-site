@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Admin Login</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    form {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #AF8F53;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #9a7d4a;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+    }
+    .success {
+      color: green;
+      margin-top: 15px;
+    }
+    pre {
+      background-color: #f8f8f8;
+      padding: 10px;
+      overflow: auto;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .actions button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>MoPres Admin Login</h1>
+  
+  <form id="loginForm">
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" value="admin@mopres.co.za" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" value="secureAdminPassword123" required>
+    </div>
+    
+    <button type="submit" id="loginButton">Login</button>
+    
+    <div id="message"></div>
+  </form>
+  
+  <div class="actions">
+    <button id="checkSession">Check Session</button>
+    <button id="signOut">Sign Out</button>
+    <button id="createAdmin">Create Admin User</button>
+  </div>
+  
+  <div id="result"></div>
+  
+  <script>
+    // Initialize Supabase client (singleton pattern)
+    const supabaseUrl = 'https://gfbedvoexpulmmfitxje.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYmVkdm9leHB1bG1tZml0eGplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyNDY1NTAsImV4cCI6MjA2MDgyMjU1MH0.pTL-Evqap_O9V7ZbTgjWyXrAPjqcktcd2tdqjxmstt4';
+    let supabaseClient = null;
+    
+    function getSupabase() {
+      if (!supabaseClient) {
+        supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        console.log('Supabase client created (singleton)');
+      }
+      return supabaseClient;
+    }
+    
+    // DOM elements
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginButton = document.getElementById('loginButton');
+    const messageDiv = document.getElementById('message');
+    const resultDiv = document.getElementById('result');
+    const checkSessionButton = document.getElementById('checkSession');
+    const signOutButton = document.getElementById('signOut');
+    const createAdminButton = document.getElementById('createAdmin');
+    
+    const ADMIN_ROLE = 'admin';
+    
+    // Helper functions
+    function showMessage(message, isError = false) {
+      messageDiv.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+    }
+    
+    function showResult(title, data) {
+      resultDiv.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+    
+    // Handle login
+    loginForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      
+      loginButton.disabled = true;
+      loginButton.textContent = 'Logging in...';
+      
+      try {
+        const supabase = getSupabase();
+        
+        // First, sign out to clear any existing sessions
+        await supabase.auth.signOut();
+        showResult('Signing out first', { message: 'Cleared existing session' });
+        
+        // Sign in with provided credentials
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (error) {
+          showMessage(`Login failed: ${error.message}`, true);
+          showResult('Error Details', error);
+          return;
+        }
+        
+        // Check if user has admin role
+        const userRole = data.user?.app_metadata?.role;
+        
+        if (userRole !== ADMIN_ROLE) {
+          showMessage(`User does not have admin role. Current role: ${userRole || 'none'}`, true);
+          
+          // Sign out if not admin
+          await supabase.auth.signOut();
+          
+          showResult('User Data', data.user);
+          return;
+        }
+        
+        showMessage('Login successful! You are authenticated as admin.');
+        showResult('Session Information', {
+          user: data.user,
+          session: {
+            ...data.session,
+            access_token: `${data.session.access_token.substring(0, 20)}...`,
+          }
+        });
+        
+        // Add button to go to admin dashboard
+        const adminButton = document.createElement('button');
+        adminButton.textContent = 'Go to Admin Dashboard';
+        adminButton.onclick = () => window.location.href = '/admin';
+        messageDiv.appendChild(adminButton);
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        console.error('Login error:', error);
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = 'Login';
+      }
+    });
+    
+    // Check current session
+    checkSessionButton.addEventListener('click', async function() {
+      try {
+        const supabase = getSupabase();
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          showMessage(`Error checking session: ${error.message}`, true);
+          return;
+        }
+        
+        if (!data.session) {
+          showMessage('No active session found. Please login.', true);
+          showResult('Session Check Result', { session: null });
+          return;
+        }
+        
+        const { data: userData } = await supabase.auth.getUser();
+        const userRole = userData.user?.app_metadata?.role;
+        
+        showMessage(`Active session found! User role: ${userRole || 'none'}`);
+        showResult('Current Session', {
+          user: userData.user,
+          session: {
+            ...data.session,
+            access_token: `${data.session.access_token.substring(0, 20)}...`,
+          }
+        });
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        console.error('Session check error:', error);
+      }
+    });
+    
+    // Sign out
+    signOutButton.addEventListener('click', async function() {
+      try {
+        const supabase = getSupabase();
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          showMessage(`Error signing out: ${error.message}`, true);
+          return;
+        }
+        
+        showMessage('Successfully signed out.');
+        resultDiv.innerHTML = '';
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        console.error('Sign out error:', error);
+      }
+    });
+    
+    // Create admin user
+    createAdminButton.addEventListener('click', async function() {
+      try {
+        const supabase = getSupabase();
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        
+        createAdminButton.disabled = true;
+        createAdminButton.textContent = 'Creating...';
+        
+        // First, sign out to clear any existing sessions
+        await supabase.auth.signOut();
+        
+        // Try to sign up with admin role
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { role: ADMIN_ROLE }
+          }
+        });
+        
+        if (signUpError) {
+          // If user already exists, try signing in and updating
+          if (signUpError.message.includes('already registered')) {
+            showResult('User already exists', { message: 'Existing user found. Will attempt to sign in and update role.' });
+            
+            // Try to sign in
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+            
+            if (signInError) {
+              showMessage(`Sign in error: ${signInError.message}`, true);
+              showResult('Sign In Error', signInError);
+              return;
+            }
+            
+            // Update user role
+            const { data: updateData, error: updateError } = await supabase.auth.updateUser({
+              data: { role: ADMIN_ROLE }
+            });
+            
+            if (updateError) {
+              showMessage(`Error updating role: ${updateError.message}`, true);
+              showResult('Update Error', updateError);
+              return;
+            }
+            
+            showMessage('Existing user updated with admin role successfully');
+            showResult('Updated User', updateData.user);
+            return;
+          }
+          
+          showMessage(`Sign up error: ${signUpError.message}`, true);
+          showResult('Sign Up Error', signUpError);
+          return;
+        }
+        
+        showMessage('Admin user created successfully');
+        showResult('Created User', signUpData?.user);
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        console.error('Create admin error:', error);
+      } finally {
+        createAdminButton.disabled = false;
+        createAdminButton.textContent = 'Create Admin User';
+      }
+    });
+    
+    // Check session on page load
+    (async function() {
+      try {
+        const supabase = getSupabase();
+        const { data } = await supabase.auth.getSession();
+        
+        if (data.session) {
+          const { data: userData } = await supabase.auth.getUser();
+          const userRole = userData.user?.app_metadata?.role;
+          
+          showMessage(`Already logged in! User role: ${userRole || 'none'}`);
+          showResult('Current Session', {
+            user: userData.user,
+            session: {
+              ...data.session,
+              access_token: `${data.session.access_token.substring(0, 20)}...`,
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Initial session check error:', error);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Admin Access</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f9f9f9;
+    }
+    .logo {
+      margin-bottom: 20px;
+    }
+    .logo img {
+      height: 60px;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      border-top: 4px solid #AF8F53;
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    p {
+      color: #666;
+      line-height: 1.6;
+    }
+    button {
+      background-color: #AF8F53;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+      width: 100%;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #9a7d4a;
+    }
+    .success {
+      margin-top: 20px;
+      background-color: #d1fae5;
+      color: #047857;
+      padding: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <img src="/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres">
+  </div>
+  <div class="container">
+    <h1>MoPres Admin Access</h1>
+    <p>This tool will enable admin access to the MoPres dashboard by creating a local authentication session.</p>
+    
+    <button id="enableAdminBtn">Enable Admin Access</button>
+    
+    <div id="successMessage" class="success"></div>
+  </div>
+
+  <script>
+    document.getElementById('enableAdminBtn').addEventListener('click', function() {
+      // Create admin session in localStorage
+      const adminSession = {
+        isAdmin: true,
+        userId: '73f8df24-fc99-41b2-9f5c-1a5c74c4564e',
+        email: 'admin@mopres.co.za',
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem('mopres_admin_session', JSON.stringify(adminSession));
+      
+      // Show success message
+      const successDiv = document.getElementById('successMessage');
+      successDiv.style.display = 'block';
+      successDiv.innerHTML = 'Admin access enabled successfully!';
+      
+      // Create go to admin button
+      const adminButton = document.createElement('button');
+      adminButton.textContent = 'Go to Admin Dashboard';
+      adminButton.style.marginTop = '15px';
+      adminButton.onclick = function() {
+        window.location.href = '/admin';
+      };
+      
+      successDiv.appendChild(adminButton);
+    });
+  </script>
+</body>
+</html>

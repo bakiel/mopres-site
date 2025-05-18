@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direct Login</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 15px;
+      background: #3B82F6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    pre {
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 300px;
+    }
+    .success {
+      background: #d1fae5;
+      color: #047857;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .error {
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Direct Login to Admin Dashboard</h1>
+  
+  <div>
+    <p>This is a direct login page that will attempt to log you in and redirect to the admin dashboard.</p>
+    <p>Email: <strong>admin@mopres.co.za</strong></p>
+    <p>Password: <strong>secureAdminPassword123</strong></p>
+  </div>
+  
+  <button id="loginButton">Login and Redirect</button>
+  <button id="checkSessionButton">Check Current Session</button>
+  <button id="signOutButton">Sign Out</button>
+  <button id="goToDashboardButton">Go To Dashboard</button>
+  
+  <div id="message"></div>
+  <div id="debug"></div>
+  
+  <script>
+    // Initialize Supabase client
+    const supabaseUrl = 'https://gfbedvoexpulmmfitxje.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYmVkdm9leHB1bG1tZml0eGplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyNDY1NTAsImV4cCI6MjA2MDgyMjU1MH0.pTL-Evqap_O9V7ZbTgjWyXrAPjqcktcd2tdqjxmstt4';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    
+    // DOM elements
+    const loginButton = document.getElementById('loginButton');
+    const checkSessionButton = document.getElementById('checkSessionButton');
+    const signOutButton = document.getElementById('signOutButton');
+    const goToDashboardButton = document.getElementById('goToDashboardButton');
+    const messageDiv = document.getElementById('message');
+    const debugDiv = document.getElementById('debug');
+    
+    // Helper function to show messages
+    function showMessage(message, isError = false) {
+      messageDiv.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+    }
+    
+    // Helper function to show debug info
+    function showDebug(data) {
+      debugDiv.innerHTML = `<h3>Debug Info:</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+    
+    // Login function
+    async function login() {
+      try {
+        showMessage('Attempting to login...', false);
+        
+        // First sign out to clear any existing sessions
+        await supabase.auth.signOut();
+        
+        // Sign in with the admin credentials
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'admin@mopres.co.za',
+          password: 'secureAdminPassword123'
+        });
+        
+        if (error) {
+          showMessage(`Login error: ${error.message}`, true);
+          showDebug({ type: 'error', error });
+          return;
+        }
+        
+        showMessage('Login successful!', false);
+        showDebug({ type: 'success', data });
+        
+        // Check for admin role
+        const userRole = data.user?.app_metadata?.role;
+        
+        if (userRole !== 'admin') {
+          showMessage('User does not have admin role!', true);
+          return;
+        }
+        
+        showMessage('Admin role verified. Redirecting in 2 seconds...', false);
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          const baseUrl = window.location.origin;
+          window.location.href = `${baseUrl}/admin`;
+        }, 2000);
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        showDebug({ type: 'catch_error', error });
+      }
+    }
+    
+    // Check session function
+    async function checkSession() {
+      try {
+        showMessage('Checking current session...', false);
+        
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          showMessage(`Session error: ${error.message}`, true);
+          showDebug({ type: 'session_error', error });
+          return;
+        }
+        
+        if (!data.session) {
+          showMessage('No active session found.', true);
+          showDebug({ type: 'no_session', data });
+          return;
+        }
+        
+        showMessage('Active session found!', false);
+        showDebug({ type: 'session', data });
+        
+        // Check user role
+        const { data: userData } = await supabase.auth.getUser();
+        const userRole = userData.user?.app_metadata?.role;
+        
+        if (userRole === 'admin') {
+          showMessage('User has admin role. You can go to dashboard.', false);
+        } else {
+          showMessage(`User role: ${userRole || 'none'}`, true);
+        }
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        showDebug({ type: 'catch_error', error });
+      }
+    }
+    
+    // Sign out function
+    async function signOut() {
+      try {
+        showMessage('Signing out...', false);
+        
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          showMessage(`Sign out error: ${error.message}`, true);
+          showDebug({ type: 'signout_error', error });
+          return;
+        }
+        
+        showMessage('Successfully signed out!', false);
+        showDebug({ type: 'signout_success' });
+        
+      } catch (error) {
+        showMessage(`Unexpected error: ${error.message}`, true);
+        showDebug({ type: 'catch_error', error });
+      }
+    }
+    
+    // Go to dashboard function
+    function goToDashboard() {
+      const baseUrl = window.location.origin;
+      window.location.href = `${baseUrl}/admin`;
+    }
+    
+    // Event listeners
+    loginButton.addEventListener('click', login);
+    checkSessionButton.addEventListener('click', checkSession);
+    signOutButton.addEventListener('click', signOut);
+    goToDashboardButton.addEventListener('click', goToDashboard);
+    
+    // Check session on page load
+    checkSession();
+  </script>
+</body>
+</html>

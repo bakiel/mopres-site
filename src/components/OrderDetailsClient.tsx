@@ -3,12 +3,20 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Button from '@/components/Button'; // Assuming Button is in components
-import SectionTitle from '@/components/SectionTitle'; // Assuming SectionTitle is in components
-import InvoiceTemplate from '@/components/InvoiceTemplate'; // Assuming InvoiceTemplate is in components
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Assuming these are correct paths
+import Button from '@/components/Button'; 
+import SectionTitle from '@/components/SectionTitle';
+import InvoiceTemplateOptimized from '@/components/InvoiceTemplateOptimized';
+import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient';
+// Import the pure JS utility directly - we'll use the new one we created
+// Using enhanced PDF generator with robust error handling and fallback options
+import { 
+  createPdfWithRetry, 
+  blobToBase64, 
+  downloadPdf, 
+  downloadHtml 
+} from '@/utils/pdfGeneratorEnhanced';
+import { sendOrderEmailWithToasts } from '@/lib/email/fixed-email-service';
+import toast from 'react-hot-toast';
 
 // Type definitions (combined/adjusted from both files)
 interface OrderItem {
@@ -96,6 +104,8 @@ const getTrackingUrl = (carrier?: string | null, trackingNumber?: string | null)
 
 const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [pdfFailed, setPdfFailed] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const supabase = createSupabaseBrowserClient(); // Create browser client instance
 
@@ -107,50 +117,82 @@ const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
   const handleDownloadInvoice = async () => {
     if (!invoiceRef.current || !order) {
       console.error("Invoice template ref or order details not available.");
-      alert("Could not generate invoice at this time. Required details are missing.");
+      toast.error("Could not generate invoice at this time. Required details are missing.");
       return;
     }
     setPdfLoading(true);
+    setPdfFailed(false); // Reset failure state
     try {
-      // Ensure the invoice template content is fully rendered before capturing
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay might help
+      // Add a small delay to ensure rendering
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(invoiceRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false, // Disable console logging from html2canvas unless debugging
-        onclone: (document) => {
-            // Optional: Modify the cloned document if needed before rendering
-        }
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      // Center the image horizontally
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      // Start image at the top (or add a small margin if needed)
-      const imgY = 0;
-
-      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-
-      // Trigger download directly
-      pdf.save(`MoPres_Invoice_${order.order_ref}.pdf`);
-
+      // Use our enhanced PDF generator with retry mechanism
+      const pdfBlob = await createPdfWithRetry(invoiceRef.current, 3);
+      
+      // Trigger download
+      const pdfURL = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = pdfURL;
+      link.download = `MoPres_Invoice_${order.order_ref}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(pdfURL);
+      
+      toast.success("Invoice downloaded successfully");
     } catch (error) {
       console.error("Error during invoice generation:", error);
-      alert("An error occurred while generating the invoice PDF. Please try again.");
+      setPdfFailed(true); // Set failure state to show HTML fallback button
+      toast.error("PDF generation failed. Try the HTML option instead.");
     } finally {
       setPdfLoading(false);
+    }
+  };
+  
+  const handleDownloadHtml = async () => {
+    if (!invoiceRef.current || !order) {
+      toast.error("Could not generate invoice HTML. Missing details.");
+      return;
+    }
+    
+    try {
+      const success = await downloadHtml(invoiceRef.current, `MoPres_Invoice_${order.order_ref}.html`);
+      if (success) {
+        toast.success("Invoice downloaded as HTML successfully");
+      } else {
+        toast.error("Failed to download invoice as HTML");
+      }
+    } catch (error) {
+      console.error("Error downloading HTML invoice:", error);
+      toast.error("Failed to generate invoice in HTML format");
+    }
+  };
+
+  const handleSendInvoiceEmail = async () => {
+    if (!order?.order_ref || !order?.customer_email) {
+      toast.error("Missing order details or customer email");
+      return;
+    }
+    
+    setEmailLoading(true);
+    try {
+      // Use our new standalone email service
+      const { success, error } = await sendOrderEmailWithToasts(
+        order.order_ref,  // Use order_ref instead of id
+        true,  // Include invoice
+        null   // Use customer's email
+      );
+      
+      if (!success) {
+        throw new Error(error.message || 'Failed to send invoice email');
+      }
+      
+      // Toast notification is handled by the service itself
+    } catch (error) {
+      console.error("Error sending invoice email:", error);
+      // Toast notification is already handled by the service
+    } finally {
+      setEmailLoading(false);
     }
   };
 
@@ -161,7 +203,7 @@ const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
           {/* Position it off-screen or make it visually hidden but available for html2canvas */}
           <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', zIndex: -1, width: '210mm', height: '297mm' }}> {/* A4 size might help layout */}
              {/* Ensure InvoiceTemplate receives a valid order object */}
-             {order && <InvoiceTemplate order={order} invoiceRef={invoiceRef} />}
+             {order && <InvoiceTemplateOptimized order={order} invoiceRef={invoiceRef} />}
           </div>
 
           <div className="w-full max-w-screen-lg mx-auto px-4">
@@ -299,8 +341,8 @@ const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
                 </div>
              </div>
 
-             {/* Download Invoice Button */}
-             <div className="mt-8 text-center">
+             {/* Download Invoice and Send Email Buttons */}
+             <div className="mt-8 flex justify-center space-x-4">
                  <Button
                     variant="secondary" // Use secondary variant as requested
                     onClick={handleDownloadInvoice}
@@ -317,6 +359,35 @@ const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
                         </>
                     ) : (
                         'Download Invoice (PDF)'
+                    )}
+                 </Button>
+                 
+                 {/* Show HTML fallback option if PDF generation failed */}
+                 {pdfFailed && (
+                   <Button
+                     variant="outline"
+                     onClick={handleDownloadHtml}
+                     disabled={!order}
+                   >
+                     Download Invoice (HTML)
+                   </Button>
+                 )}
+                 
+                 <Button
+                    variant="primary"
+                    onClick={handleSendInvoiceEmail}
+                    disabled={emailLoading || !order || !order.customer_email}
+                 >
+                    {emailLoading ? (
+                        <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Sending Email...
+                        </>
+                    ) : (
+                        'Send Invoice Email'
                     )}
                  </Button>
              </div>

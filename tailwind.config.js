@@ -9,6 +9,8 @@ module.exports = {
     extend: {
       colors: {
         'brand-gold': '#AF8F53',
+        'brand-gold-light': '#C9B77C',
+        'brand-gold-dark': '#9A7D4A',
         'brand-black': '#000000',
         'brand-white': '#FFFFFF', 
         'brand-ivory': '#F5F5F3',
@@ -17,10 +19,17 @@ module.exports = {
         'text-dark': '#222222',
         'text-light': '#6c757d',
         'border-light': '#e9ecef',
+        // For more consistent styling:
+        'primary': '#AF8F53', // Same as brand-gold
+        'secondary': '#6c757d',
+        'success': '#28a745',
+        'danger': '#dc3545',
+        'warning': '#ffc107',
+        'info': '#17a2b8',
       },
       fontFamily: {
-        'poppins': ['var(--font-poppins)'],
-        'montserrat': ['var(--font-montserrat)'],
+        'poppins': ['var(--font-poppins)', 'sans-serif'],
+        'montserrat': ['var(--font-montserrat)', 'sans-serif'],
       },
       spacing: {
         'header-height': '75px',

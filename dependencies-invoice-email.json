@@ -1,0 +1,13 @@
+{
+  "name": "invoice-email-dependencies",
+  "description": "Dependencies required for the invoice email system",
+  "dependencies": {
+    "resend": "^1.0.0",
+    "@react-email/components": "^0.0.14",
+    "@react-email/html": "^0.0.7",
+    "@react-email/render": "^0.0.9"
+  },
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

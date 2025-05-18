@@ -1,0 +1,12 @@
+Subject: Fix admin logout functionality to prevent auto-login after logout
+
+This commit adds proper logout functionality to the admin panel:
+
+1. Added a disable auto-login flag in localStorage that gets set when a user logs out
+2. Modified the login pages to respect this flag and skip auto-login when explicitly logged out
+3. Created a new LogoutButton component for easy integration
+4. Added a standalone logout page at /admin/logout
+5. Added logout button to the admin navigation
+
+The changes fix an issue where users would be automatically logged back in 
+after explicitly logging out, by adding proper state tracking for logout events.

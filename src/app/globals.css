@@ -14,7 +14,7 @@
     /* Heights */
     --top-banner-height: 35px; /* Height of the top announcement banner (from Tailwind config) */
     --header-height: 75px;     /* Height of the main header (from Tailwind config) */
-    --header-and-banner-height: calc(var(--top-banner-height) + var(--header-height)); /* Total height */
+    --header-and-banner-height: 110px; /* Fixed value for total height (35px + 75px) */
 
     /* Brand Colors as CSS Custom Properties */
     --color-brand-gold: #AF8F53;
@@ -42,7 +42,7 @@
   
   /* Add this for non-homepage content pages */
   .content-page {
-    @apply mt-[--header-and-banner-height] pt-8;
+    @apply mt-[110px] pt-8;
   }
 }
 

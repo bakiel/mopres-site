@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServerClient'; // Updated import
+import { getProductImageUrl } from '@/lib/supabaseClient'; // getProductImageUrl remains here for now
 import HeroBanner from '@/components/HeroBanner'; // Import the restored HeroBanner
 import DynamicTestimonialCarousel from '@/components/DynamicTestimonialCarousel';
 
@@ -38,8 +39,8 @@ type Collection = {
 };
 
 export default async function Home() {
-  const cookieStore = cookies();
-  const supabase = createSupabaseServerClient(cookieStore);
+  // createSupabaseServerClient now calls cookies() internally and is async
+  const supabase = await createSupabaseServerClient();
 
   let featuredProductsData: FeaturedProduct[] = []; // Rename to avoid conflict
   let fetchError: string | null = null;

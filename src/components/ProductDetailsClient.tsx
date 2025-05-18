@@ -43,7 +43,7 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
   const [selectedSize, setSelectedSize] = useState<string | null>(null); // Stores the selected ZA/UK size
   const [quantity, setQuantity] = useState<number>(1);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
-  const [displaySizeSystem, setDisplaySizeSystem] = useState<'ZA/UK' | 'EU'>('ZA/UK'); // State for size system view
+  const [displaySizeSystem, setDisplaySizeSystem] = useState<'ZA/UK' | 'EU' | 'US'>('ZA/UK'); // Added US option
   const [isInWishlist, setIsInWishlist] = useState<boolean>(false);
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
@@ -105,17 +105,82 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
   }, [product?.id]);
 
   // --- Size Conversion Logic ---
-  // Basic ZA/UK to EU mapping (adjust based on actual brand sizing)
-  const zaToEuMap: { [key: string]: string } = {
-    '3': '36', '4': '37', '5': '38', '6': '39', '7': '40', '8': '41', '9': '42', '10': '43',
+  // South African (ZA/UK) to EU and US mapping
+  const sizeConversions: { [key: string]: { eu: string, us: string } } = {
+    '1': { eu: '34', us: '3' },
+    '2': { eu: '35', us: '4' },
+    '3': { eu: '36', us: '5' },
+    '4': { eu: '37', us: '6' },
+    '5': { eu: '38', us: '7' },
+    '6': { eu: '39', us: '8' },
+    '7': { eu: '40', us: '9' },
+    '8': { eu: '41', us: '10' },
+    '9': { eu: '42', us: '11' },
+    '10': { eu: '43', us: '12' },
+    '11': { eu: '44', us: '13' },
+    '12': { eu: '45', us: '14' },
   };
 
-  const convertSize = (size: string, targetSystem: 'ZA/UK' | 'EU'): string => {
-    if (targetSystem === 'ZA/UK') {
-      return size; // Assume stored size is ZA/UK
-    } else {
-      return zaToEuMap[size] || size; // Return EU size or original if not found
+  // Create a reverse mapping for EU to ZA/UK
+  const euToZaUkMap: { [key: string]: string } = {};
+  Object.entries(sizeConversions).forEach(([zaUk, values]) => {
+    euToZaUkMap[values.eu] = zaUk;
+  });
+
+  // Create a reverse mapping for US to ZA/UK
+  const usToZaUkMap: { [key: string]: string } = {};
+  Object.entries(sizeConversions).forEach(([zaUk, values]) => {
+    usToZaUkMap[values.us] = zaUk;
+  });
+
+  // Detect whether a size is in ZA/UK, EU, or US format
+  const detectSizeFormat = (size: string): 'ZA/UK' | 'EU' | 'US' => {
+    // ZA/UK sizes are typically 1-12
+    if (/^(1[0-2]|[1-9])$/.test(size)) {
+      return 'ZA/UK';
     }
+    // EU sizes are typically 34-47
+    else if (/^(3[4-9]|4[0-7])$/.test(size)) {
+      return 'EU';
+    }
+    // US sizes are typically 3-14
+    else if (/^(1[0-4]|[3-9])$/.test(size)) {
+      return 'US';
+    }
+    
+    // Default to ZA/UK if we can't determine
+    return 'ZA/UK';
+  };
+
+  // Updated conversion function
+  const convertSize = (size: string, targetSystem: 'ZA/UK' | 'EU' | 'US'): string => {
+    const sourceSystem = detectSizeFormat(size);
+    
+    // If already in target format, return as is
+    if (sourceSystem === targetSystem) {
+      return size;
+    }
+    
+    // Convert to ZA/UK first (our base system)
+    let zaUkSize = size;
+    
+    if (sourceSystem === 'EU') {
+      zaUkSize = euToZaUkMap[size] || size;
+    } else if (sourceSystem === 'US') {
+      zaUkSize = usToZaUkMap[size] || size;
+    }
+    
+    // Now convert from ZA/UK to target system
+    if (targetSystem === 'ZA/UK') {
+      return zaUkSize;
+    } else if (targetSystem === 'EU' && sizeConversions[zaUkSize]) {
+      return sizeConversions[zaUkSize].eu;
+    } else if (targetSystem === 'US' && sizeConversions[zaUkSize]) {
+      return sizeConversions[zaUkSize].us;
+    }
+    
+    // Fallback
+    return size;
   };
 
   // Handlers
@@ -323,35 +388,37 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
                 Select Size ({displaySizeSystem})
               </h3>
               {/* Size System Toggle */}
-              <div className="text-xs font-poppins">
+              <div className="text-xs font-poppins flex space-x-1 bg-gray-100 rounded-md p-1">
                 <button
                   onClick={() => setDisplaySizeSystem('ZA/UK')}
-                  className={`px-2 py-1 rounded ${displaySizeSystem === 'ZA/UK' ? 'bg-gray-200 text-text-dark font-medium' : 'text-text-light hover:text-brand-gold'}`}
+                  className={`px-2 py-1 rounded-sm ${displaySizeSystem === 'ZA/UK' ? 'bg-white shadow-sm text-brand-gold font-medium' : 'text-text-light hover:text-brand-gold'}`}
                   disabled={displaySizeSystem === 'ZA/UK'}
                 >
                   ZA/UK
                 </button>
-                <span className="mx-1 text-gray-300">|</span>
                 <button
                   onClick={() => setDisplaySizeSystem('EU')}
-                  className={`px-2 py-1 rounded ${displaySizeSystem === 'EU' ? 'bg-gray-200 text-text-dark font-medium' : 'text-text-light hover:text-brand-gold'}`}
+                  className={`px-2 py-1 rounded-sm ${displaySizeSystem === 'EU' ? 'bg-white shadow-sm text-brand-gold font-medium' : 'text-text-light hover:text-brand-gold'}`}
                   disabled={displaySizeSystem === 'EU'}
                 >
                   EU
                 </button>
+                <button
+                  onClick={() => setDisplaySizeSystem('US')}
+                  className={`px-2 py-1 rounded-sm ${displaySizeSystem === 'US' ? 'bg-white shadow-sm text-brand-gold font-medium' : 'text-text-light hover:text-brand-gold'}`}
+                  disabled={displaySizeSystem === 'US'}
+                >
+                  US
+                </button>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              {/* TODO: Add size conversion logic here */}
               {product.sizes.map((size: string) => (
                 <button
                   key={size}
-                  // Store the original ZA/UK size on selection, display might be EU
                   onClick={() => handleSizeSelect(size)}
-                  // Highlight based on the original ZA/UK size
                   className={`px-4 py-2 border rounded transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-brand-gold/50 font-poppins ${selectedSize === size ? 'bg-brand-black text-white border-brand-black' : 'bg-white text-text-dark border-border-light hover:border-brand-black'}`}
                 >
-                  {/* Display converted size based on displaySizeSystem */}
                   {convertSize(size, displaySizeSystem)}
                 </button>
               ))}
@@ -417,7 +484,9 @@ export default function ProductDetailsClient({ initialProduct }: { initialProduc
                                 {product.sizes.map(size => (
                                     <option key={`waitlist-${size}`} value={size}>
                                         {/* Display based on current view preference */}
-                                        {convertSize(size, displaySizeSystem)} ({displaySizeSystem})
+                                        {displaySizeSystem === 'ZA/UK' ? 
+                                          convertSize(size, 'ZA/UK') : 
+                                          `${convertSize(size, displaySizeSystem)} (${displaySizeSystem})`}
                                     </option>
                                 ))}
                             </select>

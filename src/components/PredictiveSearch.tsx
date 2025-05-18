@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { debounce } from 'lodash';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Updated import
+import { getProductImageUrl } from '@/lib/supabaseClient'; // getProductImageUrl remains here for now
 import type { User } from '@supabase/supabase-js'; // Import User type
 
 // Type for search results

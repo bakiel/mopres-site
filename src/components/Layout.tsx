@@ -1,7 +1,6 @@
 import React, { FC, ReactNode } from 'react';
 import Header from './Header';
 import Footer from './Footer';
-import { Toaster } from 'react-hot-toast'; // Import Toaster
 import CartSidebar from './CartSidebar'; // Import CartSidebar
 
 interface LayoutProps {

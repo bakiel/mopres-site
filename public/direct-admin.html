@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Admin Access</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 100px;
+      background: #f4f4f4;
+    }
+    .card {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #AF8F53;
+      margin-bottom: 20px;
+    }
+    .btn {
+      display: inline-block;
+      background: #AF8F53;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .loader {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #AF8F53;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 30px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .message {
+      margin: 20px 0;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>MoPres Admin Access</h1>
+    
+    <div id="loading">
+      <div class="loader"></div>
+      <div class="message">Preparing direct admin access...</div>
+    </div>
+    
+    <div id="success" style="display: none;">
+      <div class="message">Admin access ready! Redirecting in 2 seconds...</div>
+      <a href="/admin" class="btn">Go to Admin Dashboard</a>
+    </div>
+  </div>
+
+  <script>
+    // This is a completely minimalist script that just redirects to admin
+    setTimeout(function() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('success').style.display = 'block';
+      
+      // Auto-redirect after 2 seconds
+      setTimeout(function() {
+        window.location.href = '/admin';
+      }, 2000);
+    }, 1500);
+  </script>
+</body>
+</html>

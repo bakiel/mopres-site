@@ -1,85 +1,10 @@
-import { createBrowserClient, createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers'; // Import cookies
 import type { SupabaseClient } from '@supabase/supabase-js'; // Keep type import
 
-// Ensure environment variables are defined
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl) {
-  throw new Error("Missing environment variable: NEXT_PUBLIC_SUPABASE_URL");
-}
-
-if (!supabaseAnonKey) {
-  throw new Error("Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY");
-}
-
-// Function to create a Supabase client instance for browser components.
-// Call this within client components or useEffect hooks.
-export function createSupabaseBrowserClient(): SupabaseClient {
-  // Log the values being used for client creation
-  console.log('[SupabaseClient] Creating browser client with URL:', supabaseUrl);
-  // Avoid logging the full key in production, but okay for local debugging if needed.
-  // Consider logging only a portion or its presence for security.
-  console.log('[SupabaseClient] Using Anon Key (presence check):', !!supabaseAnonKey);
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('[SupabaseClient] CRITICAL: Supabase URL or Anon Key is missing when creating browser client!');
-    // Optionally throw an error here if preferred, though logging might be sufficient for diagnosis
-  }
-
-  return createBrowserClient(supabaseUrl!, supabaseAnonKey!);
-}
-
-// Remove the specific type import: import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies';
-
-// Function to create a Supabase client instance for server components/actions.
-// Requires the cookie store obtained from `cookies()` in the calling context.
-// Let TypeScript infer the cookieStore type based on usage by createServerClient.
-export function createSupabaseServerClient(cookieStore: any): SupabaseClient { // Revert back to 'any' or inferred
-  // No longer call cookies() here, use the passed argument
-
-  return createServerClient(
-    supabaseUrl!,
-    supabaseAnonKey!,
-    {
-      cookies: {
-        // Get should be synchronous as per Supabase SSR docs pattern for Next.js App Router
-        get(name: string) {
-          // No await needed for synchronous access
-          const cookie = cookieStore.get(name);
-          return cookie?.value;
-        },
-        // Keep set/remove async as they perform actions
-        set: async (name: string, value: string, options: CookieOptions) => {
-          try {
-            // Use await for async operation
-            await cookieStore.set(name, value, options);
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove: async (name: string, options: CookieOptions) => {
-          try {
-            // Use await for async operation and correct method (pass only name)
-            await cookieStore.delete(name);
-            // Note: Supabase ssr might pass options, but cookieStore.delete might not accept them directly.
-            // If deletion needs options, the approach might need adjustment based on cookieStore's specific API.
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
-    }
-  );
-}
+// This file can now be used for shared Supabase utilities that don't involve client creation
+// or server-only/client-only imports.
 
 // Optional: Export types if needed elsewhere
-// export type SupabaseClient = SupabaseClient; // Type export remains valid
+// export type { SupabaseClient } from '@supabase/supabase-js'; // Re-export if needed
 
 /**
  * Generates the public URL for an image stored in the 'product-images' bucket.

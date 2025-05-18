@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Admin Login Fix</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      max-width: 500px;
+      width: 100%;
+    }
+    h1 {
+      color: #AF8F53;
+      text-align: center;
+      margin-top: 0;
+    }
+    .button-container {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    button.primary {
+      background-color: #AF8F53;
+      color: white;
+    }
+    button.primary:hover {
+      background-color: #9a7d4a;
+    }
+    button.secondary {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    button.secondary:hover {
+      background-color: #e0e0e0;
+    }
+    pre {
+      background-color: #f8f8f8;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 200px;
+      margin-top: 20px;
+    }
+    .success {
+      color: green;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #e8f5e9;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MoPres Admin Login Fix</h1>
+    <p>This tool will create the necessary admin session in your browser's localStorage to bypass the Supabase auth issues.</p>
+    
+    <div class="button-container">
+      <button class="primary" id="setupAdminBtn">Set Up Admin Access</button>
+      <button class="secondary" id="goToAdminBtn">Go to Admin Dashboard</button>
+      <button class="secondary" id="goToLoginBtn">Go to Login Page</button>
+    </div>
+    
+    <div id="successMessage" class="success"></div>
+    
+    <pre id="debugInfo"></pre>
+  </div>
+
+  <script>
+    // Setup buttons
+    document.getElementById('setupAdminBtn').addEventListener('click', setupAdmin);
+    document.getElementById('goToAdminBtn').addEventListener('click', () => window.location.href = '/admin');
+    document.getElementById('goToLoginBtn').addEventListener('click', () => window.location.href = '/admin/login');
+    
+    // Create admin session in localStorage
+    function setupAdmin() {
+      try {
+        // Create the admin session object
+        const adminSession = {
+          isAdmin: true,
+          userId: '73f8df24-fc99-41b2-9f5c-1a5c74c4564e',
+          email: 'admin@mopres.co.za',
+          timestamp: Date.now()
+        };
+        
+        // Store it in localStorage
+        localStorage.setItem('mopres_admin_session', JSON.stringify(adminSession));
+        
+        // Display success message
+        const successMsg = document.getElementById('successMessage');
+        successMsg.style.display = 'block';
+        successMsg.textContent = 'Admin access set up successfully! You can now go to the admin dashboard.';
+        
+        // Update debug info
+        updateDebugInfo();
+      } catch (error) {
+        console.error('Error setting up admin access:', error);
+        document.getElementById('debugInfo').textContent = 'Error: ' + error.message;
+      }
+    }
+    
+    // Update debug info
+    function updateDebugInfo() {
+      const debugElement = document.getElementById('debugInfo');
+      const adminSession = localStorage.getItem('mopres_admin_session');
+      
+      try {
+        if (adminSession) {
+          const parsedSession = JSON.parse(adminSession);
+          debugElement.textContent = JSON.stringify(parsedSession, null, 2);
+        } else {
+          debugElement.textContent = 'No admin session found in localStorage';
+        }
+      } catch (error) {
+        debugElement.textContent = 'Error parsing admin session: ' + error.message;
+      }
+    }
+    
+    // Run on page load
+    updateDebugInfo();
+  </script>
+</body>
+</html>

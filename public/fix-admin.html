@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Admin Fix</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+    }
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #AF8F53;
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #9a7d4a;
+    }
+    .message {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d1fae5;
+      color: #047857;
+    }
+  </style>
+</head>
+<body>
+  <h1>MoPres Admin Quick Fix</h1>
+  
+  <div class="card">
+    <p>Click the button below to immediately enable admin access:</p>
+    <button id="fixAdminBtn">Enable Admin Access</button>
+    <div id="message"></div>
+  </div>
+  
+  <script>
+    document.getElementById('fixAdminBtn').addEventListener('click', function() {
+      // Create admin session
+      const adminSession = {
+        isAdmin: true,
+        userId: '73f8df24-fc99-41b2-9f5c-1a5c74c4564e',
+        email: 'admin@mopres.co.za',
+        timestamp: Date.now()
+      };
+      
+      // Set in localStorage
+      localStorage.setItem('mopres_admin_session', JSON.stringify(adminSession));
+      
+      // Show success message
+      const message = document.getElementById('message');
+      message.className = 'message success';
+      message.innerHTML = 'Admin access enabled! <br><br>You can now go to the admin page.';
+      
+      // Create link to admin page
+      const adminLink = document.createElement('button');
+      adminLink.textContent = 'Go to Admin Dashboard';
+      adminLink.onclick = function() {
+        window.location.href = '/admin';
+      };
+      message.appendChild(adminLink);
+    });
+  </script>
+</body>
+</html>

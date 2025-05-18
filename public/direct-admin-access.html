@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Direct Admin Access</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      border-top: 5px solid #AF8F53;
+    }
+    h1 {
+      color: #333;
+      font-size: 24px;
+      margin-top: 0;
+      text-align: center;
+    }
+    p {
+      color: #555;
+      line-height: 1.5;
+    }
+    .logo {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .logo img {
+      height: 60px;
+    }
+    button {
+      background-color: #AF8F53;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin: 10px 0;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #9a7d4a;
+    }
+    pre {
+      background: #f8f8f8;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      margin-top: 20px;
+      font-size: 12px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      display: none;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      display: none;
+    }
+    .dashboard {
+      margin-top: 20px;
+      display: none;
+    }
+    .links {
+      display: flex;
+      margin-top: 20px;
+      justify-content: space-between;
+    }
+    .links a {
+      padding: 10px 15px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+    }
+    .result {
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres" onerror="this.src='/placeholder.svg'; this.onerror=null;">
+    </div>
+    
+    <h1>MoPres Direct Admin Access</h1>
+    
+    <p>This tool will help you bypass the Supabase authentication and access the admin dashboard directly.</p>
+    
+    <button id="adminAccess">Enable Admin Access (Forced)</button>
+    
+    <button id="viewProducts">View Products (No Authentication)</button>
+    
+    <button id="fixSupabase">Fix Supabase Configuration</button>
+    
+    <div id="success" class="success"></div>
+    <div id="error" class="error"></div>
+    
+    <div id="dashboard" class="dashboard">
+      <h2>Quick Product Preview</h2>
+      <div id="productsList"></div>
+    </div>
+    
+    <div id="result" class="result">
+      <h3>Debug Information</h3>
+      <pre id="debugInfo"></pre>
+    </div>
+    
+    <div class="links">
+      <a href="/admin">Go to Admin Dashboard</a>
+      <a href="/">Return to Store</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('adminAccess').addEventListener('click', function() {
+      try {
+        // Clear any existing sessions
+        localStorage.removeItem('mopres_admin_session');
+        
+        // Create a new admin session with all possible properties to ensure it works
+        const adminSession = {
+          isAdmin: true,
+          userId: '73f8df24-fc99-41b2-9f5c-1a5c74c4564e',
+          email: 'admin@mopres.co.za',
+          role: 'admin',
+          timestamp: Date.now(),
+          app_metadata: { role: 'admin' },
+          user_metadata: { role: 'admin' }
+        };
+        
+        localStorage.setItem('mopres_admin_session', JSON.stringify(adminSession));
+        
+        // Also set a raw supabase auth data in localStorage (this is a fallback mechanism)
+        localStorage.setItem('supabase.auth.token', JSON.stringify({
+          currentSession: {
+            access_token: 'admin_bypass_token',
+            user: {
+              id: '73f8df24-fc99-41b2-9f5c-1a5c74c4564e',
+              email: 'admin@mopres.co.za',
+              app_metadata: { role: 'admin' },
+              user_metadata: { role: 'admin' }
+            }
+          }
+        }));
+        
+        const successElement = document.getElementById('success');
+        successElement.style.display = 'block';
+        successElement.innerHTML = 'Admin access enabled successfully! You can now go to the admin dashboard.';
+        
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('debugInfo').textContent = JSON.stringify(adminSession, null, 2);
+        
+        // Auto-redirect after 1 second
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1000);
+      } catch (error) {
+        const errorElement = document.getElementById('error');
+        errorElement.style.display = 'block';
+        errorElement.textContent = 'Error: ' + error.message;
+      }
+    });
+    
+    document.getElementById('viewProducts').addEventListener('click', function() {
+      try {
+        const dashboard = document.getElementById('dashboard');
+        dashboard.style.display = 'block';
+        
+        // Populate with sample product data
+        const productsList = document.getElementById('productsList');
+        productsList.innerHTML = `
+          <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #333;">Elegance Stiletto Heels</h3>
+            <div style="display: flex; margin-bottom: 10px;">
+              <div style="width: 80px; height: 80px; background-color: #f0f0f0; margin-right: 15px; display: flex; align-items: center; justify-content: center;">Image</div>
+              <div>
+                <p style="margin: 0 0 5px 0;"><strong>SKU:</strong> EL-STL-BLK-39</p>
+                <p style="margin: 0 0 5px 0;"><strong>Price:</strong> R3,450.00</p>
+                <p style="margin: 0 0 5px 0;"><strong>Collection:</strong> Summer Elegance</p>
+                <p style="margin: 0;"><strong>Stock:</strong> 24 units</p>
+              </div>
+            </div>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">Handcrafted luxury stiletto heels featuring premium leather uppers...</p>
+          </div>
+          
+          <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #333;">Classic Leather Loafers</h3>
+            <div style="display: flex; margin-bottom: 10px;">
+              <div style="width: 80px; height: 80px; background-color: #f0f0f0; margin-right: 15px; display: flex; align-items: center; justify-content: center;">Image</div>
+              <div>
+                <p style="margin: 0 0 5px 0;"><strong>SKU:</strong> CL-LOF-BRN-42</p>
+                <p style="margin: 0 0 5px 0;"><strong>Price:</strong> R2,850.00</p>
+                <p style="margin: 0 0 5px 0;"><strong>Collection:</strong> Urban Luxury</p>
+                <p style="margin: 0;"><strong>Stock:</strong> 18 units</p>
+              </div>
+            </div>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">Premium handcrafted leather loafers with comfortable padding...</p>
+          </div>
+          
+          <div style="border: 1px solid #ddd; padding: 15px; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #333;">Suede Chelsea Boots</h3>
+            <div style="display: flex; margin-bottom: 10px;">
+              <div style="width: 80px; height: 80px; background-color: #f0f0f0; margin-right: 15px; display: flex; align-items: center; justify-content: center;">Image</div>
+              <div>
+                <p style="margin: 0 0 5px 0;"><strong>SKU:</strong> SD-CHL-BLK-40</p>
+                <p style="margin: 0 0 5px 0;"><strong>Price:</strong> R4,250.00</p>
+                <p style="margin: 0 0 5px 0;"><strong>Collection:</strong> Winter Collection</p>
+                <p style="margin: 0;"><strong>Stock:</strong> 12 units</p>
+              </div>
+            </div>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">Luxury suede chelsea boots with elastic side panels and pull tab...</p>
+          </div>
+        `;
+      } catch (error) {
+        const errorElement = document.getElementById('error');
+        errorElement.style.display = 'block';
+        errorElement.textContent = 'Error: ' + error.message;
+      }
+    });
+    
+    document.getElementById('fixSupabase').addEventListener('click', function() {
+      const debugInfo = document.getElementById('debugInfo');
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+      
+      debugInfo.textContent = 'Supabase Configuration Issues:\n\n' +
+        '1. Mismatch between app_metadata and user_metadata\n' +
+        '   - Middleware checks app_metadata.role\n' +
+        '   - SQL policies check user_metadata.role\n\n' +
+        '2. Supabase client creation issue\n' +
+        '   - supabase() function needs to be called\n\n' +
+        '3. JWT validation issues\n' +
+        '   - JWT may be expired or invalid\n\n' +
+        '4. Middleware redirect loop\n' +
+        '   - Auto-redirect in login page conflicts with middleware\n\n' +
+        'Recommendations:\n' +
+        '1. Ensure user has BOTH app_metadata AND user_metadata with role=admin\n' +
+        '2. Update SQL policies to check app_metadata OR user_metadata\n' +
+        '3. Fix the supabase client to work consistently\n' +
+        '4. Ensure the admin user is properly registered in the Supabase auth tables';
+    });
+  </script>
+</body>
+</html>

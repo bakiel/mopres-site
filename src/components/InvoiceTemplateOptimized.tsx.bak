@@ -1,0 +1,1387 @@
+import React, { useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react'; // Import QR Code component
+
+// Updated type to be compatible with OrderDetailsClient
+interface OrderItem {
+  id: string;
+  quantity: number;
+  price: number; // Price per item at time of order
+  products: { // Assuming a join to products table
+    name: string;
+    sku?: string;
+  } | null;
+  size?: string; // If applicable
+}
+
+interface Order {
+  id: string;
+  created_at: string;
+  order_ref: string;
+  total_amount: number;
+  shipping_fee: number;
+  status: string;
+  customer_email?: string; // Changed to optional to match OrderDetailsClient
+  shipping_address: { // Assuming JSONB structure
+    firstName?: string; // Made optional
+    lastName?: string; // Made optional
+    addressLine1?: string; // Made optional
+    addressLine2?: string;
+    city?: string; // Made optional
+    province?: string; // Made optional
+    postalCode?: string; // Made optional
+    country?: string; // Made optional
+    phone?: string;
+  } | null;
+  order_items: OrderItem[];
+}
+
+interface InvoiceTemplateProps {
+  order: Order;
+  invoiceRef: React.RefObject<HTMLDivElement>; // Changed to RefObject
+}
+
+// Enhanced ultra-premium template with luxury brand styling for MoPres
+const InvoiceTemplateOptimized: React.FC<InvoiceTemplateProps> = ({ order, invoiceRef }) => {
+  // Log for debugging
+  useEffect(() => {
+    console.log("InvoiceTemplateOptimized rendered with order:", order.order_ref);
+    console.log("InvoiceRef exists:", !!invoiceRef);
+    
+    // Check if the invoice template is properly mounted
+    if (invoiceRef && invoiceRef.current) {
+      console.log("Invoice template element is accessible");
+    } else {
+      console.log("Invoice template element is NOT accessible yet");
+    }
+  }, [order.order_ref, invoiceRef]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-ZA', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
+  }
+
+  // Calculate financial values
+  const subtotal = order.total_amount - order.shipping_fee;
+  const vatAmount = 0; // No VAT
+  const paymentDueDate = new Date(order.created_at);
+  paymentDueDate.setDate(paymentDueDate.getDate() + 7); // Payment due 7 days after order
+  
+  // Payment string for QR code
+  const paymentString = `bank:FNB;acc:62792142095;ref:${order.order_ref};amount:${order.total_amount}`;
+
+  // Enhanced ultra-premium template
+  return (
+    <div
+      ref={invoiceRef}
+      id="invoice-content"
+      className="font-poppins"
+      style={{
+        position: 'absolute',
+        left: '-9999px', // Position off-screen
+        top: '-9999px',
+        width: '210mm', // A4 width
+        minHeight: '297mm', // A4 height
+        padding: '25px',
+        fontSize: '12px',
+        fontFamily: 'var(--font-poppins), sans-serif',
+        lineHeight: '1.4',
+        color: '#222222',
+        backgroundColor: '#ffffff',
+      }}
+    >
+      {/* Header with Ultra-Premium Gradient Background */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #1A1A1A 0%, #000000 100%)',
+        padding: '28px 35px', 
+        borderRadius: '8px 8px 0 0',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+        marginBottom: '25px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Gold accent design element */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '6px',
+          background: 'linear-gradient(90deg, #D4AF37 0%, #AF8F53 50%, #C5B358 100%)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+          zIndex: 2,
+        }}></div>
+        
+        <div>
+          <img 
+            src="/Mopres_Gold_luxury_lifestyle_logo.png" 
+            alt="MoPres Logo" 
+            width={180}
+            height={76}
+            style={{ 
+              maxWidth: '180px', 
+              objectFit: 'contain'
+            }} 
+          />
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <h1 style={{ 
+            color: '#AF8F53', 
+            fontSize: '36px', 
+            fontWeight: 'bold', 
+            margin: '0 0 10px 0', 
+            letterSpacing: '3px',
+            fontFamily: 'var(--font-montserrat)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+          }}>INVOICE</h1>
+          <p style={{ 
+            color: '#fff', 
+            fontSize: '16px',
+            margin: 0,
+            fontWeight: '500',
+            letterSpacing: '1px',
+          }}># {order.order_ref}</p>
+        </div>
+      </div>
+      
+      {/* Business & Invoice Info Row */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        marginBottom: '30px',
+        gap: '35px'
+      }}>
+        {/* Business Info */}
+        <div style={{ 
+          flex: '1',
+          fontSize: '12px',
+          color: '#333333',
+          position: 'relative',
+          padding: '20px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          borderLeft: '4px solid #AF8F53',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+        }}>
+          <p style={{ 
+            fontSize: '16px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 12px 0',
+            fontFamily: 'var(--font-montserrat)',
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px'
+          }}>MoPres Fashion</p>
+          <p style={{ margin: '0 0 3px 0' }}>6680 Witrugeend Street</p>
+          <p style={{ margin: '0 0 3px 0' }}>578 Heuwelsig Estates</p>
+          <p style={{ margin: '0 0 3px 0' }}>Cetisdal, Centurion</p>
+          <p style={{ margin: '0 0 3px 0' }}>South Africa</p>
+          <p style={{ margin: '10px 0 3px 0' }}>Company Registration: K2018607632</p>
+          <p style={{ 
+            margin: '10px 0 3px 0', 
+            color: '#AF8F53',
+            fontWeight: '500',
+          }}>info@mopres.co.za | +27 83 500 5311</p>
+        </div>
+        
+        {/* Invoice Summary */}
+        <div style={{ 
+          flex: '1',
+          backgroundColor: '#fafafa',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          borderLeft: '4px solid #AF8F53',
+          position: 'relative',
+        }}>
+          <div style={{ 
+            position: 'absolute',
+            top: '15px',
+            right: '15px',
+            backgroundColor: '#f1f1f1',
+            color: '#222',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            {formatDate(order.created_at)}
+          </div>
+          
+          <p style={{ 
+            fontSize: '16px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 18px 0',
+            fontFamily: 'var(--font-montserrat)',
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px'
+          }}>Invoice Details</p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', rowGap: '10px', fontSize: '12px' }}>
+            <span style={{ fontWeight: 'bold', color: '#555555' }}>Invoice Number:</span>
+            <span style={{ fontWeight: '500' }}>{order.order_ref}</span>
+            
+            <span style={{ fontWeight: 'bold', color: '#555555' }}>Payment Due:</span>
+            <span>{formatDate(paymentDueDate.toISOString())}</span>
+            
+            <span style={{ 
+              fontWeight: 'bold', 
+              color: '#555555',
+              fontSize: '14px',
+              paddingTop: '10px',
+              borderTop: '1px solid #eee',
+              marginTop: '5px',
+            }}>Amount Due:</span>
+            <span style={{ 
+              fontWeight: 'bold',
+              color: '#AF8F53',
+              fontSize: '18px',
+              paddingTop: '10px',
+              borderTop: '1px solid #eee',
+              marginTop: '5px',
+            }}>{formatCurrency(order.total_amount)}</span>
+            
+            <span style={{ fontWeight: 'bold', color: '#555555', marginTop: '5px' }}>Status:</span>
+            <span style={{ marginTop: '5px' }}>
+              <span style={{ 
+                backgroundColor: order.status === 'completed' ? '#e6f7e6' : 
+                              order.status === 'processing' ? '#fff8e6' : 
+                              order.status === 'cancelled' ? '#fde8e8' : '#e6f2fd',
+                color: order.status === 'completed' ? '#0d6832' : 
+                      order.status === 'processing' ? '#975a16' : 
+                      order.status === 'cancelled' ? '#9b1c1c' : '#1e429f',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '11px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}>{order.status}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Client & Shipping Info Row */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        marginBottom: '35px',
+        gap: '35px'
+      }}>
+        {/* Client Info */}
+        <div style={{ 
+          flex: '1',
+          padding: '20px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          borderLeft: '4px solid #AF8F53',
+          position: 'relative',
+        }}>
+          <p style={{ 
+            fontSize: '14px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 15px 0',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            fontFamily: 'var(--font-montserrat)',
+          }}>Billed To:</p>
+          <p style={{ 
+            fontSize: '16px',
+            fontWeight: '600',
+            margin: '0 0 8px 0',
+            color: '#333',
+          }}>{order.shipping_address?.firstName} {order.shipping_address?.lastName}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.customer_email}</p>
+          <p style={{ 
+            margin: '12px 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.addressLine1}</p>
+          {order.shipping_address?.addressLine2 && <p style={{ margin: '0 0 3px 0', fontSize: '12px', color: '#555' }}>{order.shipping_address.addressLine2}</p>}
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.city}, {order.shipping_address?.province} {order.shipping_address?.postalCode}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.country}</p>
+        </div>
+        
+        {/* Shipping Info */}
+        <div style={{ 
+          flex: '1',
+          padding: '20px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          borderLeft: '4px solid #AF8F53',
+          position: 'relative',
+        }}>
+          <p style={{ 
+            fontSize: '14px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 15px 0',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            fontFamily: 'var(--font-montserrat)',
+          }}>Shipping Address:</p>
+          <p style={{ 
+            fontSize: '16px',
+            fontWeight: '600',
+            margin: '0 0 8px 0',
+            color: '#333',
+          }}>{order.shipping_address?.firstName} {order.shipping_address?.lastName}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.addressLine1}</p>
+          {order.shipping_address?.addressLine2 && <p style={{ margin: '0 0 3px 0', fontSize: '12px', color: '#555' }}>{order.shipping_address.addressLine2}</p>}
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.city}, {order.shipping_address?.province} {order.shipping_address?.postalCode}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.country}</p>
+          {order.shipping_address?.phone && <p style={{ 
+            margin: '12px 0 0 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>Phone: {order.shipping_address.phone}</p>}
+        </div>
+      </div>
+      
+      {/* Order Items Table - Ultra-premium styling */}
+      <div style={{ marginBottom: '35px' }}>
+        <div style={{ 
+          backgroundColor: '#222222',
+          padding: '14px 20px',
+          color: '#fff',
+          borderRadius: '8px 8px 0 0',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          fontFamily: 'var(--font-montserrat)',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        }}>
+          <span>Order Items</span>
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 'normal',
+            backgroundColor: '#AF8F53',
+            padding: '4px 10px',
+            borderRadius: '20px',
+            color: '#fff',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            {order.order_items.length} {order.order_items.length === 1 ? 'Item' : 'Items'}
+          </span>
+        </div>
+        
+        <div style={{ 
+          borderRadius: '0 0 8px 8px', 
+          overflow: 'hidden', 
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #eee',
+          borderTop: 'none'
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ 
+                background: 'linear-gradient(135deg, #B29657 0%, #AF8F53 100%)', 
+                color: 'white' 
+              }}>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: '600', letterSpacing: '0.5px' }}>Item</th>
+                <th style={{ padding: '14px 20px', textAlign: 'center', fontSize: '12px', fontWeight: '600', width: '80px', letterSpacing: '0.5px' }}>Qty</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12px', fontWeight: '600', width: '120px', letterSpacing: '0.5px' }}>Unit Price</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12px', fontWeight: '600', width: '120px', letterSpacing: '0.5px' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.order_items.map((item, index) => (
+                <tr key={item.id} style={{ 
+                  backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
+                  borderBottom: index === order.order_items.length - 1 ? 'none' : '1px solid #eeeeee'
+                }}>
+                  <td style={{ padding: '14px 20px' }}>
+                    <div style={{ fontWeight: '600', color: '#333' }}>{item.products?.name || 'Product not found'}</div>
+                    {item.size && <span style={{ fontSize: '11px', display: 'block', color: '#666', marginTop: '4px' }}>Size: {item.size}</span>}
+                    {item.products?.sku && <span style={{ fontSize: '11px', display: 'block', color: '#888', marginTop: '2px' }}>SKU: {item.products.sku}</span>}
+                  </td>
+                  <td style={{ padding: '14px 20px', textAlign: 'center' }}>{item.quantity}</td>
+                  <td style={{ padding: '14px 20px', textAlign: 'right' }}>{formatCurrency(item.price)}</td>
+                  <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: '600', color: '#333' }}>{formatCurrency(item.price * item.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ backgroundColor: '#f5f5f5' }}>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'left', fontWeight: '600' }}>Subtotal</td>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(subtotal)}</td>
+              </tr>
+              <tr style={{ backgroundColor: '#f5f5f5' }}>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'left', fontWeight: '600' }}>Shipping</td>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'right', fontWeight: '600' }}>
+                  {order.shipping_fee === 0 ? 
+                    <span style={{ 
+                      backgroundColor: '#e6f7e6', 
+                      color: '#0d6832', 
+                      padding: '3px 8px', 
+                      borderRadius: '4px', 
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }}>FREE</span> : 
+                    formatCurrency(order.shipping_fee)}
+                </td>
+              </tr>
+              <tr style={{ 
+                backgroundColor: '#222',
+                color: 'white',
+                fontSize: '16px',
+              }}>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'left', fontWeight: '600' }}>TOTAL</td>
+                <td colSpan={2} style={{ 
+                  padding: '14px 20px', 
+                  textAlign: 'right', 
+                  fontWeight: '700',
+                  color: '#AF8F53',
+                  fontSize: '18px',
+                }}>{formatCurrency(order.total_amount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      
+      {/* Totals & Payment Section */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        marginBottom: '35px',
+        gap: '35px'
+      }}>
+        {/* Payment Instructions */}
+        <div style={{ 
+          flex: '1.3',
+          padding: '25px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #eeeeee',
+          display: 'flex',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Gold accent corner */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '60px',
+            height: '60px',
+            background: `linear-gradient(135deg, #AF8F53 0%, #AF8F53 50%, transparent 50.5%)`,
+            opacity: 0.2,
+            zIndex: 1,
+          }}></div>
+          
+          <div style={{ flex: '1', position: 'relative', zIndex: 2 }}>
+            <h4 style={{ 
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#AF8F53',
+              margin: '0 0 20px 0',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              fontFamily: 'var(--font-montserrat)',
+              borderBottom: '2px solid #AF8F53',
+              paddingBottom: '8px',
+              display: 'inline-block',
+            }}>Payment Details</h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: '10px', fontSize: '12px' }}>
+              <span style={{ fontWeight: '600', color: '#444444' }}>Bank:</span>
+              <span style={{ color: '#333' }}>First National Bank (FNB)</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Account Name:</span>
+              <span style={{ color: '#333' }}>MoPres Fashion</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Account Type:</span>
+              <span style={{ color: '#333' }}>GOLD BUSINESS ACCOUNT</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Account Number:</span>
+              <span style={{ color: '#333' }}>62792142095</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Branch Code:</span>
+              <span style={{ color: '#333' }}>210648</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Branch:</span>
+              <span style={{ color: '#333' }}>JUBILEE MALL</span>
+              
+              <span style={{ 
+                fontWeight: '600', 
+                color: '#444444',
+                fontSize: '14px',
+                paddingTop: '8px',
+                marginTop: '5px',
+                borderTop: '1px solid #e5e5e5',
+              }}>Reference:</span>
+              <span style={{ 
+                fontWeight: 'bold', 
+                color: '#AF8F53',
+                fontSize: '14px',
+                paddingTop: '8px',
+                marginTop: '5px',
+                borderTop: '1px solid #e5e5e5',
+              }}>{order.order_ref}</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Email POP to:</span>
+              <span style={{ color: '#333' }}>payments@mopres.co.za</span>
+            </div>
+          </div>
+          
+          {/* QR Code Section */}
+          <div style={{ 
+            width: '130px',
+            marginLeft: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderLeft: '1px dashed #e0e0e0',
+            paddingLeft: '20px',
+          }}>
+            <p style={{ 
+              fontSize: '11px', 
+              margin: '0 0 10px 0', 
+              textAlign: 'center',
+              fontWeight: '600',
+              color: '#555',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>Scan to Pay</p>
+            
+            <div style={{ 
+              padding: '8px', 
+              backgroundColor: 'white', 
+              border: '1px solid #eeeeee',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            }}>
+              <QRCodeCanvas
+                value={paymentString}
+                size={110}
+                bgColor={"#ffffff"}
+                fgColor={"#000000"}
+                level={"M"}
+                includeMargin={false}
+              />
+            </div>
+            
+            <p style={{ 
+              fontSize: '10px', 
+              margin: '10px 0 0 0',
+              textAlign: 'center',
+              color: '#666',
+              fontWeight: '500',
+            }}>Amount: <strong style={{ color: '#AF8F53' }}>{formatCurrency(order.total_amount)}</strong></p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Notes & Terms */}
+      <div style={{ 
+        marginBottom: '35px',
+        padding: '20px 25px',
+        borderRadius: '8px',
+        backgroundColor: '#fafafa',
+        border: '1px solid #eeeeee',
+        fontSize: '12px',
+        color: '#444444',
+        position: 'relative',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      }}>
+        <h4 style={{ 
+          fontSize: '14px',
+          fontWeight: 'bold',
+          color: '#AF8F53',
+          margin: '0 0 15px 0',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          fontFamily: 'var(--font-montserrat)',
+          borderBottom: '2px solid #AF8F53',
+          paddingBottom: '8px',
+          display: 'inline-block',
+        }}>Terms & Conditions</h4>
+        
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          1. Payment is due within 7 days of invoice date.
+        </p>
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          2. Please use your order reference number ({order.order_ref}) in all correspondence and as payment reference.
+        </p>
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          3. Orders will be processed after payment has been received and confirmed.
+        </p>
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          4. For any queries regarding this invoice, please contact us at info@mopres.co.za.
+        </p>
+        <p style={{ margin: '0 0 0 0', lineHeight: '1.5' }}>
+          5. Returns and exchanges are accepted within 14 days of receipt. Please refer to our website for full policy details.
+        </p>
+      </div>
+      
+      {/* Footer */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #222222 0%, #000000 100%)',
+        padding: '25px',
+        borderRadius: '8px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Gold accent line */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '4px',
+          background: 'linear-gradient(90deg, #D4AF37 0%, #AF8F53 50%, #C5B358 100%)',
+          zIndex: 2,
+        }}></div>
+        
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          fontSize: '11px',
+          color: '#999999',
+          position: 'relative',
+          zIndex: 2,
+        }}>
+          <div style={{ flex: '1' }}>
+            <img 
+              src="/Mopres_Gold_luxury_lifestyle_logo.png" 
+              alt="MoPres Logo" 
+              width={110}
+              height={47}
+              style={{ 
+                maxWidth: '110px', 
+                marginBottom: '8px', 
+                opacity: 0.9,
+                objectFit: 'contain'
+              }} 
+            />
+            <p style={{ margin: '8px 0 0 0', color: '#777' }}>
+              Company Registration: K2018607632
+            </p>
+          </div>
+          
+          <div style={{ flex: '1', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 5px 0', color: '#AF8F53', fontWeight: '600', letterSpacing: '0.5px' }}>
+              Thank you for your business!
+            </p>
+            <p style={{ margin: '0', color: '#777' }}>
+              Questions? Contact us at info@mopres.co.za
+            </p>
+          </div>
+          
+          <div style={{ flex: '1', textAlign: 'right' }}>
+            <p style={{ margin: '0 0 5px 0', color: '#777' }}>
+              www.mopres.co.za
+            </p>
+            <p style={{ margin: '0', color: '#777' }}>
+              Invoice # {order.order_ref}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InvoiceTemplateOptimized;
+  return (
+    <div
+      ref={invoiceRef}
+      id="invoice-content"
+      className="font-poppins"
+      style={{
+        position: 'absolute',
+        left: '-9999px', // Position off-screen
+        top: '-9999px',
+        width: '210mm', // A4 width
+        minHeight: '297mm', // A4 height
+        padding: '25px',
+        fontSize: '12px',
+        fontFamily: 'var(--font-poppins), sans-serif',
+        lineHeight: '1.4',
+        color: '#222222',
+        backgroundColor: '#ffffff',
+      }}
+    >
+      {/* Header with Ultra-Premium Gradient Background */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #1A1A1A 0%, #000000 100%)',
+        padding: '28px 35px', 
+        borderRadius: '8px 8px 0 0',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+        marginBottom: '25px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Gold accent design element */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '6px',
+          background: 'linear-gradient(90deg, #D4AF37 0%, #AF8F53 50%, #C5B358 100%)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+          zIndex: 2,
+        }}></div>
+        
+        <div>
+          <img 
+            src="/Mopres_Gold_luxury_lifestyle_logo.png" 
+            alt="MoPres Logo" 
+            width={180}
+            height={76}
+            style={{ 
+              maxWidth: '180px', 
+              objectFit: 'contain'
+            }} 
+          />
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <h1 style={{ 
+            color: '#AF8F53', 
+            fontSize: '36px', 
+            fontWeight: 'bold', 
+            margin: '0 0 10px 0', 
+            letterSpacing: '3px',
+            fontFamily: 'var(--font-montserrat)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+          }}>INVOICE</h1>
+          <p style={{ 
+            color: '#fff', 
+            fontSize: '16px',
+            margin: 0,
+            fontWeight: '500',
+            letterSpacing: '1px',
+          }}># {order.order_ref}</p>
+        </div>
+      </div>
+      
+      {/* Business & Invoice Info Row */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        marginBottom: '30px',
+        gap: '35px'
+      }}>
+        {/* Business Info */}
+        <div style={{ 
+          flex: '1',
+          fontSize: '12px',
+          color: '#333333',
+          position: 'relative',
+          padding: '20px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          borderLeft: '4px solid #AF8F53',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+        }}>
+          <p style={{ 
+            fontSize: '16px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 12px 0',
+            fontFamily: 'var(--font-montserrat)',
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px'
+          }}>MoPres Fashion</p>
+          <p style={{ margin: '0 0 3px 0' }}>6680 Witrugeend Street</p>
+          <p style={{ margin: '0 0 3px 0' }}>578 Heuwelsig Estates</p>
+          <p style={{ margin: '0 0 3px 0' }}>Cetisdal, Centurion</p>
+          <p style={{ margin: '0 0 3px 0' }}>South Africa</p>
+          <p style={{ margin: '10px 0 3px 0' }}>Company Registration: K2018607632</p>
+          <p style={{ 
+            margin: '10px 0 3px 0', 
+            color: '#AF8F53',
+            fontWeight: '500',
+          }}>info@mopres.co.za | +27 83 500 5311</p>
+        </div>
+        
+        {/* Invoice Summary */}
+        <div style={{ 
+          flex: '1',
+          backgroundColor: '#fafafa',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          borderLeft: '4px solid #AF8F53',
+          position: 'relative',
+        }}>
+          <div style={{ 
+            position: 'absolute',
+            top: '15px',
+            right: '15px',
+            backgroundColor: '#f1f1f1',
+            color: '#222',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            {formatDate(order.created_at)}
+          </div>
+          
+          <p style={{ 
+            fontSize: '16px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 18px 0',
+            fontFamily: 'var(--font-montserrat)',
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px'
+          }}>Invoice Details</p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', rowGap: '10px', fontSize: '12px' }}>
+            <span style={{ fontWeight: 'bold', color: '#555555' }}>Invoice Number:</span>
+            <span style={{ fontWeight: '500' }}>{order.order_ref}</span>
+            
+            <span style={{ fontWeight: 'bold', color: '#555555' }}>Payment Due:</span>
+            <span>{formatDate(paymentDueDate.toISOString())}</span>
+            
+            <span style={{ 
+              fontWeight: 'bold', 
+              color: '#555555',
+              fontSize: '14px',
+              paddingTop: '10px',
+              borderTop: '1px solid #eee',
+              marginTop: '5px',
+            }}>Amount Due:</span>
+            <span style={{ 
+              fontWeight: 'bold',
+              color: '#AF8F53',
+              fontSize: '18px',
+              paddingTop: '10px',
+              borderTop: '1px solid #eee',
+              marginTop: '5px',
+            }}>{formatCurrency(order.total_amount)}</span>
+            
+            <span style={{ fontWeight: 'bold', color: '#555555', marginTop: '5px' }}>Status:</span>
+            <span style={{ marginTop: '5px' }}>
+              <span style={{ 
+                backgroundColor: order.status === 'completed' ? '#e6f7e6' : 
+                              order.status === 'processing' ? '#fff8e6' : 
+                              order.status === 'cancelled' ? '#fde8e8' : '#e6f2fd',
+                color: order.status === 'completed' ? '#0d6832' : 
+                      order.status === 'processing' ? '#975a16' : 
+                      order.status === 'cancelled' ? '#9b1c1c' : '#1e429f',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '11px',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}>{order.status}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Client & Shipping Info Row */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        marginBottom: '35px',
+        gap: '35px'
+      }}>
+        {/* Client Info */}
+        <div style={{ 
+          flex: '1',
+          padding: '20px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          borderLeft: '4px solid #AF8F53',
+          position: 'relative',
+        }}>
+          <p style={{ 
+            fontSize: '14px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 15px 0',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            fontFamily: 'var(--font-montserrat)',
+          }}>Billed To:</p>
+          <p style={{ 
+            fontSize: '16px',
+            fontWeight: '600',
+            margin: '0 0 8px 0',
+            color: '#333',
+          }}>{order.shipping_address?.firstName} {order.shipping_address?.lastName}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.customer_email}</p>
+          <p style={{ 
+            margin: '12px 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.addressLine1}</p>
+          {order.shipping_address?.addressLine2 && <p style={{ margin: '0 0 3px 0', fontSize: '12px', color: '#555' }}>{order.shipping_address.addressLine2}</p>}
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.city}, {order.shipping_address?.province} {order.shipping_address?.postalCode}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.country}</p>
+        </div>
+        
+        {/* Shipping Info */}
+        <div style={{ 
+          flex: '1',
+          padding: '20px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          borderLeft: '4px solid #AF8F53',
+          position: 'relative',
+        }}>
+          <p style={{ 
+            fontSize: '14px', 
+            fontWeight: 'bold', 
+            color: '#AF8F53', 
+            margin: '0 0 15px 0',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            fontFamily: 'var(--font-montserrat)',
+          }}>Shipping Address:</p>
+          <p style={{ 
+            fontSize: '16px',
+            fontWeight: '600',
+            margin: '0 0 8px 0',
+            color: '#333',
+          }}>{order.shipping_address?.firstName} {order.shipping_address?.lastName}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.addressLine1}</p>
+          {order.shipping_address?.addressLine2 && <p style={{ margin: '0 0 3px 0', fontSize: '12px', color: '#555' }}>{order.shipping_address.addressLine2}</p>}
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.city}, {order.shipping_address?.province} {order.shipping_address?.postalCode}</p>
+          <p style={{ 
+            margin: '0 0 3px 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>{order.shipping_address?.country}</p>
+          {order.shipping_address?.phone && <p style={{ 
+            margin: '12px 0 0 0', 
+            fontSize: '12px',
+            color: '#555',
+          }}>Phone: {order.shipping_address.phone}</p>}
+        </div>
+      </div>
+      
+      {/* Order Items Table - Ultra-premium styling */}
+      <div style={{ marginBottom: '35px' }}>
+        <div style={{ 
+          backgroundColor: '#222222',
+          padding: '14px 20px',
+          color: '#fff',
+          borderRadius: '8px 8px 0 0',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          fontFamily: 'var(--font-montserrat)',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        }}>
+          <span>Order Items</span>
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 'normal',
+            backgroundColor: '#AF8F53',
+            padding: '4px 10px',
+            borderRadius: '20px',
+            color: '#fff',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            {order.order_items.length} {order.order_items.length === 1 ? 'Item' : 'Items'}
+          </span>
+        </div>
+        
+        <div style={{ 
+          borderRadius: '0 0 8px 8px', 
+          overflow: 'hidden', 
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          border: '1px solid #eee',
+          borderTop: 'none'
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ 
+                background: 'linear-gradient(135deg, #B29657 0%, #AF8F53 100%)', 
+                color: 'white' 
+              }}>
+                <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '12px', fontWeight: '600', letterSpacing: '0.5px' }}>Item</th>
+                <th style={{ padding: '14px 20px', textAlign: 'center', fontSize: '12px', fontWeight: '600', width: '80px', letterSpacing: '0.5px' }}>Qty</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12px', fontWeight: '600', width: '120px', letterSpacing: '0.5px' }}>Unit Price</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '12px', fontWeight: '600', width: '120px', letterSpacing: '0.5px' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.order_items.map((item, index) => (
+                <tr key={item.id} style={{ 
+                  backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa',
+                  borderBottom: index === order.order_items.length - 1 ? 'none' : '1px solid #eeeeee'
+                }}>
+                  <td style={{ padding: '14px 20px' }}>
+                    <div style={{ fontWeight: '600', color: '#333' }}>{item.products?.name || 'Product not found'}</div>
+                    {item.size && <span style={{ fontSize: '11px', display: 'block', color: '#666', marginTop: '4px' }}>Size: {item.size}</span>}
+                    {item.products?.sku && <span style={{ fontSize: '11px', display: 'block', color: '#888', marginTop: '2px' }}>SKU: {item.products.sku}</span>}
+                  </td>
+                  <td style={{ padding: '14px 20px', textAlign: 'center' }}>{item.quantity}</td>
+                  <td style={{ padding: '14px 20px', textAlign: 'right' }}>{formatCurrency(item.price)}</td>
+                  <td style={{ padding: '14px 20px', textAlign: 'right', fontWeight: '600', color: '#333' }}>{formatCurrency(item.price * item.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ backgroundColor: '#f5f5f5' }}>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'left', fontWeight: '600' }}>Subtotal</td>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(subtotal)}</td>
+              </tr>
+              <tr style={{ backgroundColor: '#f5f5f5' }}>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'left', fontWeight: '600' }}>Shipping</td>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'right', fontWeight: '600' }}>
+                  {order.shipping_fee === 0 ? 
+                    <span style={{ 
+                      backgroundColor: '#e6f7e6', 
+                      color: '#0d6832', 
+                      padding: '3px 8px', 
+                      borderRadius: '4px', 
+                      fontSize: '11px',
+                      fontWeight: 'bold'
+                    }}>FREE</span> : 
+                    formatCurrency(order.shipping_fee)}
+                </td>
+              </tr>
+              <tr style={{ 
+                backgroundColor: '#222',
+                color: 'white',
+                fontSize: '16px',
+              }}>
+                <td colSpan={2} style={{ padding: '14px 20px', textAlign: 'left', fontWeight: '600' }}>TOTAL</td>
+                <td colSpan={2} style={{ 
+                  padding: '14px 20px', 
+                  textAlign: 'right', 
+                  fontWeight: '700',
+                  color: '#AF8F53',
+                  fontSize: '18px',
+                }}>{formatCurrency(order.total_amount)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      
+      {/* Totals & Payment Section */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        marginBottom: '35px',
+        gap: '35px'
+      }}>
+        {/* Payment Instructions */}
+        <div style={{ 
+          flex: '1.3',
+          padding: '25px',
+          backgroundColor: '#fafafa',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #eeeeee',
+          display: 'flex',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Gold accent corner */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '60px',
+            height: '60px',
+            background: `linear-gradient(135deg, #AF8F53 0%, #AF8F53 50%, transparent 50.5%)`,
+            opacity: 0.2,
+            zIndex: 1,
+          }}></div>
+          
+          <div style={{ flex: '1', position: 'relative', zIndex: 2 }}>
+            <h4 style={{ 
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#AF8F53',
+              margin: '0 0 20px 0',
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px',
+              fontFamily: 'var(--font-montserrat)',
+              borderBottom: '2px solid #AF8F53',
+              paddingBottom: '8px',
+              display: 'inline-block',
+            }}>Payment Details</h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: '10px', fontSize: '12px' }}>
+              <span style={{ fontWeight: '600', color: '#444444' }}>Bank:</span>
+              <span style={{ color: '#333' }}>First National Bank (FNB)</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Account Name:</span>
+              <span style={{ color: '#333' }}>MoPres Fashion</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Account Type:</span>
+              <span style={{ color: '#333' }}>GOLD BUSINESS ACCOUNT</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Account Number:</span>
+              <span style={{ color: '#333' }}>62792142095</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Branch Code:</span>
+              <span style={{ color: '#333' }}>210648</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Branch:</span>
+              <span style={{ color: '#333' }}>JUBILEE MALL</span>
+              
+              <span style={{ 
+                fontWeight: '600', 
+                color: '#444444',
+                fontSize: '14px',
+                paddingTop: '8px',
+                marginTop: '5px',
+                borderTop: '1px solid #e5e5e5',
+              }}>Reference:</span>
+              <span style={{ 
+                fontWeight: 'bold', 
+                color: '#AF8F53',
+                fontSize: '14px',
+                paddingTop: '8px',
+                marginTop: '5px',
+                borderTop: '1px solid #e5e5e5',
+              }}>{order.order_ref}</span>
+              
+              <span style={{ fontWeight: '600', color: '#444444' }}>Email POP to:</span>
+              <span style={{ color: '#333' }}>payments@mopres.co.za</span>
+            </div>
+          </div>
+          
+          {/* QR Code Section */}
+          <div style={{ 
+            width: '130px',
+            marginLeft: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderLeft: '1px dashed #e0e0e0',
+            paddingLeft: '20px',
+          }}>
+            <p style={{ 
+              fontSize: '11px', 
+              margin: '0 0 10px 0', 
+              textAlign: 'center',
+              fontWeight: '600',
+              color: '#555',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>Scan to Pay</p>
+            
+            <div style={{ 
+              padding: '8px', 
+              backgroundColor: 'white', 
+              border: '1px solid #eeeeee',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            }}>
+              <QRCodeCanvas
+                value={paymentString}
+                size={110}
+                bgColor={"#ffffff"}
+                fgColor={"#000000"}
+                level={"M"}
+                includeMargin={false}
+              />
+            </div>
+            
+            <p style={{ 
+              fontSize: '10px', 
+              margin: '10px 0 0 0',
+              textAlign: 'center',
+              color: '#666',
+              fontWeight: '500',
+            }}>Amount: <strong style={{ color: '#AF8F53' }}>{formatCurrency(order.total_amount)}</strong></p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Notes & Terms */}
+      <div style={{ 
+        marginBottom: '35px',
+        padding: '20px 25px',
+        borderRadius: '8px',
+        backgroundColor: '#fafafa',
+        border: '1px solid #eeeeee',
+        fontSize: '12px',
+        color: '#444444',
+        position: 'relative',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      }}>
+        <h4 style={{ 
+          fontSize: '14px',
+          fontWeight: 'bold',
+          color: '#AF8F53',
+          margin: '0 0 15px 0',
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          fontFamily: 'var(--font-montserrat)',
+          borderBottom: '2px solid #AF8F53',
+          paddingBottom: '8px',
+          display: 'inline-block',
+        }}>Terms & Conditions</h4>
+        
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          1. Payment is due within 7 days of invoice date.
+        </p>
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          2. Please use your order reference number ({order.order_ref}) in all correspondence and as payment reference.
+        </p>
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          3. Orders will be processed after payment has been received and confirmed.
+        </p>
+        <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }}>
+          4. For any queries regarding this invoice, please contact us at info@mopres.co.za.
+        </p>
+        <p style={{ margin: '0 0 0 0', lineHeight: '1.5' }}>
+          5. Returns and exchanges are accepted within 14 days of receipt. Please refer to our website for full policy details.
+        </p>
+      </div>
+      
+      {/* Footer */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #222222 0%, #000000 100%)',
+        padding: '25px',
+        borderRadius: '8px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Gold accent line */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '4px',
+          background: 'linear-gradient(90deg, #D4AF37 0%, #AF8F53 50%, #C5B358 100%)',
+          zIndex: 2,
+        }}></div>
+        
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          fontSize: '11px',
+          color: '#999999',
+          position: 'relative',
+          zIndex: 2,
+        }}>
+          <div style={{ flex: '1' }}>
+            <img 
+              src="/Mopres_Gold_luxury_lifestyle_logo.png" 
+              alt="MoPres Logo" 
+              width={110}
+              height={47}
+              style={{ 
+                maxWidth: '110px', 
+                marginBottom: '8px', 
+                opacity: 0.9,
+                objectFit: 'contain'
+              }} 
+            />
+            <p style={{ margin: '8px 0 0 0', color: '#777' }}>
+              Company Registration: K2018607632
+            </p>
+          </div>
+          
+          <div style={{ flex: '1', textAlign: 'center' }}>
+            <p style={{ margin: '0 0 5px 0', color: '#AF8F53', fontWeight: '600', letterSpacing: '0.5px' }}>
+              Thank you for your business!
+            </p>
+            <p style={{ margin: '0', color: '#777' }}>
+              Questions? Contact us at info@mopres.co.za
+            </p>
+          </div>
+          
+          <div style={{ flex: '1', textAlign: 'right' }}>
+            <p style={{ margin: '0 0 5px 0', color: '#777' }}>
+              www.mopres.co.za
+            </p>
+            <p style={{ margin: '0', color: '#777' }}>
+              Invoice # {order.order_ref}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default InvoiceTemplateOptimized;

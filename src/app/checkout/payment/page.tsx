@@ -245,7 +245,7 @@ export default function PaymentPage() {
                    <p><span className="font-medium">Reference:</span> <strong className="text-brand-gold">Provided after order placement</strong></p>
                 </div>
                  <p className="text-xs text-text-light mt-3">
-                    Send proof of payment to <a href="mailto:payments@mopres.co.za" className="text-blue-600 hover:underline">payments@mopres.co.za</a> to speed up processing.
+                    Send proof of payment to <a href="mailto:info@mopres.co.za" className="text-blue-600 hover:underline">info@mopres.co.za</a> to speed up processing.
                  </p>
               </div>
             </div>

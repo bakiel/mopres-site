@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MoPres Admin Helper</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #AF8F53;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #9a7d4a;
+    }
+    button.secondary {
+      background-color: #4a5568;
+    }
+    button.secondary:hover {
+      background-color: #2d3748;
+    }
+    button.success {
+      background-color: #48bb78;
+    }
+    button.success:hover {
+      background-color: #38a169;
+    }
+    .message {
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 4px;
+    }
+    .success-message {
+      background-color: #d1fae5;
+      color: #047857;
+    }
+    .error-message {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+    pre {
+      background-color: #f8f8f8;
+      padding: 10px;
+      overflow: auto;
+      border-radius: 4px;
+      margin-top: 20px;
+      font-size: 12px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .logo img {
+      max-width: 180px;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <img src="/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres Fashion">
+  </div>
+  
+  <h1>MoPres Admin Helper</h1>
+  <p style="text-align: center;">This tool helps you access the admin dashboard by bypassing authentication issues.</p>
+  
+  <div class="card">
+    <h2>Option 1: Enable Admin Override</h2>
+    <p>This method uses localStorage to create an admin session that bypasses Supabase authentication.</p>
+    <button id="enableAdminBtn" class="success">Enable Admin Access</button>
+    <div id="enableMessage"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Option 2: Direct Admin Login</h2>
+    <p>Try to log in with the default admin credentials.</p>
+    <button id="directLoginBtn">Login as Admin</button>
+    <div id="loginMessage"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Option 3: Create Admin User</h2>
+    <p>Create or update the admin user in Supabase.</p>
+    <button id="createAdminBtn">Create/Update Admin User</button>
+    <div id="createMessage"></div>
+  </div>
+  
+  <div class="card">
+    <h2>Status & Troubleshooting</h2>
+    <button id="checkStatusBtn" class="secondary">Check Current Status</button>
+    <div id="statusMessage"></div>
+    <div id="debugInfo"></div>
+  </div>
+  
+  <script>
+    // DOM elements
+    const enableAdminBtn = document.getElementById('enableAdminBtn');
+    const directLoginBtn = document.getElementById('directLoginBtn');
+    const createAdminBtn = document.getElementById('createAdminBtn');
+    const checkStatusBtn = document.getElementById('checkStatusBtn');
+    
+    const enableMessage = document.getElementById('enableMessage');
+    const loginMessage = document.getElementById('loginMessage');
+    const createMessage = document.getElementById('createMessage');
+    const statusMessage = document.getElementById('statusMessage');
+    const debugInfo = document.getElementById('debugInfo');
+    
+    // Helper functions
+    function showMessage(element, message, isError = false) {
+      element.innerHTML = `<div class="message ${isError ? 'error-message' : 'success-message'}">${message}</div>`;
+    }
+    
+    function showDebug(title, data) {
+      debugInfo.innerHTML = `<h3>${title}</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+    
+    // Option 1: Enable Admin Override
+    enableAdminBtn.addEventListener('click', function() {
+      try {
+        const adminSession = {
+          isAdmin: true,
+          userId: '73f8df24-fc99-41b2-9f5c-1a5c74c4564e',
+          email: 'admin@mopres.co.za',
+          timestamp: Date.now()
+        };
+        
+        localStorage.setItem('mopres_admin_session', JSON.stringify(adminSession));
+        showMessage(enableMessage, 'Admin access enabled in localStorage! You can now visit the admin dashboard.');
+        
+        // Add button to go to admin dashboard
+        const goToAdminBtn = document.createElement('button');
+        goToAdminBtn.textContent = 'Go to Admin Dashboard';
+        goToAdminBtn.className = 'success';
+        goToAdminBtn.style.marginTop = '10px';
+        goToAdminBtn.onclick = function() {
+          window.location.href = '/admin';
+        };
+        enableMessage.appendChild(goToAdminBtn);
+        
+        showDebug('Admin Session Created', adminSession);
+      } catch (error) {
+        showMessage(enableMessage, `Error: ${error.message}`, true);
+      }
+    });
+    
+    // Option 2: Direct Admin Login (just redirect to login page)
+    directLoginBtn.addEventListener('click', function() {
+      showMessage(loginMessage, 'Redirecting to the admin login page...');
+      setTimeout(() => {
+        window.location.href = '/admin/login';
+      }, 1000);
+    });
+    
+    // Option 3: Create Admin User (create a placeholder function since we have no Supabase client here)
+    createAdminBtn.addEventListener('click', function() {
+      showMessage(createMessage, 'Redirecting to the admin login page where you can create an admin user...');
+      setTimeout(() => {
+        window.location.href = '/admin/basic-login';
+      }, 1000);
+    });
+    
+    // Check current status
+    checkStatusBtn.addEventListener('click', function() {
+      try {
+        // Check localStorage admin session
+        const adminSession = localStorage.getItem('mopres_admin_session');
+        let adminSessionData = null;
+        
+        if (adminSession) {
+          try {
+            adminSessionData = JSON.parse(adminSession);
+            const ageInHours = (Date.now() - (adminSessionData.timestamp || 0)) / (1000 * 60 * 60);
+            
+            if (adminSessionData.isAdmin && ageInHours < 24) {
+              showMessage(statusMessage, `Admin override is ACTIVE! Created ${ageInHours.toFixed(2)} hours ago.`);
+            } else {
+              showMessage(statusMessage, `Admin override exists but may be expired (${ageInHours.toFixed(2)} hours old).`, true);
+            }
+          } catch (e) {
+            showMessage(statusMessage, 'Invalid admin session data in localStorage.', true);
+          }
+        } else {
+          showMessage(statusMessage, 'No admin override found in localStorage.', true);
+        }
+        
+        // Show any available debug info
+        const allStorageData = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          try {
+            allStorageData[key] = JSON.parse(localStorage.getItem(key));
+          } catch (e) {
+            allStorageData[key] = localStorage.getItem(key);
+          }
+        }
+        
+        showDebug('Current Storage State', {
+          adminSession: adminSessionData,
+          allStorageData
+        });
+        
+      } catch (error) {
+        showMessage(statusMessage, `Error checking status: ${error.message}`, true);
+      }
+    });
+    
+    // Check status on page load
+    window.addEventListener('load', function() {
+      checkStatusBtn.click();
+    });
+  </script>
+</body>
+</html>

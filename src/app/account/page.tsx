@@ -16,6 +16,7 @@ export default function AccountPage() {
   const supabase = createSupabaseBrowserClient();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -25,6 +26,20 @@ export default function AccountPage() {
         router.push('/account/login?redirect=/account'); // Redirect if not logged in
       } else {
         setUser(session.user);
+        
+        // Fetch recent orders
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, order_ref, created_at, total_amount, status')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(3);
+          
+        if (ordersError) {
+          console.error("Error fetching recent orders:", ordersError);
+        } else {
+          setRecentOrders(orders || []);
+        }
       }
       setLoading(false);
     };
@@ -41,6 +56,31 @@ export default function AccountPage() {
       router.push('/'); // Redirect to homepage after logout
       // Optionally clear cart/other user-specific state here
       toast.success("Logged out successfully.");
+    }
+  };
+  
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-ZA', {
+      year: 'numeric', month: 'short', day: 'numeric',
+    });
+  };
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount);
+  };
+
+  // Helper function to get status badge color
+  const getStatusColor = (status: string): string => {
+    switch (status.toLowerCase()) {
+      case 'pending_payment': return 'bg-yellow-100 text-yellow-800';
+      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'shipped': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-green-200 text-green-900';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'refunded': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -100,15 +140,59 @@ export default function AccountPage() {
           </div>
 
           {/* Main Content Area */}
-          <div className="md:col-span-2 space-y-8"> {/* Added space-y */}
+          <div className="md:col-span-2 space-y-8">
+             {/* Recent Orders Section */}
+             <div className="bg-white p-6 border border-border-light rounded shadow-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-semibold font-montserrat">Recent Orders</h4>
+                  <Link href="/account/orders" className="text-brand-gold hover:underline text-sm">View All Orders</Link>
+                </div>
+                
+                {recentOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentOrders.map((order) => (
+                      <div key={order.id} className="border border-gray-200 rounded p-4 hover:border-brand-gold transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium">Order #{order.order_ref}</p>
+                            <p className="text-sm text-gray-600">{formatDate(order.created_at)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">{formatCurrency(order.total_amount)}</p>
+                            <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${getStatusColor(order.status)}`}>
+                              {order.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-right">
+                          <Link href={`/account/orders/${order.id}`}>
+                            <span className="text-brand-gold hover:underline text-sm">View Details →</span>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-light">You haven't placed any orders yet.</p>
+                )}
+                
+                {recentOrders.length > 0 && (
+                  <div className="mt-4 text-center">
+                    <Link href="/account/orders">
+                      <Button variant="secondary" className="text-sm">View All Orders</Button>
+                    </Link>
+                  </div>
+                )}
+             </div>
+             
              {/* Render ProfileForm */}
              <ProfileForm user={user} />
 
              {/* Render Notification Preferences Form */}
              <NotificationPreferencesForm user={user} />
 
-             {/* Placeholder for other dashboard content */}
-             <div className="mt-8 bg-white p-6 border border-border-light rounded shadow-md">
+             {/* Account Overview */}
+             <div className="bg-white p-6 border border-border-light rounded shadow-md">
                 <h4 className="font-semibold font-montserrat mb-3">Account Overview</h4>
                 <p className="text-sm text-text-light font-poppins">
                     From your account dashboard you can view your recent orders, manage your shipping addresses, and edit your password and account details.

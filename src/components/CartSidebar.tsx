@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'; // Import useState, useEffec
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCartStore, CartItem } from '@/store/cartStore';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client factory
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Updated import
+import { getProductImageUrl } from '@/lib/supabaseClient'; // getProductImageUrl remains here for now
 import Button from './Button';
 
 // SVG Icon for Close
@@ -62,7 +63,7 @@ const CartSidebar: React.FC = () => {
       setIsLoadingCrossSell(true);
       try {
         // Get collection IDs from items in cart
-        const collectionIds = [...new Set(items.map(item => item.collection_id).filter(Boolean))]; // Get unique, non-null collection IDs
+        const collectionIds = Array.from(new Set(items.map(item => item.collection_id).filter(Boolean) as string[])); // Convert Set to Array and assert type
         const productIdsInCart = items.map(item => item.productId);
 
         if (collectionIds.length > 0) {

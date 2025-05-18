@@ -1,307 +1,299 @@
-/// <reference types="https://esm.sh/v135/@supabase/functions-js@2.4.1/src/edge-runtime.d.ts" />
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Resend } from "npm:resend";
-import { createClient, SupabaseClient, PostgrestError } from "https://esm.sh/@supabase/supabase-js@2"; // Import PostgrestError
-import { Buffer } from "node:buffer"; // Use Node buffer for Resend compatibility
-import { delay } from "https://deno.land/std@0.168.0/async/delay.ts"; // Import delay
+import { serve } from 'https://deno.land/std@0.170.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0'
+import { Resend } from 'https://esm.sh/resend@1.0.0'
 
-// --- Environment Variable Setup & Validation ---
-console.log("Attempting to load environment variables...");
-const supabaseUrl = Deno.env.get("SB_URL");
-const serviceRoleKey = Deno.env.get("SB_SERVICE_ROLE_KEY"); // Use Service Role Key for admin-level access
-const resendApiKey = Deno.env.get("RESEND_API_KEY");
-const emailFrom = Deno.env.get("EMAIL_FROM") || "noreply@mopres.shoes"; // Default sender
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-console.log(`SB_URL: ${supabaseUrl ? 'Loaded' : 'MISSING!'}`);
-console.log(`SB_SERVICE_ROLE_KEY: ${serviceRoleKey ? 'Loaded (length: ' + (serviceRoleKey ? serviceRoleKey.length : 'N/A') + ')' : 'MISSING!'}`);
-console.log(`RESEND_API_KEY: ${resendApiKey ? 'Loaded (length: ' + (resendApiKey ? resendApiKey.length : 'N/A') + ')' : 'MISSING!'}`);
-console.log(`EMAIL_FROM: ${emailFrom}`);
+// Initialize Resend
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
-if (!supabaseUrl || !serviceRoleKey || !resendApiKey) {
-  const missingVars = [];
-  if (!supabaseUrl) missingVars.push('SB_URL');
-  if (!serviceRoleKey) missingVars.push('SB_SERVICE_ROLE_KEY');
-  if (!resendApiKey) missingVars.push('RESEND_API_KEY');
-  
-  const errorMessage = `Critical environment variables missing: ${missingVars.join(', ')}`;
-  console.error(errorMessage);
-  
-  // Instead of throwing, which causes a generic 500 error, return a detailed response
-  return new Response(JSON.stringify({ 
-    error: "Configuration Error", 
-    message: errorMessage,
-    orderRef: orderRef || null
-  }), {
-    status: 500,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+// Format date to ISO string
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-ZA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
-}
+};
 
-// --- Initialize Clients ---
-// These lines will only be reached if the above check passes.
-console.log("Initializing Supabase and Resend clients...");
-// Initialize Supabase client with the Service Role Key
-const supabase: SupabaseClient = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    // Prevent client from trying to use a JWT or persisting session for service role
-    autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false
-  }
-});
-const resend = new Resend(resendApiKey);
-console.log("Supabase and Resend clients initialized (Supabase with Service Role).");
+// Format currency to ZAR
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+  }).format(amount);
+};
 
-// --- Helper: Read Email Template ---
-async function getEmailTemplate(): Promise<string> {
-  try {
-    const templatePath = new URL("./email-template.html", import.meta.url).pathname;
-    console.log("Reading email template from:", templatePath);
-    return await Deno.readTextFile(templatePath);
-  } catch (error) {
-    console.error("Error reading email template:", error);
-    // Provide a very basic fallback template
-    return "<p>Thank you for your order. Your invoice details should be included below.</p><p>Order Reference: {{ORDER_REF}}</p><p>Total Amount: {{TOTAL_AMOUNT}}</p>";
-  }
-}
-
-// --- Helper: Format Currency ---
-function formatCurrency(amount: number, currency = "ZAR", locale = "en-ZA"): string {
-    try {
-        return new Intl.NumberFormat(locale, { style: 'currency', currency: currency }).format(amount);
-    } catch (e) {
-        console.warn("Currency formatting failed, returning raw amount:", e);
-        return `${currency} ${amount.toFixed(2)}`; // Basic fallback
+// Create email HTML
+const createEmailHtml = (order, customerName, publicUrl) => {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your MoPres Invoice #${order.order_ref}</title>
+  <style>
+    body, html {
+      font-family: 'Helvetica', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
     }
-}
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+    }
+    .header {
+      padding: 20px;
+      text-align: center;
+      border-bottom: 3px solid #AF8F53;
+    }
+    .content {
+      padding: 30px;
+    }
+    .info-box {
+      background-color: #f8f8f8;
+      border-left: 4px solid #AF8F53;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .info-box p {
+      margin: 5px 0;
+    }
+    .banking-box {
+      background-color: #f8f8f8;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    h1 {
+      color: #AF8F53;
+      font-size: 24px;
+      margin-top: 0;
+    }
+    .button {
+      display: inline-block;
+      background-color: #AF8F53;
+      color: white;
+      text-decoration: none;
+      padding: 12px 25px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: #8c8c8c;
+      border-top: 1px solid #e0e0e0;
+    }
+    .footer a {
+      color: #AF8F53;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://gfbedvoexpulmmfitxje.supabase.co/storage/v1/object/public/assets/Mopres_Gold_luxury_lifestyle_logo.png" alt="MoPres Fashion" width="150">
+    </div>
+    
+    <div class="content">
+      <h1>Your Invoice</h1>
+      <p>Dear ${customerName},</p>
+      <p>Thank you for your recent purchase from MoPres Fashion. Please find your invoice attached to this email for your records.</p>
+      
+      <div class="info-box">
+        <p><strong>Invoice Number:</strong> ${order.order_ref}</p>
+        <p><strong>Date:</strong> ${formatDate(order.created_at)}</p>
+        <p><strong>Amount Due:</strong> ${formatCurrency(order.total_amount)}</p>
+      </div>
+      
+      <div style="text-align: center;">
+        <a href="${publicUrl}" class="button">View Invoice Online</a>
+      </div>
+      
+      <p>To make payment via EFT, please use the following banking details:</p>
+      
+      <div class="banking-box">
+        <p><strong>Bank:</strong> First National Bank (FNB)</p>
+        <p><strong>Account Name:</strong> MoPres Fashion</p>
+        <p><strong>Account Type:</strong> GOLD BUSINESS ACCOUNT</p>
+        <p><strong>Account Number:</strong> 62792142095</p>
+        <p><strong>Branch Code:</strong> 210648</p>
+        <p><strong>Reference:</strong> ${order.order_ref}</p>
+      </div>
+      
+      <p>If you have any questions or need assistance, please don't hesitate to contact us at <a href="mailto:info@mopres.co.za" style="color: #AF8F53;">info@mopres.co.za</a> or call us at +27 83 500 5311.</p>
+      
+      <p>Thank you for shopping with MoPres Fashion!</p>
+      
+      <p>Warm regards,<br>The MoPres Fashion Team</p>
+    </div>
+    
+    <div class="footer">
+      <p>MoPres Fashion | 6680 Witrugeend Street, 578 Heuwelsig Estates | Cetisdal, Centurion, South Africa</p>
+      <p>© ${new Date().getFullYear()} MoPres Fashion. All rights reserved.</p>
+      <p><a href="https://www.mopres.co.za">www.mopres.co.za</a> | <a href="https://www.instagram.com/mopresfashion">Instagram</a> | <a href="https://www.facebook.com/mopresfashion">Facebook</a></p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
 
-// --- Main Function Logic ---
-serve(async (req: Request) => {
-  console.log(`Received request: ${req.method} ${req.url}`);
-
-  // --- CORS Headers ---
-  // Reference: https://supabase.com/docs/guides/functions/cors
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*', // Allow requests from any origin (adjust for production)
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', // Headers allowed by Supabase
-    'Access-Control-Allow-Methods': 'POST, OPTIONS', // Allow POST and OPTIONS
-  };
-
-  // Handle OPTIONS preflight request
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log("Handling OPTIONS preflight request");
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // 1. Validate Request Method (Now only check if not POST after handling OPTIONS)
-  if (req.method !== "POST") {
-    console.warn(`Invalid method: ${req.method}`);
-    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST" }, // Include CORS headers in error response
-    });
-  }
-
-  let orderRef: string | null = null;
   try {
-    // Dump all environment variables for debugging
-    console.log("All environment variables:");
-    for (const key of Object.keys(Deno.env.toObject())) {
-      console.log(`${key}: ${key.includes('KEY') ? '[REDACTED]' : Deno.env.get(key)}`);
+    // Create a Supabase client with the Auth context of the function
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    // Parse request body
+    const { orderId } = await req.json();
+    
+    if (!orderId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing order ID' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
     
-    // Debug our specific variables
-    console.log("SB_URL:", Deno.env.get("SB_URL"));
-    console.log("SB_SERVICE_ROLE_KEY exists:", !!Deno.env.get("SB_SERVICE_ROLE_KEY"));
-    console.log("RESEND_API_KEY exists:", !!Deno.env.get("RESEND_API_KEY"));
-    console.log("EMAIL_FROM:", Deno.env.get("EMAIL_FROM"));
-
-    const body = await req.json();
-    orderRef = body.orderRef;
-
-    if (!orderRef || typeof orderRef !== 'string') {
-      console.error("Missing or invalid 'orderRef' in request body:", body);
-      return new Response(JSON.stringify({ error: "Missing or invalid 'orderRef'" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, // Include CORS headers
+    // Get order details
+    const { data: order, error: orderError } = await supabaseClient
+      .from('orders')
+      .select(`
+        id,
+        order_ref,
+        total_amount,
+        created_at,
+        customer_email,
+        shipping_address,
+        status
+      `)
+      .eq('id', orderId)
+      .single();
+      
+    if (orderError || !order) {
+      return new Response(
+        JSON.stringify({ error: 'Order not found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+    
+    if (!order.customer_email) {
+      return new Response(
+        JSON.stringify({ error: 'Customer email not available' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    // Get customer name from shipping address
+    const shippingAddress = order.shipping_address || {};
+    const customerName = (shippingAddress.firstName && shippingAddress.lastName)
+      ? `${shippingAddress.firstName} ${shippingAddress.lastName}`
+      : 'Valued Customer';
+    
+    // Check if there's an invoice PDF in Supabase storage
+    const invoiceFileName = `invoice_${order.order_ref}.pdf`;
+    const { data: existsData } = await supabaseClient
+      .storage
+      .from('invoices')
+      .list('', {
+        search: invoiceFileName
       });
+    
+    const invoiceExists = existsData && existsData.length > 0 && existsData.some(file => file.name === invoiceFileName);
+    
+    if (!invoiceExists) {
+      return new Response(
+        JSON.stringify({ error: 'Invoice PDF not found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
-    console.log(`Processing request for orderRef: ${orderRef}`);
-
-    // 2. Fetch Order Details from Supabase with Retry Logic
-    let orderData: any = null; // Use 'any' for simplicity or define a proper type
-    let orderError: PostgrestError | null = null;
-    const maxRetries = 5; // Increased from 3
-    const retryDelayMs = 2000; // Increased from 1000ms (1 second) to 2000ms (2 seconds)
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        console.log(`Attempt ${attempt}/${maxRetries}: Fetching order details for orderRef: ${orderRef}`);
-        const { data: currentData, error: currentError } = await supabase
-            .from("orders")
-            .select("order_ref, customer_email, total_amount, customer_name") // Add other fields as needed
-            .eq("order_ref", orderRef)
-            .maybeSingle(); // Use maybeSingle() to handle 0 rows gracefully without error
-
-        orderData = currentData;
-        orderError = currentError; // Capture any actual DB errors
-
-        if (orderError) {
-            // If there's a real DB error (not just 'not found'), log it and break
-            console.error(`Database error fetching order ${orderRef} on attempt ${attempt}:`, orderError);
-            break; // Exit loop on actual errors
-        }
-
-        if (orderData) {
-            // If data is found, success!
-            console.log(`Order ${orderRef} found successfully on attempt ${attempt}.`);
-            break; // Exit loop on success
-        }
-
-        // If no data and no error, it means 0 rows were returned by maybeSingle()
-        console.warn(`Order ${orderRef} not found on attempt ${attempt}. Retrying in ${retryDelayMs}ms...`);
-        if (attempt < maxRetries) {
-            await delay(retryDelayMs); // Wait before retrying
-        } else {
-            console.error(`Order ${orderRef} not found after ${maxRetries} attempts.`);
-            // Set a specific 'not found' error to be handled below
-            orderError = { code: 'CUSTOM_NOT_FOUND', message: 'Order not found after retries', details: '', hint: '' };
-        }
+    
+    // Get the PDF file
+    const { data: fileData, error: fileError } = await supabaseClient
+      .storage
+      .from('invoices')
+      .download(invoiceFileName);
+      
+    if (fileError || !fileData) {
+      return new Response(
+        JSON.stringify({ error: 'Error downloading invoice PDF' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
-
-    // Handle final outcome after retries
-    if (orderError) {
-        console.error(`Final error state after retries for order ${orderRef}:`, orderError);
-        // Use the custom code or default to 500
-        const status = orderError.code === 'CUSTOM_NOT_FOUND' ? 404 : 500;
-        const message = status === 404 ? "Order not found after retries" : "Database error fetching order";
-        return new Response(JSON.stringify({ error: message, details: orderError.message }), {
-            status: status,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
-    // If loop finished without error, but data is still null (should be caught by CUSTOM_NOT_FOUND)
-    if (!orderData) {
-        console.error(`Order not found for orderRef: ${orderRef} (data was null after retries - unexpected state)`);
-        return new Response(JSON.stringify({ error: "Order not found (post-retry check)" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-    }
-
-    // --- Proceed with orderData if found ---
-    console.log(`Order details confirmed for ${orderRef}. Email: ${orderData.customer_email}`);
-    const { customer_email, total_amount, customer_name } = orderData;
-
-    if (!customer_email) {
-        console.error(`Missing customer_email for orderRef: ${orderRef}`);
-        // Decide how to handle this - maybe skip email? For now, return error.
-        return new Response(JSON.stringify({ error: "Customer email missing for this order" }), {
-            status: 500, // Internal data issue
-            headers: { ...corsHeaders, "Content-Type": "application/json" }, // Include CORS headers
-        });
-    }
-
-
-    // 3. Construct PDF Path and Attempt Download
-    const pdfPath = `invoice_${orderRef}.pdf`;
-    const bucketName = "invoices"; // Assuming 'invoices' bucket
-    let pdfContent: ArrayBuffer | null = null;
-    let pdfAttachment = null;
-
-    console.log(`Attempting to download PDF from bucket '${bucketName}', path: '${pdfPath}'`);
-    const { data: blobData, error: downloadError } = await supabase.storage
-      .from(bucketName)
-      .download(pdfPath);
-
-    if (downloadError) {
-      console.warn(`Warning: Failed to download PDF invoice '${pdfPath}' for order ${orderRef}. Proceeding without attachment. Error:`, downloadError.message);
-      // Log warning but continue processing the email without the attachment
-    } else if (blobData) {
-      console.log(`PDF invoice '${pdfPath}' downloaded successfully for order ${orderRef}. Size: ${blobData.size} bytes.`);
-      try {
-        pdfContent = await blobData.arrayBuffer();
-        if (pdfContent) {
-            pdfAttachment = {
-              filename: pdfPath, // Use the constructed path as filename
-              content: Buffer.from(pdfContent), // Convert ArrayBuffer to Node Buffer for Resend
-              contentType: "application/pdf",
-            };
-            console.log(`Successfully converted PDF blob to ArrayBuffer and created attachment for ${pdfPath}.`);
-        } else {
-            console.warn(`Warning: PDF blobData.arrayBuffer() returned null/empty for ${pdfPath}. Proceeding without attachment.`);
-        }
-      } catch (e) {
-        console.error(`Error converting PDF blob to ArrayBuffer for ${pdfPath}:`, e);
-        // pdfContent remains null, proceed without attachment
-      }
-    } else {
-         console.warn(`Warning: PDF invoice '${pdfPath}' for order ${orderRef} not found or empty, but no download error reported. Proceeding without attachment.`);
-    }
-
-    // 4. Read and Populate Email Template
-    console.log("Reading email template...");
-    let emailHtmlContent = await getEmailTemplate();
-
-    console.log("Populating email template...");
-    // Replace placeholders (case-insensitive replaceAll)
-    const formattedTotal = formatCurrency(total_amount || 0); // Handle potential null total_amount
-    emailHtmlContent = emailHtmlContent.replace(/{{ORDER_REF}}/gi, orderRef || 'N/A');
-    emailHtmlContent = emailHtmlContent.replace(/{{TOTAL_AMOUNT}}/gi, formattedTotal);
-    emailHtmlContent = emailHtmlContent.replace(/{{CUSTOMER_NAME}}/gi, customer_name || 'Valued Customer');
-    // Add more replacements as needed based on the actual template
-
-    // 5. Send Email via Resend
-    const attachments = pdfAttachment ? [pdfAttachment] : [];
-    console.log(`Sending invoice email to: ${customer_email} for order ${orderRef}. Attachment included: ${!!pdfAttachment}`);
-
-    const { data: emailSentData, error: emailError } = await resend.emails.send({
-      from: emailFrom,
-      to: customer_email, // Use email fetched from the order
-      subject: `Your Mopres Order Invoice (${orderRef})`,
-      html: emailHtmlContent, // Use populated HTML
-      attachments: attachments, // Attach PDF if available
+    
+    // Convert the file to base64
+    const buffer = await fileData.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
+    const base64Invoice = btoa(String.fromCharCode.apply(null, uint8Array));
+    
+    // Get the public URL
+    const { data: publicUrlData } = supabaseClient
+      .storage
+      .from('invoices')
+      .getPublicUrl(invoiceFileName);
+    
+    // Create email HTML
+    const emailHtml = createEmailHtml(order, customerName, publicUrlData.publicUrl);
+    
+    // Send email with attachment
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'MoPres Fashion <onboarding@resend.dev>',
+      to: [order.customer_email],
+      subject: `MoPres Fashion - Your Invoice #${order.order_ref}`,
+      html: emailHtml,
+      attachments: [
+        {
+          filename: `MoPres_Invoice_${order.order_ref}.pdf`,
+          content: base64Invoice,
+          encoding: 'base64',
+        },
+      ],
+      reply_to: 'bakielisrael@gmail.com',
     });
-
+    
     if (emailError) {
-      console.error(`Error sending email via Resend for order ${orderRef}:`, emailError);
-      return new Response(JSON.stringify({ error: "Failed to send invoice email" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, // Include CORS headers
-      });
+      console.error('Error sending email:', emailError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to send email' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
-
-    console.log(`Email for order ${orderRef} sent successfully:`, emailSentData?.id);
-    return new Response(JSON.stringify({ success: true, message: "Invoice email sent.", emailId: emailSentData?.id }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }, // Include CORS headers
-    });
-
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Invoice email sent to ${order.customer_email}`,
+        emailId: emailData?.id
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
   } catch (error) {
-    // Catch unexpected errors (e.g., JSON parsing issues, unhandled exceptions)
-    console.error(`Unhandled error processing request (OrderRef: ${orderRef || 'N/A'}):`, error);
-    
-    // Attempt to provide more context for debugging
-    let errorDetails = "Unknown error type";
-    if (error instanceof Error) {
-      errorDetails = `${error.name}: ${error.message}\nStack: ${error.stack || 'No stack trace'}`;
-    } else {
-      try {
-        errorDetails = JSON.stringify(error);
-      } catch (e) {
-        errorDetails = String(error);
-      }
-    }
-    
-    return new Response(JSON.stringify({ 
-      error: "Internal Server Error", 
-      details: errorDetails,
-      debugInfo: "Check function logs for more details" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error('Error processing request:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
-});
-
-console.log("Send Invoice Email function handler registered.");
+})

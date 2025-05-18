@@ -19,15 +19,23 @@ export default function ResetPasswordPage() {
 
   // Check for password recovery token in URL hash on mount
   useEffect(() => {
+    // For debugging, list all URL parameters and hash values
+    const urlSearchParams = new URLSearchParams(window.location.search);
+    const params = Object.fromEntries(urlSearchParams.entries());
+    console.log("URL params:", params);
+    console.log("URL hash:", window.location.hash);
+    
     // Supabase sends the recovery token in the URL fragment like #access_token=...&refresh_token=...&type=recovery
     // We only need the access_token part for updateUser, but Supabase handles session creation automatically
     // if the user clicks the link. We just need to check if the 'type=recovery' is present.
     const hash = window.location.hash;
-    if (hash.includes('type=recovery')) {
+    
+    // Accept either recovery or a direct token parameter
+    if (hash.includes('type=recovery') || params.token || params.access_token) {
         setTokenValid(true);
         console.log("Password recovery flow detected.");
     } else {
-        console.warn("No password recovery token found in URL hash.");
+        console.warn("No password recovery token found in URL hash or params.");
         setError("Invalid or missing password reset link. Please request a new one.");
         setTokenValid(false);
     }
