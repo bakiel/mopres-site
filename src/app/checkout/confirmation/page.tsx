@@ -589,22 +589,30 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
   );
 }
 
+// Suspense fallback component
+function ConfirmationPageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background-body">
+      <div className="text-center p-4">
+        <div className="animate-spin h-12 w-12 border-4 border-brand-gold border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p className="text-text-light">Loading order confirmation...</p>
+      </div>
+    </div>
+  );
+}
+
+// New wrapper component to call useSearchParams inside Suspense
+function ConfirmationPageClientWrapper() {
+  const searchParams = useSearchParams();
+  const orderRef = searchParams ? searchParams.get('order_ref') : null; // Using 'order_ref' as per build log
+  return <ConfirmationPageContent orderRef={orderRef} />;
+}
+
 // Default export: Page component that uses Suspense
 export default function OrderConfirmationPage() {
-  const searchParams = useSearchParams(); // This hook triggers client-side rendering for the part that uses it
-  const orderRef = searchParams ? searchParams.get('orderRef') : null;
-
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background-body">
-        <div className="text-center p-4">
-          <div className="animate-spin h-12 w-12 border-4 border-brand-gold border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-text-light">Loading confirmation details...</p>
-        </div>
-      </div>
-    }>
-      {/* ConfirmationPageContent now receives orderRef as a prop */}
-      <ConfirmationPageContent orderRef={orderRef} />
+    <Suspense fallback={<ConfirmationPageFallback />}>
+      <ConfirmationPageClientWrapper />
     </Suspense>
   );
 }
