@@ -204,8 +204,10 @@ export default async function Home() {
                   <div className="collection-overlay absolute inset-0 bg-gradient-to-t from-black/75 to-transparent flex flex-col justify-end items-center text-center p-6 transition-colors duration-std ease-in-out group-hover:from-black/90 group-hover:to-black/20 z-10">
                     {/* Title (not linked separately, relies on background link) */}
                     <h3 className="font-montserrat text-xl lg:text-2xl text-white font-semibold mb-4 text-shadow-sm">{collection.name}</h3>
-                    {/* Button relies on parent Link for navigation */}
-                    <Button variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins text-sm px-5 py-2 pointer-events-none">Shop Now</Button> {/* Removed href, added pointer-events-none */}
+                    {/* Button with its own link for better accessibility */}
+                    <Link href={`/shop/collections/${collection.slug}`}>
+                      <Button variant="outline-light" className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-std ease-in-out font-poppins text-sm px-5 py-2">Shop Now</Button>
+                    </Link>
                   </div>
                 </div>
               ))}
