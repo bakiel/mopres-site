@@ -13,7 +13,11 @@ git commit -m "Add Docker deployment configuration" --no-edit || true
 echo "Pushing changes to GitHub..."
 git push -u origin admin-logout-fix
 
-# Step 3: Build and run Docker container locally for testing
+# Step 3: Run Vercel deployment
+echo "Deploying to Vercel..."
+npx vercel --prod
+
+# Step 4: Build and run Docker container locally for testing
 echo "Building Docker container for local testing..."
 docker-compose build
 
@@ -23,16 +27,14 @@ docker-compose up -d
 echo "Container is now running at http://localhost:3000"
 echo "You can stop the container with: docker-compose down"
 
-# Step 4: Instructions for Vercel deployment
 echo ""
-echo "===== DEPLOYMENT INSTRUCTIONS ====="
-echo "1. To deploy on Vercel, go to: https://vercel.com/bakiel/mopres-site"
-echo "2. If automatic deployment is enabled, your changes will be deployed once merged to main branch"
-echo "3. For manual deployment, use the following commands:"
-echo "   cd /Users/mac/Downloads/Mopres/mopres-nextjs"
-echo "   npx vercel --prod"
+echo "===== DEPLOYMENT COMPLETE ====="
+echo "Your changes have been:"
+echo "1. Pushed to GitHub branch: admin-logout-fix"
+echo "2. Deployed to Vercel"
+echo "3. Started in a local Docker container"
 echo ""
-echo "4. To create a pull request for your changes, visit:"
-echo "   https://github.com/bakiel/mopres-site/compare/main...admin-logout-fix"
+echo "To create a pull request for your changes, visit:"
+echo "https://github.com/bakiel/mopres-site/compare/main...admin-logout-fix"
 echo ""
 echo "Note: The admin users will now default to being logged out, and the logo displays correctly on the login page."
