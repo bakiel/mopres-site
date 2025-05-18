@@ -3,8 +3,9 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { logger } from '@/utils/logger';
-import { createAdminSession } from '@/utils/admin-auth';
+import { createAdminSession, checkAutoLoginStatus } from '@/utils/admin-auth';
 
 // Dynamically import the admin session injector to ensure it runs client-side
 const AdminSessionInjector = dynamic(
@@ -17,21 +18,49 @@ export default function AdminRootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter();
+  
   useEffect(() => {
-    // Set up admin session directly in layout
-    try {
-      // Force set admin session on every admin page load
-      createAdminSession('admin@mopres.co.za', '73f8df24-fc99-41b2-9f5c-1a5c74c4564e');
+    // Check if we're on the login page - don't auto-inject on login page
+    const isLoginPage = typeof window !== 'undefined' && 
+      (window.location.pathname.includes('/admin/login') || 
+       window.location.pathname.includes('/admin/basic-login') ||
+       window.location.pathname.includes('/admin/logout'));
+    
+    // Log admin layout access
+    logger.admin('Admin layout rendered', { 
+      path: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+      isLoginPage
+    });
+    
+    // Skip session creation on login/logout pages
+    if (isLoginPage) {
+      logger.debug('On login/logout page, skipping admin session creation');
+      return;
+    }
+    
+    // Check if auto-login is disabled
+    const isAutoLoginEnabled = checkAutoLoginStatus();
+    
+    if (!isAutoLoginEnabled) {
+      logger.debug('Auto-login is disabled, redirecting to login page');
       
-      // Log admin layout access
-      logger.admin('Admin layout rendered', { 
-        path: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
-        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown'
-      });
+      // Redirect to login page if auto-login is disabled
+      if (typeof window !== 'undefined' && !isLoginPage) {
+        window.location.href = '/admin/login';
+      }
+      return;
+    }
+    
+    // Only create admin session if auto-login is enabled and we're not on login page
+    try {
+      createAdminSession('admin@mopres.co.za', '73f8df24-fc99-41b2-9f5c-1a5c74c4564e');
+      logger.admin('Admin session created in layout');
     } catch (error) {
       logger.error('Error setting up admin session in layout', error);
     }
-  }, []);
+  }, [router]);
 
   return (
     <div>
