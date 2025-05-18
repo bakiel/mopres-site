@@ -1,5 +1,5 @@
 /**
- * Admin authentication utilities with enhanced logging
+ * Enhanced admin authentication utilities with disabled auto-login by default
  */
 
 import { logger } from '@/utils/logger';
@@ -35,7 +35,11 @@ export const createAdminSession = (email: string = 'admin@mopres.co.za', userId:
     };
     
     localStorage.setItem('mopres_admin_session', JSON.stringify(adminSession));
-    logger.admin('Admin session created successfully', { email, userId });
+    
+    // Always set auto-login disabled by default - this is the key change
+    localStorage.setItem('mopres_disable_auto_login', 'true');
+    
+    logger.admin('Admin session created with auto-login disabled', { email, userId });
   } catch (error) {
     logger.error('Failed to create admin session', error);
     throw error;
@@ -44,6 +48,7 @@ export const createAdminSession = (email: string = 'admin@mopres.co.za', userId:
 
 /**
  * Check if admin session exists and is valid
+ * Also enforces auto-login disabled by default
  */
 export const validateAdminSession = (): boolean => {
   if (!isClient) {
@@ -52,6 +57,15 @@ export const validateAdminSession = (): boolean => {
   }
   
   try {
+    // First check if auto-login is disabled
+    const isAutoLoginDisabled = localStorage.getItem('mopres_disable_auto_login') === 'true';
+    
+    // If auto-login is disabled and we're in the login page validation, return false
+    if (isAutoLoginDisabled && window.location.pathname.includes('/admin/login')) {
+      logger.debug('Auto-login disabled, manual login required');
+      return false;
+    }
+    
     const sessionData = localStorage.getItem('mopres_admin_session');
     if (!sessionData) {
       logger.debug('No admin session found');
@@ -91,7 +105,9 @@ export const clearAdminSession = (): void => {
   
   try {
     localStorage.removeItem('mopres_admin_session');
-    logger.admin('Admin session cleared');
+    // Always set the disable auto-login flag when clearing session
+    localStorage.setItem('mopres_disable_auto_login', 'true');
+    logger.admin('Admin session cleared with auto-login disabled');
   } catch (error) {
     logger.error('Failed to clear admin session', error);
   }
@@ -142,6 +158,43 @@ export const logoutAdmin = async (): Promise<boolean> => {
 };
 
 /**
+ * Check if auto-login is enabled/disabled and
+ * allow explicit enabling/disabling
+ */
+export const checkAutoLoginStatus = (): boolean => {
+  if (!isClient) return false;
+  
+  try {
+    return localStorage.getItem('mopres_disable_auto_login') !== 'true';
+  } catch (error) {
+    logger.error('Error checking auto-login status', error);
+    return false;
+  }
+};
+
+export const enableAutoLogin = (): void => {
+  if (!isClient) return;
+  
+  try {
+    localStorage.removeItem('mopres_disable_auto_login');
+    logger.admin('Auto-login enabled');
+  } catch (error) {
+    logger.error('Error enabling auto-login', error);
+  }
+};
+
+export const disableAutoLogin = (): void => {
+  if (!isClient) return;
+  
+  try {
+    localStorage.setItem('mopres_disable_auto_login', 'true');
+    logger.admin('Auto-login disabled');
+  } catch (error) {
+    logger.error('Error disabling auto-login', error);
+  }
+};
+
+/**
  * Authenticate admin with Supabase
  */
 export const authenticateAdmin = async (email: string, password: string): Promise<boolean> => {
@@ -177,6 +230,9 @@ export const authenticateAdmin = async (email: string, password: string): Promis
     
     if (userRole === ADMIN_ROLE) {
       logger.admin('Admin authentication successful', { userId: data.user.id, email: data.user.email });
+      
+      // Clear the auto-login disable flag to allow this session
+      localStorage.removeItem('mopres_disable_auto_login');
       
       // Create admin session
       createAdminSession(data.user.email, data.user.id);

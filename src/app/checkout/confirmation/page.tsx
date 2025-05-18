@@ -610,7 +610,7 @@ function ConfirmationPageFallback() {
 // New wrapper component to call useSearchParams inside Suspense
 function ConfirmationPageClientWrapper() {
   const searchParams = useSearchParams();
-  const orderRef = searchParams ? searchParams.get('orderRef') : null; // Changed to 'orderRef' to match payment page
+  const orderRef = searchParams ? searchParams.get('order_ref') : null; // Make sure we match the expected param name 'order_ref'
   return <ConfirmationPageContent orderRef={orderRef} />;
 }
 

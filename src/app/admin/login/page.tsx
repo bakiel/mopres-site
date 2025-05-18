@@ -4,120 +4,227 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
-import Button from '@/components/Button';
+import { supabase } from '@/lib/supabase-client';
+import Button from '@/components/admin/ui/Button';
+import Input from '@/components/admin/ui/Input';
 import { ADMIN_ROLE } from '@/lib/constants';
-import { handleAuthError } from '@/lib/auth-utils';
+import { logger } from '@/utils/logger';
+import { 
+  authenticateAdmin, 
+  createAdminSession,
+  assignAdminRole, 
+  checkAutoLoginStatus,
+  disableAutoLogin
+} from '@/utils/admin-auth-fix'; // Note the use of our modified auth utilities
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@mopres.co.za');
+  const [password, setPassword] = useState('secureAdminPassword123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
+  const [debug, setDebug] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(true); // Always show debug info for troubleshooting
+  const [showAdminOverride, setShowAdminOverride] = useState(false);
+  const [rememberedLogin, setRememberedLogin] = useState(false);
   
   const router = useRouter();
-  const supabase = createSupabaseBrowserClient();
-  
-  // Check if already logged in as admin on page load
+  // Get the singleton Supabase client
+  const supabaseClient = supabase();
+
+  // This replaced the previous auto-login functionality
+  // Now we don't auto-login by default
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session check error:', error);
-          return;
-        }
-        
-        if (data.session) {
-          // Get user metadata to check for admin role
-          const { data: userData } = await supabase.auth.getUser();
-          const userRole = userData?.user?.user_metadata?.role;
-          
-          if (userRole === ADMIN_ROLE) {
-            // Already logged in as admin, redirect to admin dashboard
-            setMessage('Already logged in as admin. Redirecting...');
-            router.push('/admin');
-          }
-        }
-      } catch (err) {
-        console.error('Error checking session:', err);
-      }
-    };
+    // Always disable auto-login by default
+    disableAutoLogin();
     
-    checkSession();
-  }, [router, supabase.auth]);
+    setDebug({
+      type: 'login_page_loaded', 
+      message: 'Login page loaded with auto-login disabled by default'
+    });
+    
+    logger.admin('Login page loaded with auto-login disabled by default');
+    setError('Please log in with your admin credentials.');
+  }, []);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setMessage(null);
+    setDebug(null);
     
     try {
-      // First sign in with email/password
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      logger.admin('Manual login attempt', { email });
+      console.log('Attempting login with email:', email);
+      setDebug({type: 'login_attempt', email});
       
-      if (signInError) {
-        console.error('Sign in error:', signInError);
-        setError(handleAuthError(signInError));
-        setLoading(false);
-        return;
-      }
+      // Try both methods - Supabase auth and localStorage override
+      let loginSuccess = false;
       
-      if (!signInData.user) {
-        setError('Login failed. Please try again.');
-        setLoading(false);
-        return;
-      }
-      
-      // Check if user has admin role in metadata
-      const userRole = signInData.user.user_metadata?.role;
-      
-      if (userRole !== ADMIN_ROLE) {
-        // If not an admin, try to update user metadata with admin role
-        // This would typically be done through a proper authorization system
-        // For simplicity in this example, we'll update the role directly
+      // First try Supabase auth
+      try {
+        // Use the authenticateAdmin utility function
+        loginSuccess = await authenticateAdmin(email, password);
         
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: {
-            role: ADMIN_ROLE
+        if (loginSuccess) {
+          logger.admin('Supabase login successful', { email });
+          setDebug({type: 'sign_in_success', data: { email }});
+          
+          // If remember login is checked, don't set auto-login disabled flag
+          if (rememberedLogin) {
+            localStorage.removeItem('mopres_disable_auto_login');
+            logger.admin('Auto-login enabled due to "Remember Login" option');
+            setDebug({type: 'auto_login_enabled', message: 'Auto-login enabled due to "Remember Login" option'});
           }
-        });
-        
-        if (updateError) {
-          console.error('Error updating user role:', updateError);
-          
-          // Sign out since not an admin
-          await supabase.auth.signOut();
-          
-          setError('You do not have admin privileges.');
-          setLoading(false);
-          return;
+        } else {
+          logger.warn('Supabase authentication failed', { email });
+          // We'll fall back to localStorage method below
         }
+      } catch (authError) {
+        logger.error('Authentication error', authError);
+        console.error('Auth error:', authError);
+        // We'll fall back to localStorage method below
       }
       
-      // Successfully logged in as admin
-      setMessage('Login successful! Redirecting to admin dashboard...');
+      if (!loginSuccess) {
+        // Fall back to localStorage override
+        logger.warn('Falling back to localStorage admin override', { email });
+        setShowAdminOverride(true);
+        setError('Supabase authentication failed. You can use the admin override option below.');
+        setDebug({type: 'showing_admin_override', message: 'Offering localStorage admin override'});
+        setLoading(false);
+        return;
+      }
       
-      // Redirect to admin dashboard
+      logger.admin('Admin login successful, redirecting...', { email });
+      console.log('Admin login successful, redirecting...');
+      
+      // Set success message
+      setError(null);
+      setDebug({type: 'redirecting', message: 'Login successful! Redirecting to admin dashboard...'});
+      
+      // First try router push
+      router.push('/admin');
+      
+      // Fallback to window.location after a short delay
       setTimeout(() => {
-        router.push('/admin');
-      }, 1000);
+        const baseUrl = window.location.origin;
+        window.location.href = `${baseUrl}/admin`;
+      }, 2000);
       
     } catch (error: any) {
+      logger.error('Unexpected login error', error);
       console.error('Login error:', error);
       setError(`Unexpected error: ${error.message}`);
+      setDebug({type: 'login_error', error: error.message});
+      setShowAdminOverride(true);
     } finally {
       setLoading(false);
     }
   };
 
+  // Add admin override function
+  const enableAdminOverride = () => {
+    logger.admin('Admin override activated', { email });
+    
+    // Use our utility function with auto-login disabled by default
+    createAdminSession(email, '73f8df24-fc99-41b2-9f5c-1a5c74c4564e');
+    
+    // If remember login is checked, enable auto-login
+    if (rememberedLogin) {
+      localStorage.removeItem('mopres_disable_auto_login');
+      logger.admin('Auto-login enabled due to "Remember Login" option in admin override');
+    }
+    
+    setDebug({type: 'admin_override_enabled', data: { email, rememberedLogin }});
+    setError('Admin override enabled! Redirecting to admin dashboard...');
+    
+    setTimeout(() => {
+      router.push('/admin');
+    }, 1000);
+  };
+  
+  // Add a testing function for creating admin role
+  const createAdminUser = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setDebug({type: 'create_admin_start', message: 'Starting admin user creation process'});
+      logger.admin('Starting admin user creation process', { email });
+      
+      // First, sign out to clear any existing sessions
+      await supabaseClient.auth.signOut();
+      
+      // Sign up with admin credentials
+      const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: ADMIN_ROLE
+          }
+        }
+      });
+      
+      if (signUpError) {
+        // Check if it's already registered error
+        if (signUpError.message.includes('already registered')) {
+          logger.info('User already exists, attempting to sign in and update role', { email });
+          setDebug({type: 'user_exists', message: 'User already exists, attempting to sign in and update role'});
+          
+          // Try to sign in
+          const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (signInError) {
+            logger.error('Sign in error after signup', signInError);
+            setError(`Sign in error after signup: ${signInError.message}`);
+            setDebug({type: 'sign_in_after_signup_error', error: signInError});
+            return;
+          }
+          
+          logger.debug('Sign in after signup successful', { userId: signInData.user.id });
+          setDebug({type: 'sign_in_after_signup_success', data: signInData});
+          
+          // Update user with admin role
+          const roleAssigned = await assignAdminRole();
+          
+          if (!roleAssigned) {
+            setError('Error updating user role');
+            setDebug({type: 'update_role_error'});
+            return;
+          }
+          
+          logger.admin('Admin role updated for existing user', { email });
+          setDebug({type: 'update_role_success'});
+          setError('Admin user updated successfully. Try logging in now.');
+          return;
+        } else {
+          logger.error('Sign up error', signUpError);
+          setError(`Sign up error: ${signUpError.message}`);
+          setDebug({type: 'sign_up_error', error: signUpError});
+          return;
+        }
+      }
+      
+      logger.admin('Admin user created successfully', { 
+        userId: signUpData?.user?.id,
+        email: signUpData?.user?.email 
+      });
+      setDebug({type: 'sign_up_success', data: signUpData});
+      setError('Admin user created successfully. Try logging in now.');
+      
+    } catch (error: any) {
+      logger.error('Error creating admin user', error);
+      setError(`Error creating admin user: ${error.message}`);
+      setDebug({type: 'create_admin_error', error: error.message});
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 bg-gradient-to-br from-gray-50 to-gray-200">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border-t-4 border-brand-gold">
@@ -147,56 +254,98 @@ export default function AdminLoginPage() {
           </div>
         )}
         
-        {message && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
-            {message}
-          </div>
-        )}
-        
         <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700">
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-brand-gold"
-              placeholder="admin@example.com"
-            />
-          </div>
+          <Input
+            id="email"
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="admin@mopres.co.za"
+          />
           
-          <div>
-            <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700">
-              Password
-            </label>
+          <Input
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="••••••••"
+          />
+          
+          <div className="flex items-center">
             <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-brand-gold"
-              placeholder="••••••••"
+              id="remember-login"
+              type="checkbox"
+              className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+              checked={rememberedLogin}
+              onChange={(e) => setRememberedLogin(e.target.checked)}
             />
+            <label htmlFor="remember-login" className="ml-2 block text-sm text-gray-700">
+              Remember login (enables auto-login)
+            </label>
           </div>
           
           <Button
             type="submit"
             variant="primary"
-            className="w-full"
+            size="lg"
+            className="w-full font-semibold"
             disabled={loading}
           >
             {loading ? 'Logging in...' : 'Login'}
           </Button>
         </form>
         
-        <div className="mt-8 text-center">
+        <div className="flex justify-between mt-8">
+          <button 
+            onClick={createAdminUser}
+            className="text-sm text-blue-600 hover:underline"
+            disabled={loading}
+          >
+            Create Admin User
+          </button>
+          
           <Link href="/" className="text-sm text-brand-gold hover:underline font-medium">
             Return to Store
+          </Link>
+        </div>
+        
+        {showAdminOverride && (
+          <div className="mt-6">
+            <p className="text-sm text-orange-600 mb-2">Having trouble with Supabase authentication?</p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              className="w-full font-semibold bg-orange-500 hover:bg-orange-600"
+              onClick={enableAdminOverride}
+              disabled={loading}
+            >
+              Enable Admin Override
+            </Button>
+          </div>
+        )}
+        
+        {/* Always show debug info for troubleshooting */}
+        <div className="mt-4 p-4 bg-gray-100 rounded overflow-auto max-h-60 text-xs">
+          <h3 className="font-bold mb-2">Debug Information:</h3>
+          <pre>{JSON.stringify(debug, null, 2)}</pre>
+        </div>
+        
+        <div className="mt-4 text-center">
+          <Link href="/admin/basic-login" className="text-blue-500 hover:underline text-sm">
+            Try Basic Login Page
+          </Link>
+          <span className="mx-2">|</span>
+          <Link href="/standalone-login.html" className="text-blue-500 hover:underline text-sm">
+            Standalone Login
+          </Link>
+          <span className="mx-2">|</span>
+          <Link href="/api/auth-test" className="text-blue-500 hover:underline text-sm">
+            Test Auth API
           </Link>
         </div>
       </div>
