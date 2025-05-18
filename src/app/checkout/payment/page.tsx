@@ -26,10 +26,10 @@ const ErrorDialog = ({ message, onClose }: { message: string; onClose: () => voi
       <h3 className="text-lg font-semibold text-red-600 mb-3 font-montserrat">Checkout Error</h3>
       <p className="text-text-dark mb-4">{message}</p>
       <div className="flex justify-between">
-        <Link href="/auth/register" className="px-4 py-2 bg-brand-gold text-white rounded hover:bg-brand-gold-dark">
+        <Link href="/account/register" className="px-4 py-2 bg-brand-gold text-white rounded hover:bg-brand-gold-dark">
           Register
         </Link>
-        <Link href="/auth/login" className="px-4 py-2 bg-brand-gold text-white rounded hover:bg-brand-gold-dark">
+        <Link href="/account/login" className="px-4 py-2 bg-brand-gold text-white rounded hover:bg-brand-gold-dark">
           Login
         </Link>
         <button 
