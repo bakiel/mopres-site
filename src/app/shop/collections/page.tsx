@@ -5,7 +5,8 @@ import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { cookies } from 'next/headers'; // Import cookies
 // Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
+import { createSupabaseServerClient } from '@/lib/supabaseServerClient'; // Import server client factory
+import { getProductImageUrl } from '@/lib/supabaseClient'; // getProductImageUrl remains here
 
 // Define a type for the collection data
 type Collection = {
@@ -19,8 +20,8 @@ type Collection = {
 // Make the component async to fetch data
 export default async function CollectionsListPage() {
   // Create Supabase client INSIDE the component function scope using the ssr factory
-  const cookieStore = cookies();
-  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+  // const cookieStore = cookies(); // No longer needed to pass to client
+  const supabase = await createSupabaseServerClient(); // Use the updated ssr client factory
 
   let collections: Collection[] = [];
   let fetchError: string | null = null;

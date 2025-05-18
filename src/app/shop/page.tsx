@@ -4,7 +4,8 @@ import Image from 'next/image'; // Import next/image
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { cookies } from 'next/headers'; // Import cookies
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServerClient';
+import { getProductImageUrl } from '@/lib/supabaseClient';
 import { Suspense } from 'react';
 // Remove ShopSortDropdown, import the other components
 import CollectionFilters from '@/components/CollectionFilters';
@@ -36,8 +37,8 @@ export default async function ShopPage({
   }>;
 }) {
   // Create Supabase client INSIDE the component function scope using the ssr factory
-  const cookieStore = await cookies(); // Await cookies() here
-  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+  // const cookieStore = await cookies(); // No longer needed to pass to client
+  const supabase = await createSupabaseServerClient(); // Use the ssr client factory
 
   // Await searchParams
   const searchParams = await searchParamsPromise;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'; // Import hooks
 // Remove cookies import: import { cookies } from 'next/headers';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient'; // Use browser client
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Use browser client
 import SectionTitle from '@/components/SectionTitle';
 import Button from '@/components/Button';
 // Remove redirect import: import { redirect } from 'next/navigation';

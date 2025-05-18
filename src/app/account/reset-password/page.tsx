@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
 
 export default function ResetPasswordPage() {
   const supabase = createSupabaseBrowserClient();

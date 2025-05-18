@@ -1,6 +1,6 @@
  import React from 'react';
  import { cookies } from 'next/headers';
- import { createSupabaseServerClient } from '@/lib/supabaseClient'; // Removed getProductImageUrl
+ import { createSupabaseServerClient } from '@/lib/supabaseServerClient'; // Removed getProductImageUrl
  // Removed unused Button import
  import { notFound, redirect } from 'next/navigation';
  // Removed unused InvoiceTemplate import
@@ -23,8 +23,8 @@ interface OrderItem {
  // Removed unused Order interface definition
 
  export default async function OrderDetailsPage({ params: paramsPromise }: { params: Promise<{ orderId: string }> }) {
-   const cookieStore = await cookies(); // Await cookies() here
-   const supabase = createSupabaseServerClient(cookieStore);
+   // const cookieStore = await cookies(); // No longer needed to pass to client
+   const supabase = await createSupabaseServerClient(); // Call updated async function
    // Await the params promise
    const { orderId } = await paramsPromise;
 

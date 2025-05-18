@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { createSupabaseServerClient } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServerClient';
 import SectionTitle from '@/components/SectionTitle';
 import Button from '@/components/Button';
 import { redirect } from 'next/navigation';
@@ -42,8 +42,8 @@ const getStatusColor = (status: string): string => {
 
 
 export default async function OrdersPage() {
-  const cookieStore = cookies();
-  const supabase = createSupabaseServerClient(cookieStore);
+  // const cookieStore = cookies(); // No longer needed to pass to client
+  const supabase = await createSupabaseServerClient(); // Call updated async function
 
   // Check user session
   const { data: { session } } = await supabase.auth.getSession();

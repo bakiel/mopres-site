@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Button from '@/components/Button';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator and helper
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Import client creator and helper
+import { getProductImageUrl } from '@/lib/supabaseClient';
 import ClientPriceFormat from './ClientPriceFormat'; // Import the new component
 
 // Define Product type (should match the one in page.tsx or a shared types file)

@@ -75,5 +75,5 @@ supabase functions deploy send-invoice-email
 When deploying to Vercel, add these environment variables:
 
 - `RESEND_API_KEY`: re_ErrSkKC1_JsQNApC189RYtU8Z5aEiB1T8
-- `SUPABASE_SERVICE_ROLE_KEY`: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmYmVkdm9leHB1bG1tZml0eGplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTI0NjU1MCwiZXhwIjoyMDYwODIyNTUwfQ.I3wR6D-H9_BBJRjjY1CiD2pnX7aRgRbkgnOzCnmh70s
+- `SUPABASE_SERVICE_ROLE_KEY`: [REDACTED - DO NOT COMMIT ACTUAL KEY HERE, STORE IN ENV VARS]
 - `NEXT_PUBLIC_INVOICE_API_KEY`: invoice-mopres-api-key-2025

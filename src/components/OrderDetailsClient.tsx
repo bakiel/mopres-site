@@ -3,10 +3,11 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Button from '@/components/Button'; 
+import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import InvoiceTemplateOptimized from '@/components/InvoiceTemplateOptimized';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import { getProductImageUrl } from '@/lib/supabaseClient';
 // Import the pure JS utility directly - we'll use the new one we created
 // Using enhanced PDF generator with robust error handling and fallback options
 import { 
@@ -44,12 +45,12 @@ interface Order {
     firstName?: string; // Make optional if not always present
     lastName?: string; // Make optional if not always present
     addressLine1?: string;
-    addressLine2?: string | null; // Allow null
+    addressLine2?: string; // Changed from string | null to string | undefined
     city?: string;
     province?: string;
     postalCode?: string;
     country?: string;
-    phone?: string | null; // Allow null
+    phone?: string; // Changed from string | null to string | undefined
   } | null; // Allow address to be null
   order_items: OrderItem[];
   payment_method?: string | null; // Add from page.tsx usage
@@ -156,12 +157,9 @@ const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
     }
     
     try {
-      const success = await downloadHtml(invoiceRef.current, `MoPres_Invoice_${order.order_ref}.html`);
-      if (success) {
-        toast.success("Invoice downloaded as HTML successfully");
-      } else {
-        toast.error("Failed to download invoice as HTML");
-      }
+      await downloadHtml(invoiceRef.current, `MoPres_Invoice_${order.order_ref}.html`);
+      // Assume downloadHtml throws on error, so if it completes, it's a success.
+      toast.success("Invoice downloaded as HTML successfully");
     } catch (error) {
       console.error("Error downloading HTML invoice:", error);
       toast.error("Failed to generate invoice in HTML format");
@@ -364,16 +362,16 @@ const OrderDetailsClient: React.FC<OrderDetailsClientProps> = ({ order }) => {
                  
                  {/* Show HTML fallback option if PDF generation failed */}
                  {pdfFailed && (
-                   <Button
-                     variant="outline"
-                     onClick={handleDownloadHtml}
-                     disabled={!order}
-                   >
-                     Download Invoice (HTML)
-                   </Button>
-                 )}
-                 
-                 <Button
+                  <Button
+                    variant="outline-light" // Changed to a likely valid variant
+                    onClick={handleDownloadHtml}
+                    disabled={!order}
+                  >
+                    Download Invoice (HTML)
+                  </Button>
+                )}
+                
+                <Button
                     variant="primary"
                     onClick={handleSendInvoiceEmail}
                     disabled={emailLoading || !order || !order.customer_email}

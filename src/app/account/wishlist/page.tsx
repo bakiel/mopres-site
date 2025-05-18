@@ -3,7 +3,8 @@
  import React, { useState, useEffect } from 'react';
  import Link from 'next/link';
  import Image from 'next/image'; // Import next/image
- import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient';
+ import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+ import { getProductImageUrl } from '@/lib/supabaseClient';
 import SectionTitle from '@/components/SectionTitle';
 import Button from '@/components/Button';
 import { useRouter } from 'next/navigation';

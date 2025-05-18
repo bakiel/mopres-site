@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
 import SectionTitle from '@/components/SectionTitle';
 import Button from '@/components/Button';
 import ProfileForm from '@/components/ProfileForm';

@@ -70,7 +70,7 @@ The invoice email system spans several areas of the application:
 
 - **Resend API Key**: `re_ErrSkKC1_JsQNApC189RYtU8Z5aEiB1T8`
 - **Supabase URL**: `https://gfbedvoexpulmmfitxje.supabase.co`
-- **Supabase Service Role Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+- **Supabase Service Role Key**: `[REDACTED - DO NOT COMMIT ACTUAL KEY HERE, STORE IN ENV VARS]`
 - **Invoice API Key**: `invoice-mopres-api-key-2025`
 
 ### Testing Scripts

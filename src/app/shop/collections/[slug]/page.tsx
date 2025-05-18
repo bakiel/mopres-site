@@ -5,7 +5,8 @@ import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { cookies } from 'next/headers'; // Import cookies
 // Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseServerClient } from '@/lib/supabaseServerClient';
+import { getProductImageUrl } from '@/lib/supabaseClient';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import CollectionProductList from '@/components/CollectionProductList';
@@ -48,8 +49,8 @@ export default async function CollectionPage({
   }>;
 }) {
   // Create Supabase client INSIDE the component function scope using the ssr factory
-  const cookieStore = await cookies(); // Await cookies() here
-  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+  // const cookieStore = await cookies(); // No longer needed to pass to client
+  const supabase = await createSupabaseServerClient(); // Use the ssr client factory
 
   // Await both promises
   const { slug } = await paramsPromise;

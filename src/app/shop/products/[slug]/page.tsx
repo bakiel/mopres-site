@@ -5,7 +5,8 @@ import Button from '@/components/Button'; // Keep Button import if used in Serve
 import SectionTitle from '@/components/SectionTitle';
 import { cookies } from 'next/headers'; // Import cookies
 // Remove auth-helpers import: import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { createSupabaseServerClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import server client factory and helper
+import { createSupabaseServerClient } from '@/lib/supabaseServerClient'; // Import server client factory
+import { getProductImageUrl } from '@/lib/supabaseClient'; // and helper
 import { notFound } from 'next/navigation';
 // Remove client-specific imports like addToCart, User type if not needed server-side
 // import { addToCart } from '@/lib/cartUtils';
@@ -105,8 +106,8 @@ const ProductLoadingSkeleton = () => (
 
 export default async function ProductPage({ params: paramsPromise }: { params: Promise<{ slug: string }> }) {
   // Create Supabase client INSIDE the component function scope using the ssr factory
-  const cookieStore = await cookies(); // Await cookies() here
-  const supabase = createSupabaseServerClient(cookieStore); // Use the ssr client factory
+  // const cookieStore = await cookies(); // No longer needed to pass to client
+  const supabase = await createSupabaseServerClient(); // Use the ssr client factory
 
   // Await params
   const { slug } = await paramsPromise;

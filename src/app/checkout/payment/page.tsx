@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { useCartStore } from '@/store/cartStore';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Import client creator
+import { getProductImageUrl } from '@/lib/supabaseClient';
 
 // Simple Loading Overlay Component
 const LoadingOverlay = () => (

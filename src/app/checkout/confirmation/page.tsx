@@ -3,24 +3,38 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
 import InvoiceTemplateOptimized from '@/components/InvoiceTemplateOptimized';
 import { createPdfWithRetry, downloadHtml } from '@/utils/pdfGeneratorEnhanced';
 import { sendOrderEmails } from '@/lib/client/fixed-email-service';
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cartStore';
 
+interface OrderItemProduct { // More specific type for the nested product
+  id: string;
+  name: string;
+  slug: string;
+  images: string[];
+}
+
 interface OrderItem {
   id: string;
   quantity: number;
   price: number;
   size?: string | null;
-  products: {
-    id: string;
-    name: string;
-    slug: string;
-    images: string[];
-  } | null;
+  products: OrderItemProduct | null; // Use the specific type
+}
+
+interface ShippingAddress { // Define ShippingAddress separately for clarity
+  firstName?: string;
+  lastName?: string;
+  addressLine1?: string;
+  addressLine2?: string; // Changed from string | null to string | undefined for InvoiceTemplateOptimized
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string | null;
 }
 
 interface Order {
@@ -31,17 +45,7 @@ interface Order {
   shipping_fee: number;
   status: string;
   customer_email?: string;
-  shipping_address: {
-    firstName?: string;
-    lastName?: string;
-    addressLine1?: string;
-    addressLine2?: string | null;
-    city?: string;
-    province?: string;
-    postalCode?: string;
-    country?: string;
-    phone?: string | null;
-  } | null;
+  shipping_address: ShippingAddress | null; // Use the specific type
   order_items: OrderItem[];
   payment_method?: string | null;
 }
@@ -56,7 +60,7 @@ declare global {
 export default function OrderConfirmationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orderRef = searchParams.get('orderRef');
+  const orderRef = searchParams ? searchParams.get('orderRef') : null; // Handle null searchParams
   const { clearCart } = useCartStore();
   
   const [orderDetails, setOrderDetails] = useState<Order | null>(null);
@@ -115,7 +119,15 @@ export default function OrderConfirmationPage() {
           throw new Error('Order not found');
         }
         
-        setOrderDetails(data);
+        // Explicitly cast to Order type, ensuring nested structures align
+        const typedData = data as any as Order; // Cast to any first, then to Order
+        
+        // Ensure shipping_address.addressLine2 is undefined if null for InvoiceTemplateOptimized compatibility
+        if (typedData.shipping_address && typedData.shipping_address.addressLine2 === null) {
+          typedData.shipping_address.addressLine2 = undefined;
+        }
+
+        setOrderDetails(typedData);
       } catch (err) {
         console.error('Error fetching order details:', err);
         setError('Failed to load order details');

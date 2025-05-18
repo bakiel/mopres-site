@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react'; // Import useEffect
 import Link from 'next/link';
 import Image from 'next/image'; // Import next/image
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import image helper and client creator
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Import image helper and client creator
+import { getProductImageUrl } from '@/lib/supabaseClient';
 import Button from '@/components/Button';
 import SectionTitle from '@/components/SectionTitle';
 import { useCartStore } from '@/store/cartStore'; // Import cart store if needed for summary

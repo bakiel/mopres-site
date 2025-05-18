@@ -6,7 +6,8 @@ import Image from 'next/image';
 import Button from '@/components/Button';
 import InnerImageZoom from 'react-inner-image-zoom';
 import 'react-inner-image-zoom/lib/styles.min.css'; // Corrected CSS import path
-import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import { getProductImageUrl } from '@/lib/supabaseClient';
 // Remove import { addToCart } from '@/lib/cartUtils';
 import { useCartStore } from '@/store/cartStore'; // Import the cart store hook
 import type { User } from '@supabase/supabase-js';

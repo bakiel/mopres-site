@@ -5,7 +5,8 @@
  import Button from '@/components/Button';
  import SectionTitle from '@/components/SectionTitle';
  import { useCartStore } from '@/store/cartStore'; // Removed CartItem import
- import { createSupabaseBrowserClient, getProductImageUrl } from '@/lib/supabaseClient'; // Import client creator
+ import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient'; // Import client creator
+ import { getProductImageUrl } from '@/lib/supabaseClient';
  import Image from 'next/image'; // Import next/image
 
 export default function CartPage() {

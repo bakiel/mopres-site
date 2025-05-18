@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Button from './Button';
-import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
 import toast from 'react-hot-toast';
 import type { User } from '@supabase/supabase-js';
 
