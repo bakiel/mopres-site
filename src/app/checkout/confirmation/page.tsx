@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react'; // Added Suspense
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
 import InvoiceTemplateOptimized from '@/components/InvoiceTemplateOptimized';
 import { createPdfWithRetry, downloadHtml } from '@/utils/pdfGeneratorEnhanced';
-import { sendOrderEmails } from '@/lib/client/fixed-email-service';
+// import { sendOrderEmails } from '@/lib/client/fixed-email-service';
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cartStore';
 
-interface OrderItemProduct { // More specific type for the nested product
+interface OrderItemProduct {
   id: string;
   name: string;
   slug: string;
@@ -22,19 +22,19 @@ interface OrderItem {
   quantity: number;
   price: number;
   size?: string | null;
-  products: OrderItemProduct | null; // Use the specific type
+  products: OrderItemProduct | null;
 }
 
-interface ShippingAddress { // Define ShippingAddress separately for clarity
+interface ShippingAddress {
   firstName?: string;
   lastName?: string;
   addressLine1?: string;
-  addressLine2?: string; 
+  addressLine2?: string;
   city?: string;
   province?: string;
   postalCode?: string;
   country?: string;
-  phone?: string | null; // Keep null here for data fetching
+  phone?: string | null;
 }
 
 interface Order {
@@ -45,12 +45,11 @@ interface Order {
   shipping_fee: number;
   status: string;
   customer_email?: string;
-  shipping_address: ShippingAddress | null; 
+  shipping_address: ShippingAddress | null;
   order_items: OrderItem[];
   payment_method?: string | null;
 }
 
-// Add window type declaration to make TypeScript happy
 declare global {
   interface Window {
     generatedPdfBlob?: Blob;
@@ -85,7 +84,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
     
     async function fetchOrderDetails() {
       try {
-        const { data, error: fetchError } = await supabase // Renamed error to fetchError
+        const { data, error: fetchError } = await supabase
           .from('orders')
           .select(`
             id,
@@ -123,12 +122,11 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
         
         const typedData = data as any as Order;
         
-        // Ensure shipping_address fields are undefined if null for InvoiceTemplateOptimized compatibility
         if (typedData.shipping_address) {
           if (typedData.shipping_address.addressLine2 === null) {
             typedData.shipping_address.addressLine2 = undefined;
           }
-          if (typedData.shipping_address.phone === null) { // Convert null phone to undefined
+          if (typedData.shipping_address.phone === null) {
             typedData.shipping_address.phone = undefined;
           }
         }
@@ -154,7 +152,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
           clearCart();
           setCartCleared(true);
           console.log('Cart cleared after successful order (with delay)');
-        } catch (cartError) { // Renamed error to cartError
+        } catch (cartError) {
           console.error('Error clearing cart:', cartError);
         }
       }, 3000);
@@ -178,14 +176,14 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
         link.click();
         document.body.removeChild(link);
         return;
-      } catch (blobError) { // Renamed error
+      } catch (blobError) {
         console.error("Error using cached PDF blob:", blobError);
       }
     } else if (invoiceDownloadUrl) {
       try {
         window.open(invoiceDownloadUrl, '_blank');
         return;
-      } catch (urlError) { // Renamed error
+      } catch (urlError) {
         console.error("Error opening invoice URL:", urlError);
       }
     }
@@ -249,7 +247,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
         throw new Error("Invoice template element is not available");
       }
       
-    } catch (genError) { // Renamed error
+    } catch (genError) {
       console.error("Error generating invoice:", genError);
       toast.error("PDF generation failed. Attempting HTML fallback...");
       handleDownloadInvoiceHTML();
@@ -267,7 +265,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
     try {
       await downloadHtml(invoiceRef.current, `MoPres_Invoice_${orderDetails.order_ref}.html`);
       toast.success("Invoice downloaded as HTML");
-    } catch (htmlError) { // Renamed error
+    } catch (htmlError) {
       console.error("Error downloading HTML invoice:", htmlError);
       toast.error("Failed to generate invoice in any format");
     }
@@ -320,7 +318,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
         duration: 5000,
         icon: '📧'
       });
-    } catch (emailError) { // Renamed error
+    } catch (emailError) {
       console.error("Error sending order emails:", emailError);
       toast.dismiss("send-email-toast");
       
@@ -342,6 +340,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
     }
   };
   
+  // Main rendering logic for ConfirmationPageContent
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background-body">
@@ -353,7 +352,7 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
     );
   }
   
-  if (error || !orderDetails) { // error is the state variable
+  if (error || !orderDetails) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background-body">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-border-light max-w-md w-full text-center">
@@ -411,8 +410,8 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
               <span className="text-sm text-text-light">Order Status</span>
               <p className="mt-1">
                 <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                  orderDetails.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
+                  orderDetails.status === 'completed' 
+                    ? 'bg-green-100 text-green-800' 
                     : 'bg-yellow-100 text-yellow-800'
                 }`}>
                   {orderDetails.status.replace(/_/g, ' ').toUpperCase()}
@@ -590,8 +589,9 @@ function ConfirmationPageContent({ orderRef }: ConfirmationPageContentProps) {
   );
 }
 
+// Default export: Page component that uses Suspense
 export default function OrderConfirmationPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // This hook triggers client-side rendering for the part that uses it
   const orderRef = searchParams ? searchParams.get('orderRef') : null;
 
   return (
@@ -603,6 +603,7 @@ export default function OrderConfirmationPage() {
         </div>
       </div>
     }>
+      {/* ConfirmationPageContent now receives orderRef as a prop */}
       <ConfirmationPageContent orderRef={orderRef} />
     </Suspense>
   );
