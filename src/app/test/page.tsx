@@ -1,40 +1,73 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function TestPage() {
+export default function TestAnalytics() {
   return (
-    <main className="pt-[calc(var(--header-height)+var(--top-banner-height))] h-screen">
-      <div className="relative w-full h-3/4 bg-gray-900">
-        <Image
-          src="/Legs_crossed_wearing_heels.jpg"
-          alt="Elegant heels"
-          fill
-          style={{ objectFit: 'cover', objectPosition: 'center' }}
-          priority
-          quality={90}
-          sizes="100vw"
-          unoptimized
-        />
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent"></div>
-        
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-          <h1 className="font-montserrat text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 lg:mb-6 tracking-wider">
-            Uncompromising Style
-          </h1>
-          <p className="text-lg sm:text-xl font-poppins font-light text-white/90 max-w-2xl mx-auto mb-8 lg:mb-10">
-            Experience the perfect blend of comfort and sophistication.
-          </p>
-          <Link
-            href="#"
-            className="inline-block bg-brand-gold hover:bg-brand-gold/90 text-black py-3 px-8 rounded-sm font-semibold font-poppins transition duration-300 text-base">
-            Shop New Arrivals
-          </Link>
-        </div>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-6">Test Analytics Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <Card className="bg-white shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">123</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">5</p>
+            <p className="text-sm text-gray-500">4.1% of inventory</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">2</p>
+            <p className="text-sm text-gray-500">1.6% of inventory</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Turnover Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">3.2x</p>
+            <p className="text-sm text-gray-500">Monthly inventory turnover</p>
+          </CardContent>
+        </Card>
       </div>
-    </main>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-white shadow">
+          <CardHeader>
+            <CardTitle className="text-lg">Inventory Status Distribution</CardTitle>
+          </CardHeader>
+          <CardContent className="h-64 flex items-center justify-center">
+            <p className="text-gray-500">Inventory status chart would appear here</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-white shadow">
+          <CardHeader>
+            <CardTitle className="text-lg">Product Category Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent className="h-64 flex items-center justify-center">
+            <p className="text-gray-500">Category breakdown chart would appear here</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
