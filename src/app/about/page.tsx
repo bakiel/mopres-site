@@ -43,7 +43,7 @@ export default function AboutPage() {
             <div className="founder-section grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8 md:gap-16 items-center mb-10"> {/* Increased gap and mb */}
                  <div className="founder-image text-center md:text-left">
                      <Image
-                         src="/Pulane Image.png" // Using local image path
+                         src="/Pulane_Profile.jpg" // Updated profile image
                          alt="Pulane, Founder of MoPres"
                          width={300}
                          height={300}
