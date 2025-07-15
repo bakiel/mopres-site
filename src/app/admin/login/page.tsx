@@ -244,9 +244,12 @@ export default function AdminLoginPage() {
           )}
         </div>
         
-        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-6">
-          Admin Login
+        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-2">
+          Admin Portal
         </h1>
+        <p className="text-center text-gray-600 mb-6">
+          For MoPres administrators only
+        </p>
         
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -345,6 +348,16 @@ export default function AdminLoginPage() {
             </Link>
           </div>
         )}
+
+        {/* User Login Link */}
+        <div className="mt-8 pt-6 border-t text-center">
+          <p className="text-sm text-gray-600">
+            Looking for customer login?{' '}
+            <Link href="/account/login" className="text-amber-600 hover:text-amber-700 font-medium">
+              Go to customer portal →
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

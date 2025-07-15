@@ -67,7 +67,40 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Check if the request is for the client portal
+  // Check if the request is for the user account area
+  if (request.nextUrl.pathname.startsWith('/account')) {
+    // Skip auth check for public account pages
+    const publicPaths = ['/account/login', '/account/register', '/account/forgot-password', '/account/reset-password'];
+    if (publicPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
+      return response;
+    }
+    
+    // For all other account routes, check user authentication
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('🔒 [User Account] No session found, redirecting to login');
+        return NextResponse.redirect(new URL('/account/login', request.url));
+      }
+      
+      // Check if user has admin role - admins should use admin area
+      const { data: userData } = await supabase.auth.getUser();
+      const userRole = userData?.user?.user_metadata?.role;
+      
+      if (userRole === ADMIN_ROLE) {
+        console.log('⚠️ [User Account] Admin user detected, redirecting to admin area');
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      }
+      
+      console.log(`✅ [User Account] Access granted: ${userData?.user?.email}`);
+    } catch (error) {
+      console.error('❌ [User Account] Error checking session:', error);
+      return NextResponse.redirect(new URL('/account/login', request.url));
+    }
+  }
+
+  // Check if the request is for the client portal (temporary admin access)
   if (request.nextUrl.pathname.startsWith('/client-portal')) {
     // Skip auth check for client portal login page
     if (request.nextUrl.pathname === '/client-portal/login') {
@@ -87,12 +120,6 @@ export async function middleware(request: NextRequest) {
 
   // Check if the request is for an admin route
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    // TEMPORARY: Redirect all admin routes to maintenance page except the maintenance page itself
-    if (request.nextUrl.pathname !== '/admin/maintenance') {
-      console.log('🚧 [Admin] Redirecting to maintenance page');
-      return NextResponse.redirect(new URL('/admin/maintenance', request.url));
-    }
-    
     // Skip auth check for admin login page
     if (request.nextUrl.pathname === '/admin/login') {
       return response;

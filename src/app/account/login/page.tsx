@@ -44,7 +44,7 @@ export default function LoginPage() {
       setMessage("Login successful! Redirecting to your account...");
       // Use full page navigation to ensure session cookie is sent reliably
       setTimeout(() => {
-       window.location.assign('/account');
+       window.location.assign('/account/dashboard');
        }, 1500); // Delay for user to see the message
 
     } catch (catchError) {
@@ -182,6 +182,13 @@ export default function LoginPage() {
             Register here
           </Link>
         </p>
+
+        {/* Admin Login Link */}
+        <div className="mt-6 text-center">
+          <Link href="/admin/login" className="text-xs text-gray-500 hover:text-gray-700">
+            Admin? Sign in here →
+          </Link>
+        </div>
       </div>
     </div>
   );
