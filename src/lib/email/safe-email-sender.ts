@@ -1,8 +1,8 @@
 import { Resend } from 'resend';
 
 // Initialize the Resend client
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const resendApiKey = process.env.RESEND_API_KEY || 'dummy-key-for-build';
+const resend = new Resend(resendApiKey);
 
 /**
  * Promise-Safe Email Sending Function
@@ -21,17 +21,10 @@ export async function sendEmailSafely(options: {
   bcc?: string[];
   replyTo?: string;
 }): Promise<{ success: boolean; error?: string }> {
-  if (!resendApiKey) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'dummy-key-for-build') {
     return {
       success: false,
       error: 'Email service is not configured: RESEND_API_KEY is missing',
-    };
-  }
-
-  if (!resend) {
-    return {
-      success: false,
-      error: 'Email service is not properly initialized',
     };
   }
 

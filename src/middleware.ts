@@ -67,6 +67,24 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Check if the request is for the client portal
+  if (request.nextUrl.pathname.startsWith('/client-portal')) {
+    // Skip auth check for client portal login page
+    if (request.nextUrl.pathname === '/client-portal/login') {
+      return response;
+    }
+    
+    // For all other client portal routes, check simple auth
+    const clientAuth = request.cookies.get('clientPortalAuth');
+    if (!clientAuth) {
+      console.log('🔒 [Client Portal] No auth found, redirecting to login');
+      return NextResponse.redirect(new URL('/client-portal/login', request.url));
+    }
+    
+    console.log('✅ [Client Portal] Access granted');
+    return response;
+  }
+
   // Check if the request is for an admin route
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Skip auth check for admin login page

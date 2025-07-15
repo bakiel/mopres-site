@@ -225,7 +225,7 @@ export default function BasicLoginPage() {
             Password:
           </label>
           <input
-            type="password"
+            type="text"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

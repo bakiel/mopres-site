@@ -161,7 +161,7 @@ const Header: FC = () => {
                   <li><Link href="/account/register" className="block px-6 py-2.5 text-sm text-white/80 hover:bg-brand-gold/15 hover:text-brand-gold whitespace-nowrap">Register</Link></li>
                   <li><Link href="/account/orders" className="block px-6 py-2.5 text-sm text-white/80 hover:bg-brand-gold/15 hover:text-brand-gold whitespace-nowrap">My Orders</Link></li>
                   <li><Link href="/account/wishlist" className="block px-6 py-2.5 text-sm text-white/80 hover:bg-brand-gold/15 hover:text-brand-gold whitespace-nowrap">Wishlist</Link></li>
-                  <li><Link href="/admin" className="block px-6 py-2.5 text-sm text-white/80 hover:bg-brand-gold/15 hover:text-brand-gold whitespace-nowrap">Admin Panel</Link></li>
+                  <li><Link href="/client-portal" className="block px-6 py-2.5 text-sm text-white/80 hover:bg-brand-gold/15 hover:text-brand-gold whitespace-nowrap">Client Portal</Link></li>
                 </ul>
               </li>
             </ul>
@@ -258,7 +258,7 @@ const Header: FC = () => {
             <li><Link href="/account/register" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>Register</Link></li>
             <li><Link href="/account/orders" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>My Orders</Link></li>
             <li><Link href="/account/wishlist" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>Wishlist</Link></li>
-            <li><Link href="/admin" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>Admin Panel</Link></li>
+            <li><Link href="/client-portal" className="block py-2.5 text-sm text-white/70 hover:text-brand-gold" onClick={closeMobileMenu}>Client Portal</Link></li>
           </div>
           <div className="w-full text-center py-3 px-4">
             <button
