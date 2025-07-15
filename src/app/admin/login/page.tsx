@@ -240,7 +240,7 @@ export default function AdminLoginPage() {
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="text-2xl font-bold text-brand-gold">MoPres Fashion</div>
+            <div className="text-2xl font-bold text-amber-600">MoPres Fashion</div>
           )}
         </div>
         
@@ -299,7 +299,7 @@ export default function AdminLoginPage() {
           </Button>
         </form>
         
-        <div className="flex justify-between mt-8">
+        <div className="flex justify-center mt-8">
           <button 
             onClick={createAdminUser}
             className="text-sm text-blue-600 hover:underline"
@@ -307,10 +307,6 @@ export default function AdminLoginPage() {
           >
             Create Admin User
           </button>
-          
-          <Link href="/" className="text-sm text-brand-gold hover:underline font-medium">
-            Return to Store
-          </Link>
         </div>
         
         {showAdminOverride && (
@@ -329,25 +325,26 @@ export default function AdminLoginPage() {
           </div>
         )}
         
-        {/* Always show debug info for troubleshooting */}
-        <div className="mt-4 p-4 bg-gray-100 rounded overflow-auto max-h-60 text-xs">
-          <h3 className="font-bold mb-2">Debug Information:</h3>
-          <pre>{JSON.stringify(debug, null, 2)}</pre>
-        </div>
+        {/* Debug info - only show if there's an error or debug info */}
+        {debug && (
+          <div className="mt-4 p-4 bg-gray-100 rounded overflow-auto max-h-60 text-xs">
+            <h3 className="font-bold mb-2">Debug Information:</h3>
+            <pre>{JSON.stringify(debug, null, 2)}</pre>
+          </div>
+        )}
         
-        <div className="mt-4 text-center">
-          <Link href="/admin/basic-login" className="text-blue-500 hover:underline text-sm">
-            Try Basic Login Page
-          </Link>
-          <span className="mx-2">|</span>
-          <Link href="/standalone-login.html" className="text-blue-500 hover:underline text-sm">
-            Standalone Login
-          </Link>
-          <span className="mx-2">|</span>
-          <Link href="/api/auth-test" className="text-blue-500 hover:underline text-sm">
-            Test Auth API
-          </Link>
-        </div>
+        {/* Alternative login options - only show if there's an error */}
+        {error && (
+          <div className="mt-4 text-center">
+            <Link href="/admin/basic-login" className="text-blue-500 hover:underline text-sm">
+              Try Basic Login Page
+            </Link>
+            <span className="mx-2">|</span>
+            <Link href="/standalone-login.html" className="text-blue-500 hover:underline text-sm">
+              Standalone Login
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

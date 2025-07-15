@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase-client';
 import { ADMIN_ROLE } from '@/lib/constants';
 import { logger } from '@/utils/logger';
@@ -13,6 +14,7 @@ export default function BasicLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debug, setDebug] = useState<any>(null);
+  const [imgError, setImgError] = useState(false);
   
   const router = useRouter();
   const supabaseClient = supabase();
@@ -203,102 +205,110 @@ export default function BasicLoginPage() {
   };
   
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-      <h1 style={{ marginBottom: '20px' }}>Basic Admin Login</h1>
-      
-      <form onSubmit={handleLogin} style={{ marginBottom: '20px' }}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>
-            Email:
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', border: '1px solid #ccc' }}
-          />
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 bg-gradient-to-br from-gray-50 to-gray-200">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border-t-4 border-amber-600">
+        <div className="flex justify-center mb-8">
+          {!imgError ? (
+            <Image 
+              src="/logo.png" 
+              alt="MoPres Fashion"
+              width={180}
+              height={60}
+              style={{ height: 'auto' }}
+              priority
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="text-2xl font-bold text-amber-600">MoPres Fashion</div>
+          )}
         </div>
         
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>
-            Password:
-          </label>
-          <input
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', border: '1px solid #ccc' }}
-          />
-        </div>
+        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-8">
+          Admin Login
+        </h1>
         
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ 
-            padding: '10px 15px', 
-            background: loading ? '#cccccc' : '#4F46E5', 
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+            />
+          </div>
+          
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-amber-600 text-white py-2 px-4 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+            
+            <button
+              type="button"
+              onClick={createTestAdmin}
+              disabled={loading}
+              className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              Create Admin User
+            </button>
+          </div>
+        </form>
+      
+        {error && (
+          <div 
+            onClick={error.includes('successful') ? goToDashboard : undefined}
+            className={`mt-6 p-4 rounded-lg cursor-${error.includes('successful') ? 'pointer' : 'default'} ${
+              error.includes('successful') 
+                ? 'bg-green-50 border border-green-200 text-green-700' 
+                : 'bg-red-50 border border-red-200 text-red-700'
+            }`}
+          >
+            {error}
+          </div>
+        )}
         
-        <button
-          type="button"
-          onClick={createTestAdmin}
-          disabled={loading}
-          style={{ 
-            padding: '10px 15px',
-            marginLeft: '10px',
-            background: loading ? '#cccccc' : '#22C55E',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          Create Admin User
-        </button>
-      </form>
-      
-      {error && (
-        <div 
-          onClick={error.includes('successful') ? goToDashboard : undefined}
-          style={{ 
-            padding: '10px', 
-            background: error.includes('successful') ? '#d1fae5' : '#fee2e2', 
-            color: error.includes('successful') ? '#047857' : '#b91c1c', 
-            borderRadius: '4px',
-            marginBottom: '20px',
-            cursor: error.includes('successful') ? 'pointer' : 'default'
-          }}
-        >
-          {error}
-        </div>
-      )}
-      
-      <div style={{ marginTop: '20px' }}>
-        <h3>Debug Info:</h3>
-        <pre style={{ background: '#f1f5f9', padding: '10px', overflow: 'auto', maxHeight: '300px' }}>
-          {JSON.stringify(debug, null, 2)}
-        </pre>
-      </div>
-      
-      <div style={{ marginTop: '20px' }}>
-        <a href="/admin/login" style={{ color: '#3B82F6', textDecoration: 'underline', marginRight: '15px' }}>
-          Return to Main Login
-        </a>
-        <a href="/standalone-login.html" style={{ color: '#3B82F6', textDecoration: 'underline', marginRight: '15px' }}>
-          Try Standalone Login
-        </a>
-        <a href="/api/auth-test" style={{ color: '#3B82F6', textDecoration: 'underline' }}>
-          Test Auth API
-        </a>
+        {/* Debug info - only show if there's debug data */}
+        {debug && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Debug Info:</h3>
+            <pre className="bg-gray-50 p-4 rounded-lg overflow-auto max-h-40 text-xs text-gray-600">
+              {JSON.stringify(debug, null, 2)}
+            </pre>
+          </div>
+        )}
+        
+        {/* Alternative login options - only show if there's an error */}
+        {error && (
+          <div className="mt-6 text-center space-x-4">
+            <a href="/admin/login" className="text-blue-600 hover:underline text-sm">
+              Return to Main Login
+            </a>
+            <span className="text-gray-400">|</span>
+            <a href="/standalone-login.html" className="text-blue-600 hover:underline text-sm">
+              Try Standalone Login
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

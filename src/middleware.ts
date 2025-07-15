@@ -87,6 +87,12 @@ export async function middleware(request: NextRequest) {
 
   // Check if the request is for an admin route
   if (request.nextUrl.pathname.startsWith('/admin')) {
+    // TEMPORARY: Redirect all admin routes to maintenance page except the maintenance page itself
+    if (request.nextUrl.pathname !== '/admin/maintenance') {
+      console.log('🚧 [Admin] Redirecting to maintenance page');
+      return NextResponse.redirect(new URL('/admin/maintenance', request.url));
+    }
+    
     // Skip auth check for admin login page
     if (request.nextUrl.pathname === '/admin/login') {
       return response;

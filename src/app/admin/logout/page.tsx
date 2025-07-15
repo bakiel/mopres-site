@@ -51,9 +51,9 @@ export default function LogoutPage() {
   }, [router]);
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className="text-2xl font-semibold text-center mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 bg-gradient-to-br from-gray-50 to-gray-200">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border-t-4 border-amber-600">
+        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-6">
           Admin Logout
         </h1>
         
