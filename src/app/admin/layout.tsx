@@ -112,8 +112,10 @@ export default function AdminRootLayout({
       const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
       
       if (!hasSessionCookie) {
-        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax; Secure=false';
-        console.log('🔄 [Admin Layout] Restored admin session cookie');
+        const isProduction = window.location.hostname !== 'localhost';
+        const cookieString = `adminSession=authenticated; path=/; max-age=86400; SameSite=Lax${isProduction ? '; Secure' : ''}`;
+        document.cookie = cookieString;
+        console.log('🔄 [Admin Layout] Restored admin session cookie with settings:', cookieString);
       }
       
       // Set localStorage if missing

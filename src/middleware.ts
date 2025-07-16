@@ -6,6 +6,10 @@ export async function middleware(request: NextRequest) {
   // Enhanced logging for all paths
   console.log(`⚪ [${new Date().toISOString()}] Middleware executing for path:`, request.nextUrl.pathname);
   
+  // CRITICAL: Log raw cookie header to debug
+  console.log('🍪 [Middleware] Raw Cookie Header:', request.headers.get('cookie'));
+  console.log('🍪 [Middleware] Parsed Cookies:', request.cookies.getAll());
+  
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -16,6 +20,13 @@ export async function middleware(request: NextRequest) {
   const adminSession = request.cookies.get('adminSession');
   const legacyBypass = request.cookies.get('adminBypass');
   const hasAdminSession = adminSession?.value === 'authenticated' || legacyBypass?.value === 'emergency-access';
+  
+  console.log('🔐 [Middleware] Session Status:', {
+    adminSessionValue: adminSession?.value,
+    legacyBypassValue: legacyBypass?.value,
+    hasAdminSession,
+    path: request.nextUrl.pathname
+  });
 
   let supabase: any = null;
 
@@ -143,8 +154,10 @@ export async function middleware(request: NextRequest) {
 
   // Check if the request is for an admin route
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Skip auth check for admin login page
-    if (request.nextUrl.pathname === '/admin/login') {
+    // Skip auth check for admin login page and debug pages
+    if (request.nextUrl.pathname === '/admin/login' || 
+        request.nextUrl.pathname === '/admin/check' ||
+        request.nextUrl.pathname === '/admin/session-test') {
       return response;
     }
     
