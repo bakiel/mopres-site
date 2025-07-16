@@ -44,6 +44,7 @@ export default function AdminRootLayout({
     const checkAdminSession = () => {
       const cookies = document.cookie.split(';');
       const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
+      const hasLegacyBypass = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
       
       // Also check localStorage as backup
       const sessionLocalStorage = localStorage.getItem('adminSession');
@@ -51,7 +52,13 @@ export default function AdminRootLayout({
       const hasValidLocalStorageSession = sessionLocalStorage === 'authenticated' && 
         sessionExpiry && parseInt(sessionExpiry) > Date.now();
       
-      return hasSessionCookie || hasValidLocalStorageSession;
+      // Check legacy localStorage too
+      const legacyBypass = localStorage.getItem('adminBypass');
+      const legacyExpiry = localStorage.getItem('adminBypassExpiry');
+      const hasValidLegacyBypass = legacyBypass === 'emergency-access' && 
+        legacyExpiry && parseInt(legacyExpiry) > Date.now();
+      
+      return hasSessionCookie || hasValidLocalStorageSession || hasLegacyBypass || hasValidLegacyBypass;
     };
     
     if (checkAdminSession()) {

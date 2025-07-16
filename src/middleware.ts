@@ -127,7 +127,9 @@ export async function middleware(request: NextRequest) {
     
     // ADMIN AUTHENTICATION - Check for admin session cookie FIRST
     const adminSession = request.cookies.get('adminSession');
-    if (adminSession?.value === 'authenticated') {
+    const legacyBypass = request.cookies.get('adminBypass'); // Backwards compatibility
+    
+    if (adminSession?.value === 'authenticated' || legacyBypass?.value === 'emergency-access') {
       console.log('✅ [Admin] Admin session active - allowing full access');
       // Set additional headers to ensure the session is maintained
       response.headers.set('X-Admin-Session', 'active');

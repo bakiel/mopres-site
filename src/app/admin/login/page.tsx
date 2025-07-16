@@ -49,7 +49,13 @@ export default function AdminLoginPage() {
       // ADMIN AUTHENTICATION - Primary admin login system
       if ((email === 'admin@mopres.co.za' || email === 'superadmin@mopres.co.za') && password === 'MoPres2024Admin!') {
         loginSuccess = true;
-        // Set admin session cookie with proper settings
+        
+        // Clear any old bypass cookies/localStorage
+        document.cookie = 'adminBypass=; path=/; max-age=0; SameSite=Lax'; // Clear old cookie
+        localStorage.removeItem('adminBypass');
+        localStorage.removeItem('adminBypassExpiry');
+        
+        // Set new admin session cookie with proper settings
         document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax'; // 24 hours
         // Also set in localStorage for persistence
         localStorage.setItem('adminSession', 'authenticated');
