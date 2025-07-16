@@ -61,6 +61,14 @@ export default function AdminLoginPage() {
         localStorage.setItem('adminSession', 'authenticated');
         localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000)); // 24 hours
         await createAdminSession();
+        
+        // Enhanced logging
+        console.log('✅ Admin session set:', {
+          cookie: document.cookie,
+          localStorage: localStorage.getItem('adminSession'),
+          expiry: localStorage.getItem('adminSessionExpiry')
+        });
+        
         logger.admin('Admin login successful', { email });
       } else {
         // First try Supabase auth

@@ -129,12 +129,21 @@ export async function middleware(request: NextRequest) {
     const adminSession = request.cookies.get('adminSession');
     const legacyBypass = request.cookies.get('adminBypass'); // Backwards compatibility
     
+    console.log('🔍 [Admin] Cookie check:', {
+      adminSession: adminSession?.value,
+      legacyBypass: legacyBypass?.value,
+      path: request.nextUrl.pathname,
+      allCookies: request.cookies.toString()
+    });
+    
     if (adminSession?.value === 'authenticated' || legacyBypass?.value === 'emergency-access') {
       console.log('✅ [Admin] Admin session active - allowing full access');
       // Set additional headers to ensure the session is maintained
       response.headers.set('X-Admin-Session', 'active');
       return response;
     }
+    
+    console.log('❌ [Admin] No valid admin session found - proceeding to Supabase auth check');
     
     // Only check Supabase session if admin session is NOT active
     try {

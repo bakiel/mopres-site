@@ -58,7 +58,25 @@ export default function AdminRootLayout({
       const hasValidLegacyBypass = legacyBypass === 'emergency-access' && 
         legacyExpiry && parseInt(legacyExpiry) > Date.now();
       
-      return hasSessionCookie || hasValidLocalStorageSession || hasLegacyBypass || hasValidLegacyBypass;
+      const result = hasSessionCookie || hasValidLocalStorageSession || hasLegacyBypass || hasValidLegacyBypass;
+      
+      // Enhanced debugging
+      console.log('🔍 [Admin Layout] Session check:', {
+        hasSessionCookie,
+        hasLegacyBypass,
+        hasValidLocalStorageSession,
+        hasValidLegacyBypass,
+        result,
+        allCookies: document.cookie,
+        localStorage: {
+          adminSession: localStorage.getItem('adminSession'),
+          adminSessionExpiry: localStorage.getItem('adminSessionExpiry'),
+          legacyBypass: localStorage.getItem('adminBypass'),
+          legacyExpiry: localStorage.getItem('adminBypassExpiry')
+        }
+      });
+      
+      return result;
     };
     
     if (checkAdminSession()) {
