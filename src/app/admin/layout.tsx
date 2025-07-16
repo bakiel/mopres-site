@@ -41,25 +41,39 @@ export default function AdminRootLayout({
     }
     
     // EMERGENCY BYPASS - Check for admin bypass cookie or localStorage
-    const cookies = document.cookie.split(';');
-    const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+    const checkBypass = () => {
+      const cookies = document.cookie.split(';');
+      const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+      
+      // Also check localStorage as backup
+      const bypassLocalStorage = localStorage.getItem('adminBypass');
+      const bypassExpiry = localStorage.getItem('adminBypassExpiry');
+      const hasValidLocalStorageBypass = bypassLocalStorage === 'emergency-access' && 
+        bypassExpiry && parseInt(bypassExpiry) > Date.now();
+      
+      return hasBypassCookie || hasValidLocalStorageBypass;
+    };
     
-    // Also check localStorage as backup
-    const bypassLocalStorage = localStorage.getItem('adminBypass');
-    const bypassExpiry = localStorage.getItem('adminBypassExpiry');
-    const hasValidLocalStorageBypass = bypassLocalStorage === 'emergency-access' && 
-      bypassExpiry && parseInt(bypassExpiry) > Date.now();
-    
-    if (hasBypassCookie || hasValidLocalStorageBypass) {
-      logger.debug('Emergency bypass active, allowing access');
-      // Ensure cookie is set if only localStorage has it
-      if (!hasBypassCookie && hasValidLocalStorageBypass) {
+    if (checkBypass()) {
+      logger.debug('Emergency bypass active, allowing access - no session checks needed');
+      // Ensure both cookie and localStorage are set for persistence
+      const cookies = document.cookie.split(';');
+      const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+      
+      if (!hasBypassCookie) {
         document.cookie = 'adminBypass=emergency-access; path=/; max-age=86400; SameSite=Lax';
       }
-      return; // Skip all other checks
+      
+      // Set localStorage if missing
+      if (!localStorage.getItem('adminBypass')) {
+        localStorage.setItem('adminBypass', 'emergency-access');
+        localStorage.setItem('adminBypassExpiry', String(Date.now() + 86400000));
+      }
+      
+      return; // Skip ALL other checks - this is the key fix
     }
     
-    // Check if auto-login is disabled
+    // Only run normal session logic if bypass is NOT active
     const isAutoLoginEnabled = checkAutoLoginStatus();
     
     if (!isAutoLoginEnabled) {
