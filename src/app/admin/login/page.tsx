@@ -47,8 +47,10 @@ export default function AdminLoginPage() {
       let loginSuccess = false;
       
       // EMERGENCY BYPASS FOR CLIENT - REMOVE AFTER FIXING
-      if (email === 'admin@mopres.co.za' && password === 'MoPres2024Admin!') {
+      if ((email === 'admin@mopres.co.za' || email === 'superadmin@mopres.co.za') && password === 'MoPres2024Admin!') {
         loginSuccess = true;
+        // Set bypass cookie
+        document.cookie = 'adminBypass=emergency-access; path=/; max-age=86400'; // 24 hours
         await createAdminSession();
         logger.admin('Emergency bypass login successful', { email });
       } else {
