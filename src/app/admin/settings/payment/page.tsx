@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import AdminLayout from '@/components/admin/AdminLayout';
 import PaymentSettings from '@/components/admin/PaymentSettings';
 import BankQRCode from '@/components/admin/BankQRCode';
@@ -23,7 +23,6 @@ export default function PaymentSettingsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [methodToDelete, setMethodToDelete] = useState<string | null>(null);
   
-  const supabase = createClientComponentClient();
   
   useEffect(() => {
     const fetchPaymentMethods = async () => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import AdminLayout from '@/components/admin/AdminLayout';
 import SizeGuideForm from '@/components/admin/SizeGuideForm';
@@ -13,7 +13,6 @@ interface EditSizeGuidePageProps {
 }
 
 export default function EditSizeGuidePage({ params }: EditSizeGuidePageProps) {
-  const supabase = createClientComponentClient();
   const [sizeGuide, setSizeGuide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

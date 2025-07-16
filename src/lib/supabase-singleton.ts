@@ -4,8 +4,10 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Database } from '@/types/supabase';
 
-// Global singleton instance 
+// Global singleton instance - ONLY ONE INSTANCE EVER
 let supabaseInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null;
+let originalAuth: any = null;
+let authBypassActive = false;
 
 // Admin session detection
 function isAdminSessionActive(): boolean {
@@ -19,7 +21,7 @@ function isAdminSessionActive(): boolean {
   );
   
   if (hasAdminCookie) {
-    console.log('🛡️ [Supabase Singleton] Admin session detected - using mock client');
+    console.log('🛡️ [Supabase Singleton] Admin session detected via cookie');
     return true;
   }
   
@@ -30,7 +32,7 @@ function isAdminSessionActive(): boolean {
       adminExpiry && parseInt(adminExpiry) > Date.now();
     
     if (isValid) {
-      console.log('🛡️ [Supabase Singleton] Admin session in localStorage - using mock client');
+      console.log('🛡️ [Supabase Singleton] Admin session detected via localStorage');
       return true;
     }
   } catch (e) {
@@ -40,67 +42,89 @@ function isAdminSessionActive(): boolean {
   return false;
 }
 
-// We need a real Supabase client for admin operations, but with auth disabled
-let adminSupabaseClient: ReturnType<typeof createClientComponentClient<Database>> | null = null;
-
-// Create a special admin client that has auth disabled but database access enabled
-const getAdminClient = () => {
-  if (!adminSupabaseClient) {
-    console.log('🔧 [Supabase Singleton] Creating admin-specific Supabase client with auth bypass');
-    adminSupabaseClient = createClientComponentClient<Database>();
-    
-    // Override auth methods to prevent interference
-    const originalAuth = adminSupabaseClient.auth;
-    adminSupabaseClient.auth = {
-      ...originalAuth,
-      getSession: async () => {
-        console.log('🛡️ [Admin Supabase] Auth getSession bypassed for admin');
-        return { data: { session: null }, error: null };
-      },
-      getUser: async () => {
-        console.log('🛡️ [Admin Supabase] Auth getUser bypassed for admin');
-        return { data: { user: null }, error: null };
-      },
-      signOut: async () => {
-        console.log('🛡️ [Admin Supabase] Auth signOut bypassed for admin');
-        return { error: null };
-      },
-      onAuthStateChange: () => {
-        console.log('🛡️ [Admin Supabase] Auth state change listener bypassed for admin');
-        return { 
-          data: { subscription: null }, 
-          unsubscribe: () => {}
-        };
-      },
-      signIn: async () => {
-        console.log('🛡️ [Admin Supabase] Auth signIn bypassed for admin');
-        return { data: { user: null, session: null }, error: null };
-      },
-      signInWithPassword: async () => {
-        console.log('🛡️ [Admin Supabase] Auth signInWithPassword bypassed for admin');
-        return { data: { user: null, session: null }, error: null };
-      }
-    } as any;
-  }
-  return adminSupabaseClient;
+// Bypass auth methods for admin sessions
+const authBypassMethods = {
+  getSession: async () => {
+    console.log('🛡️ [Admin Auth Bypass] getSession blocked');
+    return { data: { session: null }, error: null };
+  },
+  getUser: async () => {
+    console.log('🛡️ [Admin Auth Bypass] getUser blocked');
+    return { data: { user: null }, error: null };
+  },
+  signOut: async () => {
+    console.log('🛡️ [Admin Auth Bypass] signOut blocked');
+    return { error: null };
+  },
+  onAuthStateChange: () => {
+    console.log('🛡️ [Admin Auth Bypass] onAuthStateChange blocked');
+    return { 
+      data: { subscription: null }, 
+      unsubscribe: () => {}
+    };
+  },
+  signIn: async () => {
+    console.log('🛡️ [Admin Auth Bypass] signIn blocked');
+    return { data: { user: null, session: null }, error: null };
+  },
+  signInWithPassword: async () => {
+    console.log('🛡️ [Admin Auth Bypass] signInWithPassword blocked');
+    return { data: { user: null, session: null }, error: null };
+  },
+  signInWithOAuth: async () => {
+    console.log('🛡️ [Admin Auth Bypass] signInWithOAuth blocked');
+    return { data: { url: null, provider: null }, error: null };
+  },
+  signUp: async () => {
+    console.log('🛡️ [Admin Auth Bypass] signUp blocked');
+    return { data: { user: null, session: null }, error: null };
+  },
+  resetPasswordForEmail: async () => {
+    console.log('🛡️ [Admin Auth Bypass] resetPasswordForEmail blocked');
+    return { data: null, error: null };
+  },
+  updateUser: async () => {
+    console.log('🛡️ [Admin Auth Bypass] updateUser blocked');
+    return { data: { user: null }, error: null };
+  },
+  setSession: async () => {
+    console.log('🛡️ [Admin Auth Bypass] setSession blocked');
+    return { data: { session: null }, error: null };
+  },
+  refreshSession: async () => {
+    console.log('🛡️ [Admin Auth Bypass] refreshSession blocked');
+    return { data: { session: null }, error: null };
+  },
+  // Keep admin operations if they exist
+  admin: originalAuth?.admin
 };
 
-// Singleton factory function
+// Singleton factory function - ALWAYS returns the same instance
 export const supabase = (): ReturnType<typeof createClientComponentClient<Database>> => {
-  // Admin session check - return special admin client with auth disabled
-  if (isAdminSessionActive()) {
-    return getAdminClient();
+  // Create the instance only once
+  if (!supabaseInstance) {
+    console.log('🔌 [Supabase Singleton] Creating THE ONLY Supabase client instance');
+    supabaseInstance = createClientComponentClient<Database>();
+    originalAuth = { ...supabaseInstance.auth };
   }
   
-  // Create singleton instance only if it doesn't exist
-  if (!supabaseInstance) {
-    console.log('🔌 [Supabase Singleton] Creating new Supabase client instance');
-    supabaseInstance = createClientComponentClient<Database>();
-    
-    // Mark this as the official instance to prevent duplicates
-    (window as any).__supabase_client_created__ = true;
-  } else {
-    console.log('🔄 [Supabase Singleton] Reusing existing Supabase client instance');
+  // Check if we need to apply/remove auth bypass
+  const shouldBypass = isAdminSessionActive();
+  
+  if (shouldBypass && !authBypassActive) {
+    console.log('🛡️ [Supabase Singleton] Activating auth bypass for admin session');
+    authBypassActive = true;
+    // Apply bypass methods while keeping other auth properties
+    supabaseInstance.auth = {
+      ...originalAuth,
+      ...authBypassMethods,
+      admin: originalAuth.admin // Preserve admin methods if they exist
+    } as any;
+  } else if (!shouldBypass && authBypassActive) {
+    console.log('🔓 [Supabase Singleton] Removing auth bypass - no admin session');
+    authBypassActive = false;
+    // Restore original auth
+    supabaseInstance.auth = originalAuth;
   }
   
   return supabaseInstance;
@@ -110,12 +134,12 @@ export const supabase = (): ReturnType<typeof createClientComponentClient<Databa
 export const resetSupabaseInstance = () => {
   console.log('🔄 [Supabase Singleton] Resetting instance');
   supabaseInstance = null;
+  originalAuth = null;
+  authBypassActive = false;
   delete (window as any).__supabase_client_created__;
 };
 
 // Prevent multiple client creation globally
 if (typeof window !== 'undefined') {
-  // Override createClientComponentClient to prevent accidental multiple instances
-  const originalCreate = createClientComponentClient;
-  (window as any).__supabase_singleton_override__ = true;
+  (window as any).__supabase_singleton_active__ = true;
 }

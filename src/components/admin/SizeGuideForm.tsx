@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import Button from '@/components/Button';
 import Link from 'next/link';
@@ -35,7 +35,6 @@ const emptySizeGuide = {
 };
 
 export default function SizeGuideForm({ initialData = emptySizeGuide, isEditing = false }: SizeGuideFormProps) {
-  const supabase = createClientComponentClient();
   const [formData, setFormData] = useState(initialData);
   const [measurementFields, setMeasurementFields] = useState<string[]>(
     Object.keys(initialData.content[0]?.measurements || { chest: '', waist: '', hips: '' })

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import Button from '@/components/Button';
 import Link from 'next/link';
@@ -32,7 +32,6 @@ const emptyPage = {
 };
 
 export default function PageEditor({ initialData = emptyPage, isEditing = false }: PageEditorProps) {
-  const supabase = createClientComponentClient();
   const [formData, setFormData] = useState(initialData);
   const [saving, setSaving] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!initialData.slug);

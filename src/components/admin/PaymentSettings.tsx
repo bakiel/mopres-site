@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { useRouter } from 'next/navigation';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import BankQRCode from './BankQRCode';
@@ -62,7 +62,6 @@ export default function PaymentSettings({ paymentData }: PaymentSettingsProps) {
   const [success, setSuccess] = useState(false);
   
   const router = useRouter();
-  const supabase = createClientComponentClient();
   
   const handleChange = (name: string, value: any) => {
     // Special handling for checkboxes

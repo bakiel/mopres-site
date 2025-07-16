@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -28,7 +28,6 @@ interface SizeGuide {
 }
 
 export default function SizeGuidesPage() {
-  const supabase = createClientComponentClient();
   const [sizeGuides, setSizeGuides] = useState<SizeGuide[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

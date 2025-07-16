@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -38,7 +38,6 @@ export default function EmailTemplatesPage() {
   const [newTemplateName, setNewTemplateName] = useState('');
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   
-  const supabase = createClientComponentClient();
   const router = useRouter();
   
   useEffect(() => {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import Button from '@/components/Button';
 
@@ -33,7 +33,6 @@ const defaultWomenSizes: SizeConversion[] = [
 ];
 
 const ShoeConversionManager: React.FC<SizeConversionManagerProps> = ({ category = 'women' }) => {
-  const supabase = createClientComponentClient();
   const [sizeConversions, setSizeConversions] = useState<SizeConversion[]>(defaultWomenSizes);
   const [loading, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);

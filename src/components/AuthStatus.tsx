@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabaseBrowserClient';
+import { supabase } from '@/lib/supabase-singleton';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import Button from '@/components/Button';
@@ -17,7 +17,6 @@ const AuthStatus: React.FC<AuthStatusProps> = ({
   showProfile = false,
   requireAuth = false,
 }) => {
-  const supabase = createSupabaseBrowserClient();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null);

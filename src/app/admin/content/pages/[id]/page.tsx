@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import AdminLayout from '@/components/admin/AdminLayout';
 import PageEditor from '@/components/admin/PageEditor';
@@ -13,7 +13,6 @@ interface EditPageProps {
 }
 
 export default function EditPagePage({ params }: EditPageProps) {
-  const supabase = createClientComponentClient();
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
