@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/utils/logger';
 import { createAdminSession, checkAutoLoginStatus } from '@/utils/admin-auth';
+import AdminSessionGuard from '@/components/admin/AdminSessionGuard';
 
 // Dynamically import the admin session injector to ensure it runs client-side
 const AdminSessionInjector = dynamic(
@@ -123,9 +124,11 @@ export default function AdminRootLayout({
   }, [router]);
 
   return (
-    <div>
-      <AdminSessionInjector />
-      {children}
-    </div>
+    <AdminSessionGuard>
+      <div>
+        <AdminSessionInjector />
+        {children}
+      </div>
+    </AdminSessionGuard>
   );
 }

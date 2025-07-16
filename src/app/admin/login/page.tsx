@@ -50,6 +50,17 @@ export default function AdminLoginPage() {
       if ((email === 'admin@mopres.co.za' || email === 'superadmin@mopres.co.za') && password === 'MoPres2024Admin!') {
         loginSuccess = true;
         
+        // CRITICAL: Disable Supabase to prevent interference
+        (window as any).supabaseDisabled = true;
+        
+        // Clear any Supabase auth state to prevent conflicts
+        try {
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.replace('.', '-') + '-auth-token');
+        } catch (e) {
+          console.log('Could not clear Supabase auth tokens:', e);
+        }
+        
         // Clear any old bypass cookies/localStorage
         document.cookie = 'adminBypass=; path=/; max-age=0; SameSite=Lax'; // Clear old cookie
         localStorage.removeItem('adminBypass');
@@ -63,10 +74,11 @@ export default function AdminLoginPage() {
         await createAdminSession();
         
         // Enhanced logging
-        console.log('✅ Admin session set:', {
+        console.log('✅ Admin session set (Supabase disabled):', {
           cookie: document.cookie,
           localStorage: localStorage.getItem('adminSession'),
-          expiry: localStorage.getItem('adminSessionExpiry')
+          expiry: localStorage.getItem('adminSessionExpiry'),
+          supabaseDisabled: (window as any).supabaseDisabled
         });
         
         logger.admin('Admin login successful', { email });
