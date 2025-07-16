@@ -40,12 +40,22 @@ export default function AdminRootLayout({
       return;
     }
     
-    // EMERGENCY BYPASS - Check for admin bypass cookie
+    // EMERGENCY BYPASS - Check for admin bypass cookie or localStorage
     const cookies = document.cookie.split(';');
-    const hasBypass = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+    const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
     
-    if (hasBypass) {
+    // Also check localStorage as backup
+    const bypassLocalStorage = localStorage.getItem('adminBypass');
+    const bypassExpiry = localStorage.getItem('adminBypassExpiry');
+    const hasValidLocalStorageBypass = bypassLocalStorage === 'emergency-access' && 
+      bypassExpiry && parseInt(bypassExpiry) > Date.now();
+    
+    if (hasBypassCookie || hasValidLocalStorageBypass) {
       logger.debug('Emergency bypass active, allowing access');
+      // Ensure cookie is set if only localStorage has it
+      if (!hasBypassCookie && hasValidLocalStorageBypass) {
+        document.cookie = 'adminBypass=emergency-access; path=/; max-age=86400; SameSite=Lax';
+      }
       return; // Skip all other checks
     }
     

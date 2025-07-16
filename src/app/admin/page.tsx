@@ -7,15 +7,21 @@ import AdminNavigation from '@/components/admin/navigation/AdminNavigation';
 import DashboardAnalytics from '@/components/admin/DashboardAnalytics';
 import { BRAND } from '@/utils/brand';
 
-// Dynamically import the AdminLogsViewer to ensure it runs client-side
+// Dynamically import client-side components
 const AdminLogsViewer = dynamic(
   () => import('@/components/admin/AdminLogsViewer'),
+  { ssr: false }
+);
+
+const AdminSessionKeeper = dynamic(
+  () => import('@/components/admin/AdminSessionKeeper'),
   { ssr: false }
 );
 
 export default function SimpleAdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-100">
+      <AdminSessionKeeper />
       <header className="bg-white shadow">
         <div className="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">MoPres Admin Dashboard</h1>
