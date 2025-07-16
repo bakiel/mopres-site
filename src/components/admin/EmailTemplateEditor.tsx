@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ExclamationCircleIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
@@ -72,7 +72,7 @@ export default function EmailTemplateEditor({
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
   
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabaseClient = supabase();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -230,7 +230,7 @@ export default function EmailTemplateEditor({
       
       if (isNew) {
         // Create new template
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('email_templates')
           .insert({
             ...data,
@@ -240,7 +240,7 @@ export default function EmailTemplateEditor({
         if (error) throw error;
       } else {
         // Update existing template
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from('email_templates')
           .update({
             ...data,

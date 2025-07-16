@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import Button from '@/components/Button';
 import Link from 'next/link';
@@ -34,7 +34,7 @@ const emptyBanner = {
 };
 
 export default function BannerForm({ initialData = emptyBanner, isEditing = false }: BannerFormProps) {
-  const supabase = createClientComponentClient();
+  const supabaseClient = supabase();
   const [formData, setFormData] = useState(initialData);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData.image_url);
@@ -115,14 +115,14 @@ export default function BannerForm({ initialData = emptyBanner, isEditing = fals
       const filePath = `banners/${fileName}`;
       
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabaseClient.storage
         .from('public')
         .upload(filePath, imageFile);
       
       if (uploadError) throw uploadError;
       
       // Get public URL
-      const { data } = supabase.storage.from('public').getPublicUrl(filePath);
+      const { data } = supabaseClient.storage.from('public').getPublicUrl(filePath);
       
       setIsUploading(false);
       return data.publicUrl;
@@ -186,7 +186,7 @@ export default function BannerForm({ initialData = emptyBanner, isEditing = fals
       
       if (isEditing && bannerId) {
         // Update existing banner
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseClient
           .from('content_banners')
           .update(bannerData)
           .eq('id', bannerId);
@@ -196,7 +196,7 @@ export default function BannerForm({ initialData = emptyBanner, isEditing = fals
         toast.success('Banner updated successfully');
       } else {
         // Create new banner
-        const { data: newBanner, error: createError } = await supabase
+        const { data: newBanner, error: createError } = await supabaseClient
           .from('content_banners')
           .insert(bannerData)
           .select('id')
@@ -209,7 +209,7 @@ export default function BannerForm({ initialData = emptyBanner, isEditing = fals
       }
       
       // Add entry to admin_logs
-      await supabase
+      await supabaseClient
         .from('admin_logs')
         .insert({
           action: isEditing ? 'UPDATE' : 'CREATE',

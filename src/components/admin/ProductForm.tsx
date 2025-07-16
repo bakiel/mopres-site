@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/Button';
@@ -55,7 +55,7 @@ const emptyProduct = {
 
 // Main component
 export default function ProductForm({ initialData = emptyProduct, isEditing = false }: ProductFormProps) {
-  const supabase = createClientComponentClient();
+  const supabaseClient = supabase();
   
   const [formData, setFormData] = useState(initialData);
   const [collections, setCollections] = useState<Collection[]>([]);

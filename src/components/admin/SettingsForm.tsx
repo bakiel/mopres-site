@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { CheckIcon } from '@heroicons/react/24/outline';
 
 interface SettingsFormProps {
@@ -25,7 +25,7 @@ export default function SettingsForm({
   const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabaseClient = supabase();
 
   useEffect(() => {
     setFormData(initialData);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { toast } from 'react-hot-toast';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Button from '@/components/Button';
@@ -41,7 +41,7 @@ const emptyCollection = {
 };
 
 export default function CollectionForm({ initialData = emptyCollection, isEditing = false }: CollectionFormProps) {
-  const supabase = createClientComponentClient();
+  const supabaseClient = supabase();
   const [formData, setFormData] = useState(initialData);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -60,7 +60,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
     const fetchProducts = async () => {
       try {
         // Fetch all products
-        const { data: productsData, error: productsError } = await supabase
+        const { data: productsData, error: productsError } = await supabaseClient
           .from('products')
           .select('id, name, sku, price, sale_price, in_stock, images')
           .order('name');
@@ -79,7 +79,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
         
         // If editing, fetch current products in this collection
         if (isEditing && initialData.id) {
-          const { data: collectionProductsData, error: collectionProductsError } = await supabase
+          const { data: collectionProductsData, error: collectionProductsError } = await supabaseClient
             .from('collection_products')
             .select('product_id')
             .eq('collection_id', initialData.id);
@@ -97,7 +97,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
     };
     
     fetchProducts();
-  }, [supabase, isEditing, initialData.id]);
+  }, [supabaseClient, isEditing, initialData.id]);
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -182,14 +182,14 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
       const filePath = `collections/${fileName}`;
       
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabaseClient.storage
         .from('public')
         .upload(filePath, imageFile);
       
       if (uploadError) throw uploadError;
       
       // Get public URL
-      const { data } = supabase.storage.from('public').getPublicUrl(filePath);
+      const { data } = supabaseClient.storage.from('public').getPublicUrl(filePath);
       
       setIsUploading(false);
       return data.publicUrl;
@@ -224,7 +224,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
       }
       
       // Check if slug is unique (except for current collection if editing)
-      const { data: existingCollection, error: slugCheckError } = await supabase
+      const { data: existingCollection, error: slugCheckError } = await supabaseClient
         .from('collections')
         .select('id')
         .eq('slug', formData.slug)
@@ -260,7 +260,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
       
       if (isEditing && collectionId) {
         // Update existing collection
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseClient
           .from('collections')
           .update(collectionData)
           .eq('id', collectionId);
@@ -270,7 +270,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
         toast.success('Collection updated successfully');
       } else {
         // Create new collection
-        const { data: newCollection, error: createError } = await supabase
+        const { data: newCollection, error: createError } = await supabaseClient
           .from('collections')
           .insert(collectionData)
           .select('id')
@@ -290,7 +290,7 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
         
         // Remove unselected products
         if (productsToRemove.length > 0) {
-          await supabase
+          await supabaseClient
             .from('collection_products')
             .delete()
             .eq('collection_id', collectionId)
@@ -304,14 +304,14 @@ export default function CollectionForm({ initialData = emptyCollection, isEditin
             product_id: productId
           }));
           
-          await supabase
+          await supabaseClient
             .from('collection_products')
             .insert(productsToInsert);
         }
       }
       
       // Add entry to admin_logs
-      await supabase
+      await supabaseClient
         .from('admin_logs')
         .insert({
           action: isEditing ? 'UPDATE' : 'CREATE',

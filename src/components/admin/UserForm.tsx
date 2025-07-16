@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase-singleton';
 import { useRouter } from 'next/navigation';
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 
@@ -48,7 +48,7 @@ export default function UserForm({ initialData = {}, isNew = false }: UserFormPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabaseClient = supabase();
 
   useEffect(() => {
     if (formData.role === 'admin') {
@@ -136,7 +136,7 @@ export default function UserForm({ initialData = {}, isNew = false }: UserFormPr
     try {
       if (isNew) {
         // Create new user flow
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
           email: formData.email,
           password: formData.password,
           user_metadata: {
@@ -148,7 +148,7 @@ export default function UserForm({ initialData = {}, isNew = false }: UserFormPr
         if (authError) throw authError;
         
         // Insert into admin_users table
-        const { error: insertError } = await supabase
+        const { error: insertError } = await supabaseClient
           .from('admin_users')
           .insert({
             id: authData.user.id,
@@ -169,7 +169,7 @@ export default function UserForm({ initialData = {}, isNew = false }: UserFormPr
           permissions: formData.permissions
         };
         
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseClient
           .from('admin_users')
           .update(updates)
           .eq('id', initialData.id);
@@ -177,7 +177,7 @@ export default function UserForm({ initialData = {}, isNew = false }: UserFormPr
         if (updateError) throw updateError;
         
         // Update user metadata with role
-        const { error: metadataError } = await supabase.auth.admin.updateUserById(
+        const { error: metadataError } = await supabaseClient.auth.admin.updateUserById(
           initialData.id!,
           { user_metadata: { role: formData.role } }
         );
@@ -186,7 +186,7 @@ export default function UserForm({ initialData = {}, isNew = false }: UserFormPr
         
         // Update password if provided
         if (formData.password) {
-          const { error: passwordError } = await supabase.auth.admin.updateUserById(
+          const { error: passwordError } = await supabaseClient.auth.admin.updateUserById(
             initialData.id!,
             { password: formData.password }
           );
