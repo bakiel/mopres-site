@@ -43,7 +43,10 @@ export default function AdminSessionKeeper() {
       
       if (isAdminPage && !hasValidLocalStorageSession && !hasSessionCookie) {
         logger.warn('Admin page accessed without session - redirecting to login');
-        window.location.href = '/admin/login';
+        // Add a small delay to prevent race conditions
+        setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 100);
       }
     };
     

@@ -55,8 +55,8 @@ export default function AdminLoginPage() {
         localStorage.removeItem('adminBypass');
         localStorage.removeItem('adminBypassExpiry');
         
-        // Set new admin session cookie with proper settings
-        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax'; // 24 hours
+        // Set new admin session cookie with proper settings - ensure no Secure flag for development
+        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax; Secure=false'; // 24 hours
         // Also set in localStorage for persistence
         localStorage.setItem('adminSession', 'authenticated');
         localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000)); // 24 hours

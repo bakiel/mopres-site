@@ -92,43 +92,33 @@ export default function AdminRootLayout({
     
     if (checkAdminSession()) {
       logger.debug('Admin session active, allowing access - no additional checks needed');
+      console.log('✅ [Admin Layout] Admin session found - allowing access');
+      
       // Ensure both cookie and localStorage are set for persistence
       const cookies = document.cookie.split(';');
       const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
       
       if (!hasSessionCookie) {
-        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax';
+        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax; Secure=false';
+        console.log('🔄 [Admin Layout] Restored admin session cookie');
       }
       
       // Set localStorage if missing
       if (!localStorage.getItem('adminSession')) {
         localStorage.setItem('adminSession', 'authenticated');
         localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000));
+        console.log('🔄 [Admin Layout] Restored admin session localStorage');
       }
       
-      return; // Skip ALL other checks - this is the proper admin authentication
+      return; // IMMEDIATE EXIT - Admin session is active, skip ALL other logic
     }
     
-    // Only run normal session logic if admin session is NOT active
-    const isAutoLoginEnabled = checkAutoLoginStatus();
+    // If we get here, no admin session exists - redirect to login
+    console.log('🚨 [Admin Layout] No admin session found - redirecting to login');
+    logger.debug('No admin session found, redirecting to login page');
     
-    if (!isAutoLoginEnabled) {
-      logger.debug('Auto-login is disabled, redirecting to login page');
-      
-      // Redirect to login page if auto-login is disabled
-      if (typeof window !== 'undefined' && !isLoginPage) {
-        console.log('🚨 [Admin Layout] Redirecting to login - auto-login disabled');
-        window.location.href = '/admin/login';
-      }
-      return;
-    }
-    
-    // Only create admin session if auto-login is enabled and we're not on login page
-    try {
-      createAdminSession('admin@mopres.co.za', '73f8df24-fc99-41b2-9f5c-1a5c74c4564e');
-      logger.admin('Admin session created in layout');
-    } catch (error) {
-      logger.error('Error setting up admin session in layout', error);
+    if (typeof window !== 'undefined' && !isLoginPage) {
+      window.location.href = '/admin/login';
     }
   }, [router]);
 
