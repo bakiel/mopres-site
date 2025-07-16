@@ -12,60 +12,72 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Check for admin session BEFORE creating Supabase client to prevent conflicts
+  const adminSession = request.cookies.get('adminSession');
+  const legacyBypass = request.cookies.get('adminBypass');
+  const hasAdminSession = adminSession?.value === 'authenticated' || legacyBypass?.value === 'emergency-access';
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase URL or Anon Key is missing in middleware.');
-    return response;
-  }
+  let supabase: any = null;
 
-  // Create a Supabase client configured to use cookies
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
-        },
-      },
+  // Only create Supabase client if no admin session exists
+  if (!hasAdminSession) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('❌ Supabase URL or Anon Key is missing in middleware.');
+      return response;
     }
-  );
+
+    // Create a Supabase client configured to use cookies
+    supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+          },
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value: '',
+              ...options,
+            });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({
+              name,
+              value: '',
+              ...options,
+            });
+          },
+        },
+      }
+    );
+  } else {
+    console.log('🛡️ [Middleware] Admin session detected - skipping Supabase client creation');
+  }
 
   // Check if the request is for the user account area
   if (request.nextUrl.pathname.startsWith('/account')) {
@@ -75,7 +87,18 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     
+    // If admin session exists, redirect to admin area
+    if (hasAdminSession) {
+      console.log('🛡️ [User Account] Admin session detected, redirecting to admin area');
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    
     // For all other account routes, check user authentication
+    if (!supabase) {
+      console.log('❌ [User Account] No Supabase client available, redirecting to login');
+      return NextResponse.redirect(new URL('/account/login', request.url));
+    }
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -125,52 +148,25 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     
-    // ADMIN AUTHENTICATION - Check for admin session cookie FIRST
-    const adminSession = request.cookies.get('adminSession');
-    const legacyBypass = request.cookies.get('adminBypass'); // Backwards compatibility
-    
-    console.log('🔍 [Admin] Cookie check:', {
+    console.log('🔍 [Admin] Session check:', {
+      hasAdminSession,
       adminSession: adminSession?.value,
       legacyBypass: legacyBypass?.value,
-      path: request.nextUrl.pathname,
-      allCookies: request.cookies.toString()
+      path: request.nextUrl.pathname
     });
     
-    if (adminSession?.value === 'authenticated' || legacyBypass?.value === 'emergency-access') {
-      console.log('✅ [Admin] Admin session active - allowing full access');
-      // Set additional headers to ensure the session is maintained
+    if (hasAdminSession) {
+      console.log('✅ [Admin] Admin session active - COMPLETE SUPABASE BYPASS');
+      // Set headers to prevent any Supabase interference
       response.headers.set('X-Admin-Session', 'active');
+      response.headers.set('X-Skip-Supabase', 'true');
+      // IMMEDIATELY RETURN - NO SUPABASE OPERATIONS AT ALL
       return response;
     }
     
-    console.log('❌ [Admin] No valid admin session found - proceeding to Supabase auth check');
-    
-    // Only check Supabase session if admin session is NOT active
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // If no session, redirect to admin login
-      if (!session) {
-        console.log('🔒 [Admin] No session found, redirecting to admin login');
-        return NextResponse.redirect(new URL('/admin/login', request.url));
-      }
-      
-      // Check user's admin status - assuming there's a user_metadata.role field or similar
-      const { data: userData } = await supabase.auth.getUser();
-      const userRole = userData?.user?.user_metadata?.role;
-      
-      if (userRole !== ADMIN_ROLE) {
-        console.log(`⛔ [Admin] User does not have admin role (${userRole}), redirecting to login`);
-        // Sign the user out and redirect to login
-        await supabase.auth.signOut();
-        return NextResponse.redirect(new URL('/admin/login', request.url));
-      }
-      
-      console.log(`✅ [Admin] Verified admin access: ${userData?.user?.email}`);
-    } catch (error) {
-      console.error('❌ [Admin] Error checking session:', error);
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
+    console.log('❌ [Admin] No valid admin session found - redirecting to login');
+    // If no admin session, redirect immediately to login - don't check Supabase
+    return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 
   // Add CORS headers
