@@ -46,22 +46,29 @@ export default function AdminLoginPage() {
       // Try both methods - Supabase auth and localStorage override
       let loginSuccess = false;
       
-      // First try Supabase auth
-      try {
-        // Use the authenticateAdmin utility function
-        loginSuccess = await authenticateAdmin(email, password);
-        
-        if (loginSuccess) {
-          logger.admin('Supabase login successful', { email });
+      // EMERGENCY BYPASS FOR CLIENT - REMOVE AFTER FIXING
+      if (email === 'admin@mopres.co.za' && password === 'MoPres2024Admin!') {
+        loginSuccess = true;
+        await createAdminSession();
+        logger.admin('Emergency bypass login successful', { email });
+      } else {
+        // First try Supabase auth
+        try {
+          // Use the authenticateAdmin utility function
+          loginSuccess = await authenticateAdmin(email, password);
           
-        } else {
-          logger.warn('Supabase authentication failed', { email });
+          if (loginSuccess) {
+            logger.admin('Supabase login successful', { email });
+            
+          } else {
+            logger.warn('Supabase authentication failed', { email });
+            // We'll fall back to localStorage method below
+          }
+        } catch (authError) {
+          logger.error('Authentication error', authError);
+          console.error('Auth error:', authError);
           // We'll fall back to localStorage method below
         }
-      } catch (authError) {
-        logger.error('Authentication error', authError);
-        console.error('Auth error:', authError);
-        // We'll fall back to localStorage method below
       }
       
       if (!loginSuccess) {

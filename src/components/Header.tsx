@@ -169,6 +169,13 @@ const Header: FC = () => {
             {/* Navigation Icons & Search */}
             <div className="hidden lg:flex gap-7 items-center flex-shrink-0">
               <PredictiveSearch />
+              {/* ADMIN QUICK ACCESS */}
+              <Link
+                href="/admin"
+                aria-label="Admin Panel"
+                className="bg-brand-gold text-black px-3 py-1 rounded text-xs font-semibold hover:bg-amber-400 transition-colors">
+                ADMIN
+              </Link>
               {/* Standard Link: no legacyBehavior, single child icon, props on Link */}
               <Link
                 href="/account"
@@ -240,6 +247,12 @@ const Header: FC = () => {
           <div className="w-full text-center py-3 px-4"><Link href="/preorder" className="text-white/90 text-base uppercase tracking-[1.5px] block hover:text-brand-gold" onClick={closeMobileMenu}>Preorder</Link></div>
           <div className="w-full text-center py-3 px-4"><Link href="/about" className="text-white/90 text-base uppercase tracking-[1.5px] block hover:text-brand-gold" onClick={closeMobileMenu}>About</Link></div>
           <div className="w-full text-center py-3 px-4"><Link href="/contact" className="text-white/90 text-base uppercase tracking-[1.5px] block hover:text-brand-gold" onClick={closeMobileMenu}>Contact</Link></div>
+          {/* ADMIN QUICK ACCESS - MOBILE */}
+          <div className="w-full text-center py-3 px-4">
+            <Link href="/admin" className="bg-brand-gold text-black px-6 py-2 rounded text-sm font-bold block mx-auto max-w-[120px] hover:bg-amber-400" onClick={closeMobileMenu}>
+              ADMIN
+            </Link>
+          </div>
           <div className="w-full text-center py-3 px-4 flex justify-center items-center flex-wrap">
             <Link href="/account" className="text-white/90 text-base uppercase tracking-[1.5px] block hover:text-brand-gold" onClick={closeMobileMenu}>Account</Link>
             <button
