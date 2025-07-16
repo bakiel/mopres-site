@@ -40,62 +40,56 @@ function isAdminSessionActive(): boolean {
   return false;
 }
 
-// Mock client for admin sessions
-const mockSupabaseClient = {
-  auth: {
-    getSession: () => {
-      console.log('🛡️ [Mock Supabase] Blocked auth.getSession call');
-      return Promise.resolve({ data: { session: null }, error: null });
-    },
-    getUser: () => {
-      console.log('🛡️ [Mock Supabase] Blocked auth.getUser call');
-      return Promise.resolve({ data: { user: null }, error: null });
-    },
-    signOut: () => {
-      console.log('🛡️ [Mock Supabase] Blocked auth.signOut call');
-      return Promise.resolve({ error: null });
-    },
-    onAuthStateChange: () => {
-      console.log('🛡️ [Mock Supabase] Blocked auth.onAuthStateChange call');
-      return { 
-        data: { subscription: null }, 
-        unsubscribe: () => console.log('🛡️ [Mock Supabase] Mock unsubscribe called')
-      };
-    }
-  },
-  from: (table: string) => ({
-    select: () => {
-      console.log(`🛡️ [Mock Supabase] Blocked ${table}.select call`);
-      return Promise.resolve({ data: [], error: null });
-    },
-    insert: () => {
-      console.log(`🛡️ [Mock Supabase] Blocked ${table}.insert call`);
-      return Promise.resolve({ data: [], error: null });
-    },
-    update: () => {
-      console.log(`🛡️ [Mock Supabase] Blocked ${table}.update call`);
-      return Promise.resolve({ data: [], error: null });
-    },
-    delete: () => {
-      console.log(`🛡️ [Mock Supabase] Blocked ${table}.delete call`);
-      return Promise.resolve({ data: [], error: null });
-    }
-  }),
-  storage: {
-    from: (bucket: string) => ({
-      getPublicUrl: (path: string) => {
-        console.log(`🛡️ [Mock Supabase] Mock storage.getPublicUrl for ${bucket}/${path}`);
-        return { data: { publicUrl: `/product-images/${path}` } };
+// We need a real Supabase client for admin operations, but with auth disabled
+let adminSupabaseClient: ReturnType<typeof createClientComponentClient<Database>> | null = null;
+
+// Create a special admin client that has auth disabled but database access enabled
+const getAdminClient = () => {
+  if (!adminSupabaseClient) {
+    console.log('🔧 [Supabase Singleton] Creating admin-specific Supabase client with auth bypass');
+    adminSupabaseClient = createClientComponentClient<Database>();
+    
+    // Override auth methods to prevent interference
+    const originalAuth = adminSupabaseClient.auth;
+    adminSupabaseClient.auth = {
+      ...originalAuth,
+      getSession: async () => {
+        console.log('🛡️ [Admin Supabase] Auth getSession bypassed for admin');
+        return { data: { session: null }, error: null };
+      },
+      getUser: async () => {
+        console.log('🛡️ [Admin Supabase] Auth getUser bypassed for admin');
+        return { data: { user: null }, error: null };
+      },
+      signOut: async () => {
+        console.log('🛡️ [Admin Supabase] Auth signOut bypassed for admin');
+        return { error: null };
+      },
+      onAuthStateChange: () => {
+        console.log('🛡️ [Admin Supabase] Auth state change listener bypassed for admin');
+        return { 
+          data: { subscription: null }, 
+          unsubscribe: () => {}
+        };
+      },
+      signIn: async () => {
+        console.log('🛡️ [Admin Supabase] Auth signIn bypassed for admin');
+        return { data: { user: null, session: null }, error: null };
+      },
+      signInWithPassword: async () => {
+        console.log('🛡️ [Admin Supabase] Auth signInWithPassword bypassed for admin');
+        return { data: { user: null, session: null }, error: null };
       }
-    })
+    } as any;
   }
+  return adminSupabaseClient;
 };
 
 // Singleton factory function
 export const supabase = (): ReturnType<typeof createClientComponentClient<Database>> => {
-  // Admin session check - return mock if admin is active
+  // Admin session check - return special admin client with auth disabled
   if (isAdminSessionActive()) {
-    return mockSupabaseClient as any;
+    return getAdminClient();
   }
   
   // Create singleton instance only if it doesn't exist
