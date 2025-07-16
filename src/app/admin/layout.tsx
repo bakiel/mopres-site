@@ -1,6 +1,9 @@
 // src/app/admin/layout.tsx
 'use client';
 
+// CRITICAL: Import early guard FIRST to prevent Supabase initialization
+import '@/lib/supabase-early-guard';
+
 import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';

@@ -1,5 +1,8 @@
 'use client';
 
+// CRITICAL: Import early guard FIRST to prevent Supabase initialization
+import '@/lib/supabase-early-guard';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
