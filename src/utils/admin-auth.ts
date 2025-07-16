@@ -224,9 +224,13 @@ export const authenticateAdmin = async (email: string, password: string): Promis
       return false;
     }
     
-    // Check if user has admin role
-    const userRole = data.user?.app_metadata?.role;
-    logger.debug('User role from authentication', { role: userRole });
+    // Check if user has admin role - check both app_metadata and user_metadata
+    const userRole = data.user?.app_metadata?.role || data.user?.user_metadata?.role;
+    logger.debug('User role from authentication', { 
+      app_role: data.user?.app_metadata?.role,
+      user_role: data.user?.user_metadata?.role,
+      final_role: userRole 
+    });
     
     if (userRole === ADMIN_ROLE) {
       logger.admin('Admin authentication successful', { userId: data.user.id, email: data.user.email });

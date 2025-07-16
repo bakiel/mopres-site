@@ -18,45 +18,30 @@ import {
 } from '@/utils/admin-auth'; // Import from the correct module
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('admin@mopres.co.za');
-  const [password, setPassword] = useState('secureAdminPassword123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
-  const [debug, setDebug] = useState<any>(null);
-  const [showDebug, setShowDebug] = useState(true); // Always show debug info for troubleshooting
-  const [showAdminOverride, setShowAdminOverride] = useState(false);
-  const [rememberedLogin, setRememberedLogin] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const router = useRouter();
   // Get the singleton Supabase client
   const supabaseClient = supabase();
 
-  // This replaced the previous auto-login functionality
-  // Now we don't auto-login by default
   useEffect(() => {
-    // Always disable auto-login by default
+    // Disable auto-login by default
     disableAutoLogin();
-    
-    setDebug({
-      type: 'login_page_loaded', 
-      message: 'Login page loaded with auto-login disabled by default'
-    });
-    
-    logger.admin('Login page loaded with auto-login disabled by default');
-    setError('Please log in with your admin credentials.');
   }, []);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setDebug(null);
     
     try {
       logger.admin('Manual login attempt', { email });
       console.log('Attempting login with email:', email);
-      setDebug({type: 'login_attempt', email});
       
       // Try both methods - Supabase auth and localStorage override
       let loginSuccess = false;
@@ -68,14 +53,7 @@ export default function AdminLoginPage() {
         
         if (loginSuccess) {
           logger.admin('Supabase login successful', { email });
-          setDebug({type: 'sign_in_success', data: { email }});
           
-          // If remember login is checked, don't set auto-login disabled flag
-          if (rememberedLogin) {
-            localStorage.removeItem('mopres_disable_auto_login');
-            logger.admin('Auto-login enabled due to "Remember Login" option');
-            setDebug({type: 'auto_login_enabled', message: 'Auto-login enabled due to "Remember Login" option'});
-          }
         } else {
           logger.warn('Supabase authentication failed', { email });
           // We'll fall back to localStorage method below
@@ -87,11 +65,7 @@ export default function AdminLoginPage() {
       }
       
       if (!loginSuccess) {
-        // Fall back to localStorage override
-        logger.warn('Falling back to localStorage admin override', { email });
-        setShowAdminOverride(true);
-        setError('Supabase authentication failed. You can use the admin override option below.');
-        setDebug({type: 'showing_admin_override', message: 'Offering localStorage admin override'});
+        setError('Invalid email or password.');
         setLoading(false);
         return;
       }
@@ -101,7 +75,6 @@ export default function AdminLoginPage() {
       
       // Set success message
       setError(null);
-      setDebug({type: 'redirecting', message: 'Login successful! Redirecting to admin dashboard...'});
       
       // First try router push
       router.push('/admin');
@@ -116,118 +89,15 @@ export default function AdminLoginPage() {
       logger.error('Unexpected login error', error);
       console.error('Login error:', error);
       setError(`Unexpected error: ${error.message}`);
-      setDebug({type: 'login_error', error: error.message});
-      setShowAdminOverride(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Add admin override function
-  const enableAdminOverride = () => {
-    logger.admin('Admin override activated', { email });
-    
-    // Use our utility function with auto-login disabled by default
-    createAdminSession(email, '73f8df24-fc99-41b2-9f5c-1a5c74c4564e');
-    
-    // If remember login is checked, enable auto-login
-    if (rememberedLogin) {
-      localStorage.removeItem('mopres_disable_auto_login');
-      logger.admin('Auto-login enabled due to "Remember Login" option in admin override');
-    }
-    
-    setDebug({type: 'admin_override_enabled', data: { email, rememberedLogin }});
-    setError('Admin override enabled! Redirecting to admin dashboard...');
-    
-    setTimeout(() => {
-      router.push('/admin');
-    }, 1000);
-  };
-  
-  // Add a testing function for creating admin role
-  const createAdminUser = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setDebug({type: 'create_admin_start', message: 'Starting admin user creation process'});
-      logger.admin('Starting admin user creation process', { email });
-      
-      // First, sign out to clear any existing sessions
-      await supabaseClient.auth.signOut();
-      
-      // Sign up with admin credentials
-      const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            role: ADMIN_ROLE
-          }
-        }
-      });
-      
-      if (signUpError) {
-        // Check if it's already registered error
-        if (signUpError.message.includes('already registered')) {
-          logger.info('User already exists, attempting to sign in and update role', { email });
-          setDebug({type: 'user_exists', message: 'User already exists, attempting to sign in and update role'});
-          
-          // Try to sign in
-          const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
-          if (signInError) {
-            logger.error('Sign in error after signup', signInError);
-            setError(`Sign in error after signup: ${signInError.message}`);
-            setDebug({type: 'sign_in_after_signup_error', error: signInError});
-            return;
-          }
-          
-          logger.debug('Sign in after signup successful', { userId: signInData.user.id });
-          setDebug({type: 'sign_in_after_signup_success', data: signInData});
-          
-          // Update user with admin role
-          const roleAssigned = await assignAdminRole();
-          
-          if (!roleAssigned) {
-            setError('Error updating user role');
-            setDebug({type: 'update_role_error'});
-            return;
-          }
-          
-          logger.admin('Admin role updated for existing user', { email });
-          setDebug({type: 'update_role_success'});
-          setError('Admin user updated successfully. Try logging in now.');
-          return;
-        } else {
-          logger.error('Sign up error', signUpError);
-          setError(`Sign up error: ${signUpError.message}`);
-          setDebug({type: 'sign_up_error', error: signUpError});
-          return;
-        }
-      }
-      
-      logger.admin('Admin user created successfully', { 
-        userId: signUpData?.user?.id,
-        email: signUpData?.user?.email 
-      });
-      setDebug({type: 'sign_up_success', data: signUpData});
-      setError('Admin user created successfully. Try logging in now.');
-      
-    } catch (error: any) {
-      logger.error('Error creating admin user', error);
-      setError(`Error creating admin user: ${error.message}`);
-      setDebug({type: 'create_admin_error', error: error.message});
-    } finally {
-      setLoading(false);
-    }
-  };
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 bg-gradient-to-br from-gray-50 to-gray-200">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border-t-4 border-brand-gold">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <div className="flex justify-center mb-8">
           {!imgError ? (
             <Image 
@@ -244,20 +114,17 @@ export default function AdminLoginPage() {
           )}
         </div>
         
-        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-2">
-          Admin Portal
+        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-8">
+          Admin Login
         </h1>
-        <p className="text-center text-gray-600 mb-6">
-          For MoPres administrators only
-        </p>
         
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6 text-sm">
             {error}
           </div>
         )}
         
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
           <Input
             id="email"
             label="Email Address"
@@ -268,28 +135,34 @@ export default function AdminLoginPage() {
             placeholder="admin@mopres.co.za"
           />
           
-          <Input
-            id="password"
-            label="Password"
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="••••••••"
-          />
-          
-          <div className="flex items-center">
-            <input
-              id="remember-login"
-              type="checkbox"
-              className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
-              checked={rememberedLogin}
-              onChange={(e) => setRememberedLogin(e.target.checked)}
+          <div className="relative">
+            <Input
+              id="password"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="••••••••"
             />
-            <label htmlFor="remember-login" className="ml-2 block text-sm text-gray-700">
-              Remember login (enables auto-login)
-            </label>
+            <button
+              type="button"
+              className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
           </div>
+          
           
           <Button
             type="submit"
@@ -302,59 +175,12 @@ export default function AdminLoginPage() {
           </Button>
         </form>
         
-        <div className="flex justify-center mt-8">
-          <button 
-            onClick={createAdminUser}
-            className="text-sm text-blue-600 hover:underline"
-            disabled={loading}
-          >
-            Create Admin User
-          </button>
-        </div>
-        
-        {showAdminOverride && (
-          <div className="mt-6">
-            <p className="text-sm text-orange-600 mb-2">Having trouble with Supabase authentication?</p>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="w-full font-semibold bg-orange-500 hover:bg-orange-600"
-              onClick={enableAdminOverride}
-              disabled={loading}
-            >
-              Enable Admin Override
-            </Button>
-          </div>
-        )}
-        
-        {/* Debug info - only show if there's an error or debug info */}
-        {debug && (
-          <div className="mt-4 p-4 bg-gray-100 rounded overflow-auto max-h-60 text-xs">
-            <h3 className="font-bold mb-2">Debug Information:</h3>
-            <pre>{JSON.stringify(debug, null, 2)}</pre>
-          </div>
-        )}
-        
-        {/* Alternative login options - only show if there's an error */}
-        {error && (
-          <div className="mt-4 text-center">
-            <Link href="/admin/basic-login" className="text-blue-500 hover:underline text-sm">
-              Try Basic Login Page
-            </Link>
-            <span className="mx-2">|</span>
-            <Link href="/standalone-login.html" className="text-blue-500 hover:underline text-sm">
-              Standalone Login
-            </Link>
-          </div>
-        )}
 
         {/* User Login Link */}
-        <div className="mt-8 pt-6 border-t text-center">
-          <p className="text-sm text-gray-600">
-            Looking for customer login?{' '}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500">
             <Link href="/account/login" className="text-amber-600 hover:text-amber-700 font-medium">
-              Go to customer portal →
+              Customer Login →
             </Link>
           </p>
         </div>
