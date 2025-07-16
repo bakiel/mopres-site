@@ -25,16 +25,8 @@ if (typeof window !== 'undefined') {
         console.log('🛡️ [Early Guard] Admin session detected - setting global Supabase block');
         (window as any).supabaseDisabled = true;
         
-        // Also try to prevent the original GoTrueClient from initializing
-        (window as any).GoTrueClient = function() {
-          console.log('🛡️ [Early Guard] GoTrueClient creation blocked');
-          return {
-            getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-            getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-            signOut: () => Promise.resolve({ error: null }),
-            onAuthStateChange: () => ({ data: { subscription: null }, unsubscribe: () => {} })
-          };
-        };
+        // Set a flag to indicate admin mode is active
+        console.log('🛡️ [Early Guard] Admin session active - Supabase auth will be bypassed');
         
         // Set a flag to indicate admin mode is active
         (window as any).__admin_session_active__ = true;
