@@ -102,6 +102,22 @@ export default function AdminLoginPage() {
       // Set success message
       setError(null);
       
+      // Wait a moment for cookies to be set before redirecting
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Verify cookie was set before redirecting
+      const cookieCheck = document.cookie.split(';').some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
+      console.log('🔍 Cookie verification before redirect:', {
+        cookieSet: cookieCheck,
+        allCookies: document.cookie
+      });
+      
+      if (!cookieCheck) {
+        console.error('❌ Cookie not set properly - trying again');
+        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax; Secure=false';
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
       // First try router push
       router.push('/admin');
       
@@ -109,7 +125,7 @@ export default function AdminLoginPage() {
       setTimeout(() => {
         const baseUrl = window.location.origin;
         window.location.href = `${baseUrl}/admin`;
-      }, 2000);
+      }, 1000);
       
     } catch (error: any) {
       logger.error('Unexpected login error', error);

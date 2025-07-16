@@ -27,6 +27,17 @@ export default function AdminRootLayout({
        window.location.pathname.includes('/admin/basic-login') ||
        window.location.pathname.includes('/admin/logout'));
     
+    // CRITICAL DEBUG - Log entry point
+    console.log('🎯 [Admin Layout] Entry point:', {
+      path: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
+      isLoginPage,
+      cookies: typeof window !== 'undefined' ? document.cookie : 'unknown',
+      localStorage: typeof window !== 'undefined' ? {
+        adminSession: localStorage.getItem('adminSession'),
+        adminSessionExpiry: localStorage.getItem('adminSessionExpiry')
+      } : 'unknown'
+    });
+    
     // Log admin layout access
     logger.admin('Admin layout rendered', { 
       path: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
@@ -106,6 +117,7 @@ export default function AdminRootLayout({
       
       // Redirect to login page if auto-login is disabled
       if (typeof window !== 'undefined' && !isLoginPage) {
+        console.log('🚨 [Admin Layout] Redirecting to login - auto-login disabled');
         window.location.href = '/admin/login';
       }
       return;
