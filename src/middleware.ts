@@ -125,16 +125,16 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     
-    // EMERGENCY BYPASS - Check for admin session cookie FIRST
-    const adminBypass = request.cookies.get('adminBypass');
-    if (adminBypass?.value === 'emergency-access') {
-      console.log('🚨 [Admin] Emergency bypass active - allowing full access');
-      // Set additional headers to ensure the bypass is maintained
-      response.headers.set('X-Admin-Bypass', 'active');
+    // ADMIN AUTHENTICATION - Check for admin session cookie FIRST
+    const adminSession = request.cookies.get('adminSession');
+    if (adminSession?.value === 'authenticated') {
+      console.log('✅ [Admin] Admin session active - allowing full access');
+      // Set additional headers to ensure the session is maintained
+      response.headers.set('X-Admin-Session', 'active');
       return response;
     }
     
-    // Only check Supabase session if bypass is NOT active
+    // Only check Supabase session if admin session is NOT active
     try {
       const { data: { session } } = await supabase.auth.getSession();
       

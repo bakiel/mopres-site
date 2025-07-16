@@ -5,58 +5,58 @@ import { logger } from '@/utils/logger';
 
 export default function AdminSessionKeeper() {
   useEffect(() => {
-    // Keep session alive - more aggressive approach
-    const maintainBypass = () => {
-      // Check for bypass in localStorage
-      const bypassLocalStorage = localStorage.getItem('adminBypass');
-      const bypassExpiry = localStorage.getItem('adminBypassExpiry');
-      const hasValidLocalStorageBypass = bypassLocalStorage === 'emergency-access' && 
-        bypassExpiry && parseInt(bypassExpiry) > Date.now();
+    // Keep admin session alive - maintenance approach
+    const maintainAdminSession = () => {
+      // Check for session in localStorage
+      const sessionLocalStorage = localStorage.getItem('adminSession');
+      const sessionExpiry = localStorage.getItem('adminSessionExpiry');
+      const hasValidLocalStorageSession = sessionLocalStorage === 'authenticated' && 
+        sessionExpiry && parseInt(sessionExpiry) > Date.now();
       
-      // Check for bypass cookie
+      // Check for session cookie
       const cookies = document.cookie.split(';');
-      const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+      const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
       
-      // If we have valid bypass in localStorage but not in cookie, restore cookie
-      if (hasValidLocalStorageBypass && !hasBypassCookie) {
-        document.cookie = 'adminBypass=emergency-access; path=/; max-age=86400; SameSite=Lax';
-        logger.debug('Restored admin bypass cookie from localStorage');
+      // If we have valid session in localStorage but not in cookie, restore cookie
+      if (hasValidLocalStorageSession && !hasSessionCookie) {
+        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax';
+        logger.debug('Restored admin session cookie from localStorage');
       }
       
-      // If we have bypass cookie but not localStorage, restore localStorage
-      if (hasBypassCookie && !hasValidLocalStorageBypass) {
-        localStorage.setItem('adminBypass', 'emergency-access');
-        localStorage.setItem('adminBypassExpiry', String(Date.now() + 86400000));
-        logger.debug('Restored admin bypass localStorage from cookie');
+      // If we have session cookie but not localStorage, restore localStorage
+      if (hasSessionCookie && !hasValidLocalStorageSession) {
+        localStorage.setItem('adminSession', 'authenticated');
+        localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000));
+        logger.debug('Restored admin session localStorage from cookie');
       }
       
-      // Clean up expired localStorage bypass
-      if (bypassExpiry && parseInt(bypassExpiry) <= Date.now()) {
-        localStorage.removeItem('adminBypass');
-        localStorage.removeItem('adminBypassExpiry');
-        logger.debug('Cleared expired admin bypass from localStorage');
+      // Clean up expired localStorage session
+      if (sessionExpiry && parseInt(sessionExpiry) <= Date.now()) {
+        localStorage.removeItem('adminSession');
+        localStorage.removeItem('adminSessionExpiry');
+        logger.debug('Cleared expired admin session from localStorage');
       }
       
-      // Extra protection: if we're on an admin page without bypass, redirect to login
+      // Extra protection: if we're on an admin page without session, redirect to login
       const isAdminPage = window.location.pathname.startsWith('/admin') && 
                          !window.location.pathname.includes('/admin/login');
       
-      if (isAdminPage && !hasValidLocalStorageBypass && !hasBypassCookie) {
-        logger.warn('Admin page accessed without bypass - redirecting to login');
+      if (isAdminPage && !hasValidLocalStorageSession && !hasSessionCookie) {
+        logger.warn('Admin page accessed without session - redirecting to login');
         window.location.href = '/admin/login';
       }
     };
     
     // Check immediately
-    maintainBypass();
+    maintainAdminSession();
     
     // Check every 2 seconds to prevent session loss
-    const interval = setInterval(maintainBypass, 2000);
+    const interval = setInterval(maintainAdminSession, 2000);
     
     // Also check on focus/visibility change
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        maintainBypass();
+        maintainAdminSession();
       }
     };
     

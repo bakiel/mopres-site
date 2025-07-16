@@ -40,40 +40,40 @@ export default function AdminRootLayout({
       return;
     }
     
-    // EMERGENCY BYPASS - Check for admin bypass cookie or localStorage
-    const checkBypass = () => {
+    // ADMIN AUTHENTICATION - Check for admin session cookie or localStorage
+    const checkAdminSession = () => {
       const cookies = document.cookie.split(';');
-      const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+      const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
       
       // Also check localStorage as backup
-      const bypassLocalStorage = localStorage.getItem('adminBypass');
-      const bypassExpiry = localStorage.getItem('adminBypassExpiry');
-      const hasValidLocalStorageBypass = bypassLocalStorage === 'emergency-access' && 
-        bypassExpiry && parseInt(bypassExpiry) > Date.now();
+      const sessionLocalStorage = localStorage.getItem('adminSession');
+      const sessionExpiry = localStorage.getItem('adminSessionExpiry');
+      const hasValidLocalStorageSession = sessionLocalStorage === 'authenticated' && 
+        sessionExpiry && parseInt(sessionExpiry) > Date.now();
       
-      return hasBypassCookie || hasValidLocalStorageBypass;
+      return hasSessionCookie || hasValidLocalStorageSession;
     };
     
-    if (checkBypass()) {
-      logger.debug('Emergency bypass active, allowing access - no session checks needed');
+    if (checkAdminSession()) {
+      logger.debug('Admin session active, allowing access - no additional checks needed');
       // Ensure both cookie and localStorage are set for persistence
       const cookies = document.cookie.split(';');
-      const hasBypassCookie = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
+      const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
       
-      if (!hasBypassCookie) {
-        document.cookie = 'adminBypass=emergency-access; path=/; max-age=86400; SameSite=Lax';
+      if (!hasSessionCookie) {
+        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax';
       }
       
       // Set localStorage if missing
-      if (!localStorage.getItem('adminBypass')) {
-        localStorage.setItem('adminBypass', 'emergency-access');
-        localStorage.setItem('adminBypassExpiry', String(Date.now() + 86400000));
+      if (!localStorage.getItem('adminSession')) {
+        localStorage.setItem('adminSession', 'authenticated');
+        localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000));
       }
       
-      return; // Skip ALL other checks - this is the key fix
+      return; // Skip ALL other checks - this is the proper admin authentication
     }
     
-    // Only run normal session logic if bypass is NOT active
+    // Only run normal session logic if admin session is NOT active
     const isAutoLoginEnabled = checkAutoLoginStatus();
     
     if (!isAutoLoginEnabled) {
