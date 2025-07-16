@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Debug Tool</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status { 
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .info { 
+            background: #f0f0f0; 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 5px; 
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .success { background: #28a745; color: white; }
+        .danger { background: #dc3545; color: white; }
+        .primary { background: #007bff; color: white; }
+        .warning { background: #ffc107; color: black; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        #logs {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Session Debug Tool</h1>
+        
+        <div id="status" class="status">Checking...</div>
+        
+        <div id="info"></div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="success" onclick="setAdminSession()">Set Admin Session</button>
+            <button class="danger" onclick="clearAdminSession()">Clear Admin Session</button>
+            <button class="primary" onclick="checkSession()">Refresh Status</button>
+            <button class="warning" onclick="goToAdmin()">Go to Admin</button>
+            <button class="primary" onclick="testAPI()">Test API</button>
+        </div>
+        
+        <h3>Debug Logs:</h3>
+        <div id="logs"></div>
+        
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Click "Set Admin Session" to create the session</li>
+            <li>Watch the status - it should show "✅ SESSION ACTIVE"</li>
+            <li>Click "Go to Admin" to test if you stay logged in</li>
+            <li>If you get kicked out, come back here to see if the session is still active</li>
+            <li>Use "Test API" to check server-side session status</li>
+        </ol>
+    </div>
+    
+    <script>
+        let logs = [];
+        
+        function addLog(message, data = null) {
+            const timestamp = new Date().toISOString();
+            const logEntry = { timestamp, message, data };
+            logs.unshift(logEntry);
+            logs = logs.slice(0, 50); // Keep last 50 logs
+            
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.map(log => 
+                `<div class="log">
+                    <strong>${log.timestamp}</strong><br>
+                    ${log.message}
+                    ${log.data ? '<br>' + JSON.stringify(log.data, null, 2) : ''}
+                </div>`
+            ).join('');
+            
+            console.log(`[${timestamp}] ${message}`, data || '');
+        }
+        
+        function updateInfo() {
+            const cookies = document.cookie;
+            const adminSession = cookies.includes('adminSession=authenticated');
+            const adminBypass = cookies.includes('adminBypass=emergency-access');
+            const hasSession = adminSession || adminBypass;
+            
+            const localStorage = {
+                session: window.localStorage.getItem('adminSession'),
+                expiry: window.localStorage.getItem('adminSessionExpiry'),
+                bypass: window.localStorage.getItem('adminBypass'),
+                bypassExpiry: window.localStorage.getItem('adminBypassExpiry')
+            };
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = hasSession ? 'status active' : 'status inactive';
+            statusDiv.textContent = hasSession ? '✅ SESSION ACTIVE' : '❌ NO SESSION';
+            
+            const info = document.getElementById('info');
+            info.innerHTML = `
+                <div class="info">
+                    <h3>Cookie Status:</h3>
+                    <p><strong>Admin Session Cookie:</strong> ${adminSession ? '✅ SET' : '❌ NOT SET'}</p>
+                    <p><strong>Legacy Bypass Cookie:</strong> ${adminBypass ? '✅ SET' : '❌ NOT SET'}</p>
+                    <p><strong>All Cookies:</strong> ${cookies || 'None'}</p>
+                </div>
+                
+                <div class="info">
+                    <h3>LocalStorage Status:</h3>
+                    <p><strong>Admin Session:</strong> ${localStorage.session || 'None'}</p>
+                    <p><strong>Session Expiry:</strong> ${localStorage.expiry ? new Date(parseInt(localStorage.expiry)).toLocaleString() : 'None'}</p>
+                    <p><strong>Legacy Bypass:</strong> ${localStorage.bypass || 'None'}</p>
+                </div>
+                
+                <div class="info">
+                    <h3>Environment:</h3>
+                    <p><strong>Location:</strong> ${window.location.href}</p>
+                    <p><strong>Hostname:</strong> ${window.location.hostname}</p>
+                    <p><strong>Protocol:</strong> ${window.location.protocol}</p>
+                    <p><strong>Is Secure Context:</strong> ${window.isSecureContext ? '✅ YES' : '❌ NO'}</p>
+                    <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+                </div>
+            `;
+        }
+        
+        function setAdminSession() {
+            addLog('Setting admin session...');
+            
+            // Determine if we need Secure flag
+            const isSecure = window.location.protocol === 'https:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            // Build cookie string
+            let cookieString = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax';
+            if (isSecure && !isLocalhost) {
+                cookieString += '; Secure';
+            }
+            
+            addLog('Cookie string:', cookieString);
+            document.cookie = cookieString;
+            
+            // Also set legacy bypass
+            let bypassString = 'adminBypass=emergency-access; path=/; max-age=86400; SameSite=Lax';
+            if (isSecure && !isLocalhost) {
+                bypassString += '; Secure';
+            }
+            document.cookie = bypassString;
+            
+            // Set in localStorage too
+            window.localStorage.setItem('adminSession', 'authenticated');
+            window.localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000));
+            window.localStorage.setItem('adminBypass', 'emergency-access');
+            window.localStorage.setItem('adminBypassExpiry', String(Date.now() + 86400000));
+            
+            addLog('Admin session set successfully');
+            updateInfo();
+            alert('Admin session set!');
+        }
+        
+        function clearAdminSession() {
+            addLog('Clearing admin session...');
+            
+            document.cookie = 'adminSession=; path=/; max-age=0; SameSite=Lax';
+            document.cookie = 'adminBypass=; path=/; max-age=0; SameSite=Lax';
+            
+            window.localStorage.removeItem('adminSession');
+            window.localStorage.removeItem('adminSessionExpiry');
+            window.localStorage.removeItem('adminBypass');
+            window.localStorage.removeItem('adminBypassExpiry');
+            
+            addLog('Admin session cleared');
+            updateInfo();
+            alert('Admin session cleared!');
+        }
+        
+        function checkSession() {
+            addLog('Checking session status...');
+            updateInfo();
+        }
+        
+        function goToAdmin() {
+            addLog('Navigating to admin panel...');
+            window.location.href = '/admin';
+        }
+        
+        async function testAPI() {
+            addLog('Testing API endpoint...');
+            try {
+                const response = await fetch('/api/admin-session-check');
+                const data = await response.json();
+                addLog('API Response:', data);
+                alert('API Response:\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                addLog('API Error:', error.message);
+                alert('API Error: ' + error.message);
+            }
+        }
+        
+        // Update on load
+        addLog('Page loaded');
+        updateInfo();
+        
+        // Update every second
+        setInterval(updateInfo, 1000);
+    </script>
+</body>
+</html>

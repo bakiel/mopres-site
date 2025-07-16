@@ -177,8 +177,43 @@ export default function AdminLoginPage() {
   };
 
   
+  // Session debug info
+  const [sessionDebug, setSessionDebug] = useState<any>({});
+  
+  useEffect(() => {
+    const updateDebugInfo = () => {
+      const info = {
+        timestamp: new Date().toISOString(),
+        cookies: document.cookie,
+        hasCookie: document.cookie.includes('adminSession=authenticated'),
+        localStorage: {
+          session: localStorage.getItem('adminSession'),
+          expiry: localStorage.getItem('adminSessionExpiry')
+        },
+        location: {
+          href: window.location.href,
+          hostname: window.location.hostname,
+          protocol: window.location.protocol
+        }
+      };
+      setSessionDebug(info);
+    };
+    
+    updateDebugInfo();
+    const interval = setInterval(updateDebugInfo, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Debug Panel - Only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-0 left-0 right-0 bg-black text-white p-2 text-xs z-50">
+          <div>Session: {sessionDebug.hasCookie ? '✅' : '❌'} | Cookies: {sessionDebug.cookies || 'none'}</div>
+          <div>Host: {sessionDebug.location?.hostname} | Protocol: {sessionDebug.location?.protocol}</div>
+        </div>
+      )}
+      
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <div className="flex justify-center mb-8">
           {!imgError ? (
