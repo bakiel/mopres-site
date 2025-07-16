@@ -148,11 +148,14 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     
-    console.log('🔍 [Admin] Session check:', {
+    console.log('🔍 [Admin Middleware] Session check:', {
+      timestamp: new Date().toISOString(),
       hasAdminSession,
       adminSession: adminSession?.value,
       legacyBypass: legacyBypass?.value,
-      path: request.nextUrl.pathname
+      path: request.nextUrl.pathname,
+      cookieHeader: request.headers.get('cookie'),
+      allCookies: request.cookies.getAll().map(c => `${c.name}=${c.value}`)
     });
     
     if (hasAdminSession) {

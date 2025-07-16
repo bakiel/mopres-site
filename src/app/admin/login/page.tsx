@@ -69,20 +69,45 @@ export default function AdminLoginPage() {
         localStorage.removeItem('adminBypass');
         localStorage.removeItem('adminBypassExpiry');
         
-        // Set new admin session cookie with proper settings - ensure no Secure flag for development
-        document.cookie = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax; Secure=false'; // 24 hours
+        // Set new admin session cookie with proper settings
+        const isProduction = window.location.hostname !== 'localhost';
+        const cookieString = `adminSession=authenticated; path=/; max-age=86400; SameSite=Lax${isProduction ? '; Secure' : ''}`;
+        document.cookie = cookieString;
+        
         // Also set in localStorage for persistence
         localStorage.setItem('adminSession', 'authenticated');
         localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000)); // 24 hours
         await createAdminSession();
         
-        // Enhanced logging
-        console.log('✅ Admin session set (Supabase disabled):', {
-          cookie: document.cookie,
+        // Enhanced logging with verification
+        console.log('✅ Admin session set:', {
+          cookieString,
+          cookieSet: document.cookie.includes('adminSession=authenticated'),
+          allCookies: document.cookie,
           localStorage: localStorage.getItem('adminSession'),
           expiry: localStorage.getItem('adminSessionExpiry'),
-          supabaseDisabled: (window as any).supabaseDisabled
+          hostname: window.location.hostname,
+          isProduction
         });
+        
+        // Verify session was actually set
+        const verifySession = () => {
+          const cookies = document.cookie.split(';');
+          const hasSession = cookies.some(c => c.trim().startsWith('adminSession=authenticated'));
+          console.log('🔍 Session verification:', {
+            hasSession,
+            cookies: cookies.map(c => c.trim()),
+            localStorage: localStorage.getItem('adminSession')
+          });
+          return hasSession;
+        };
+        
+        if (!verifySession()) {
+          console.error('❌ Failed to set admin session cookie!');
+          setError('Failed to set session. Please check browser settings.');
+          setLoading(false);
+          return;
+        }
         
         logger.admin('Admin login successful', { email });
       } else {

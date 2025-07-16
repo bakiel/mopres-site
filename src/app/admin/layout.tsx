@@ -57,6 +57,9 @@ export default function AdminRootLayout({
     
     // ADMIN AUTHENTICATION - Check for admin session cookie or localStorage
     const checkAdminSession = () => {
+      const timestamp = new Date().toISOString();
+      console.log(`\n🕐 [${timestamp}] Admin Layout Session Check Started`);
+      
       const cookies = document.cookie.split(';');
       const hasSessionCookie = cookies.some(cookie => cookie.trim().startsWith('adminSession=authenticated'));
       const hasLegacyBypass = cookies.some(cookie => cookie.trim().startsWith('adminBypass=emergency-access'));
@@ -75,19 +78,25 @@ export default function AdminRootLayout({
       
       const result = hasSessionCookie || hasValidLocalStorageSession || hasLegacyBypass || hasValidLegacyBypass;
       
-      // Enhanced debugging
-      console.log('🔍 [Admin Layout] Session check:', {
+      // Enhanced debugging with detailed info
+      console.log('📋 [Admin Layout] Detailed Session Info:', {
+        timestamp,
+        url: window.location.href,
         hasSessionCookie,
         hasLegacyBypass,
         hasValidLocalStorageSession,
         hasValidLegacyBypass,
-        result,
-        allCookies: document.cookie,
-        localStorage: {
-          adminSession: localStorage.getItem('adminSession'),
-          adminSessionExpiry: localStorage.getItem('adminSessionExpiry'),
-          legacyBypass: localStorage.getItem('adminBypass'),
-          legacyExpiry: localStorage.getItem('adminBypassExpiry')
+        finalResult: result,
+        cookieDetails: {
+          raw: document.cookie,
+          parsed: cookies.map(c => c.trim()),
+          adminSessionFound: cookies.find(c => c.trim().includes('adminSession'))?.trim()
+        },
+        localStorageDetails: {
+          adminSession: sessionLocalStorage,
+          adminSessionExpiry: sessionExpiry,
+          expiryDate: sessionExpiry ? new Date(parseInt(sessionExpiry)).toISOString() : null,
+          isExpired: sessionExpiry ? parseInt(sessionExpiry) < Date.now() : null
         }
       });
       
@@ -114,7 +123,20 @@ export default function AdminRootLayout({
         console.log('🔄 [Admin Layout] Restored admin session localStorage');
       }
       
-      return; // IMMEDIATE EXIT - Admin session is active, skip ALL other logic
+      // Start session keeper to maintain the session
+      const sessionKeeper = setInterval(() => {
+        if (!checkAdminSession()) {
+          console.log('⚠️ [Admin Layout] Session lost! Attempting to restore...');
+          clearInterval(sessionKeeper);
+        } else {
+          // Refresh the cookie to keep it alive
+          const isProduction = window.location.hostname !== 'localhost';
+          const cookieString = `adminSession=authenticated; path=/; max-age=86400; SameSite=Lax${isProduction ? '; Secure' : ''}`;
+          document.cookie = cookieString;
+        }
+      }, 5000); // Check every 5 seconds
+      
+      return () => clearInterval(sessionKeeper); // Cleanup on unmount
     }
     
     // If we get here, no admin session exists - redirect to login
@@ -122,7 +144,16 @@ export default function AdminRootLayout({
     logger.debug('No admin session found, redirecting to login page');
     
     if (typeof window !== 'undefined' && !isLoginPage) {
-      window.location.href = '/admin/login';
+      // Add a small delay to ensure cookies are checked
+      setTimeout(() => {
+        // Double check before redirecting
+        if (!checkAdminSession()) {
+          console.log('🚨 [Admin Layout] Confirmed no session - redirecting now');
+          window.location.href = '/admin/login';
+        } else {
+          console.log('✅ [Admin Layout] Session found on second check - not redirecting');
+        }
+      }, 100);
     }
   }, [router]);
 
