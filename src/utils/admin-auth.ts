@@ -4,7 +4,7 @@
 
 import { logger } from '@/utils/logger';
 import { ADMIN_ROLE } from '@/lib/constants';
-import { supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-singleton';
 
 // Check if window is defined (client-side) or not (server-side)
 const isClient = typeof window !== 'undefined';

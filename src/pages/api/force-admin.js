@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-singleton';
 
 export default async function handler(req, res) {
   // Force create admin user

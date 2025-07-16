@@ -17,7 +17,7 @@ import {
   ArrowRightOnRectangleIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
-import { supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-singleton';
 
 // Admin navigation items
 const navItems = [
@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, []);
   
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await supabase().auth.signOut();
     window.location.href = '/account/login';
   };
   

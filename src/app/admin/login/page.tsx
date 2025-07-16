@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-singleton';
 import Button from '@/components/admin/ui/Button';
 import Input from '@/components/admin/ui/Input';
 import { ADMIN_ROLE } from '@/lib/constants';

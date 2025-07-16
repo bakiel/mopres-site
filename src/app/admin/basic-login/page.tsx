@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase-client';
+import { supabase } from '@/lib/supabase-singleton';
 import { ADMIN_ROLE } from '@/lib/constants';
 import { logger } from '@/utils/logger';
 import { authenticateAdmin, createAdminSession, assignAdminRole } from '@/utils/admin-auth';
