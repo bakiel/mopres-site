@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Direct Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { background: #4CAF50; color: white; }
+        .danger { background: #f44336; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Admin Direct Cookie Test</h1>
+    
+    <div id="info"></div>
+    
+    <button class="success" onclick="setAdminSession()">Set Admin Session</button>
+    <button class="danger" onclick="clearAdminSession()">Clear Admin Session</button>
+    <button onclick="checkSession()">Check Session</button>
+    <button onclick="goToAdmin()">Go to Admin</button>
+    
+    <script>
+        function updateInfo() {
+            const info = document.getElementById('info');
+            const cookies = document.cookie;
+            const adminSession = cookies.includes('adminSession=authenticated');
+            const localStorage = {
+                session: window.localStorage.getItem('adminSession'),
+                expiry: window.localStorage.getItem('adminSessionExpiry')
+            };
+            
+            info.innerHTML = `
+                <div class="info">
+                    <h3>Current Status:</h3>
+                    <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+                    <p><strong>Admin Session Cookie:</strong> ${adminSession ? '✅ SET' : '❌ NOT SET'}</p>
+                    <p><strong>All Cookies:</strong> ${cookies || 'None'}</p>
+                    <p><strong>LocalStorage Session:</strong> ${localStorage.session || 'None'}</p>
+                    <p><strong>LocalStorage Expiry:</strong> ${localStorage.expiry || 'None'}</p>
+                    <p><strong>Location:</strong> ${window.location.href}</p>
+                    <p><strong>Hostname:</strong> ${window.location.hostname}</p>
+                    <p><strong>Protocol:</strong> ${window.location.protocol}</p>
+                </div>
+            `;
+        }
+        
+        function setAdminSession() {
+            // Determine if we need Secure flag
+            const isSecure = window.location.protocol === 'https:';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            // Build cookie string
+            let cookieString = 'adminSession=authenticated; path=/; max-age=86400; SameSite=Lax';
+            if (isSecure && !isLocalhost) {
+                cookieString += '; Secure';
+            }
+            
+            console.log('Setting cookie:', cookieString);
+            document.cookie = cookieString;
+            
+            // Also set in localStorage
+            window.localStorage.setItem('adminSession', 'authenticated');
+            window.localStorage.setItem('adminSessionExpiry', String(Date.now() + 86400000));
+            
+            updateInfo();
+            alert('Admin session set!');
+        }
+        
+        function clearAdminSession() {
+            document.cookie = 'adminSession=; path=/; max-age=0; SameSite=Lax';
+            window.localStorage.removeItem('adminSession');
+            window.localStorage.removeItem('adminSessionExpiry');
+            updateInfo();
+            alert('Admin session cleared!');
+        }
+        
+        function checkSession() {
+            updateInfo();
+        }
+        
+        function goToAdmin() {
+            window.location.href = '/admin';
+        }
+        
+        // Update on load
+        updateInfo();
+        
+        // Update every second
+        setInterval(updateInfo, 1000);
+    </script>
+</body>
+</html>
